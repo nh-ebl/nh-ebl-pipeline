@@ -1,0 +1,22 @@
+"""
+Demo of a line plot on a polar axis.
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+#import png
+#import itertools
+from scipy.io import loadmat
+#from scipy.ndimage import filters,zoom
+#import skimage
+#from skimage import io,color
+#from PIL import Image
+#import pyfits
+from matplotlib.backends.backend_pdf import PdfPages
+
+darktemp = loadmat('../../scratch/nh_dark_analysis_fig1.mat')
+
+ax = fig.add_subplot(1,2,1)
+
+ax.plot(darktemp['darkdate'],darktemp['darktemp'],marker='o')
+
+ax.show()

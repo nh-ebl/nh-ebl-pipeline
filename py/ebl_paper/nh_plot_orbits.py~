@@ -1,0 +1,20 @@
+"""
+Demo of a line plot on a polar axis.
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+#import png
+#import itertools
+from scipy.io import loadmat
+#from scipy.ndimage import filters,zoom
+#import skimage
+#from skimage import io,color
+#from PIL import Image
+#import pyfits
+
+# set up a plot
+ax = plt.subplot(111)
+
+
+
+

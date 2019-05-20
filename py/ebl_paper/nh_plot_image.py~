@@ -1,0 +1,24 @@
+"""
+Plot the calibrated images of each field.
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+#import png
+#import itertools
+from scipy.io import loadmat
+#from scipy.ndimage import filters,zoom
+#import skimage
+#from skimage import io,color
+#from PIL import Image
+#import pyfits
+from matplotlib.backends.backend_pdf import PdfPages
+
+myimage = loadmat('../../scratch/field1_image.mat')
+
+fig=plt.figure(figsize=(6.5,7))
+
+ax = fig.add_subplot(2,2,1)
+
+ax.imshow(myimage['image'])
+
+plt.show

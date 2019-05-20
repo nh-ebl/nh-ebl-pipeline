@@ -1,0 +1,178 @@
+"""
+Plot IPD information as we understand it.
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+#import png
+#import itertools
+from scipy.io import loadmat
+#from scipy.ndimage import filters,zoom
+#import skimage
+#from skimage import io,color
+#from PIL import Image
+#import pyfits
+from matplotlib.backends.backend_pdf import PdfPages
+
+# from Leinert 1998 table 2
+calfac = 21.7 * 0.44 * (7.40/21.7)
+
+fig=plt.figure(figsize=(6.5,3.0))
+
+
+
+f,(ax,ax1) = plt.subplots(2,sharex=True,gridspec_kw = {'height_ratios':[3, 1]})
+#ax = fig.add_subplot(1,1,1)
+
+ax.plot([0,20],[0,0],linestyle=':',color='black')
+
+ipd_density = np.recfromcsv('lookup/total_density_vs_r.txt',delimiter='   ')
+
+axa = ax.twinx()
+ax.set_zorder(axa.get_zorder()+1)
+ax.patch.set_visible(False)
+
+p2,=axa.plot(ipd_density['au'],ipd_density['au']**(-2)*ipd_density['density'],linestyle='-',color='green')
+axa.fill_between(ipd_density['au'],0.1*ipd_density['au']**(-2)*ipd_density['density'],10*ipd_density['au']**(-2)*ipd_density['density'],color='green',alpha=0.2)
+
+
+nhpos = loadmat('../../scratch/nh_position.mat')
+
+ipd_light = np.recfromcsv('lookup/ipd_light.txt',delimiter=',')
+
+rad = ipd_light['rad']
+lb_meas = calfac * ipd_light['lb_meas']
+lb_errdn = calfac * ipd_light['lb_errdn']
+lb_errup = calfac * ipd_light['lb_errup']
+aq_meas = calfac * ipd_light['aq_meas']
+aq_errdn = calfac * ipd_light['aq_errdn']
+aq_errup = calfac * ipd_light['aq_errup']
+
+lb_errdn = lb_meas - lb_errdn
+lb_errup = lb_errup - lb_meas
+aq_errdn = aq_meas - aq_errdn
+aq_errup = aq_errup - aq_meas
+
+lb_whpl = np.isnan(lb_meas)
+
+lb_err = np.zeros(np.size(rad))
+aq_err = np.zeros(np.size(rad))
+lIl_errup = np.zeros(np.size(rad))
+lIl_errdn = np.zeros(np.size(rad))
+lIl_err = np.zeros(np.size(rad))
+lIl = np.zeros(np.size(rad))
+
+for isamp in range(0,np.size(rad)):
+
+    lb_err[isamp] = (lb_errdn[isamp] + lb_errup[isamp])/2.
+    aq_err[isamp] = (aq_errdn[isamp] + aq_errup[isamp])/2.
+    
+    if np.isnan(lb_meas[isamp]):
+        #lb_err[isamp] = aq_err[isamp]        
+        lIl_errup[isamp] = aq_errup[isamp]
+        lIl_errdn[isamp] = aq_errdn[isamp]
+        lIl_err[isamp] = (lIl_errup[isamp] + lIl_errdn[isamp])/2.
+        lIl[isamp] = aq_meas[isamp]
+    else:
+        lIl_errup[isamp] = \
+            np.sqrt(1./(1./lb_errup[isamp]**2+1./aq_errup[isamp]**2))
+        lIl_errdn[isamp] = \
+            np.sqrt(1./(1./lb_errdn[isamp]**2+1./aq_errdn[isamp]**2))
+        lIl_err[isamp] = (lIl_errup[isamp] + lIl_errdn[isamp])/2.
+        lIl[isamp] = (lb_meas[isamp] / lb_err[isamp]**2 + \
+                      aq_meas[isamp] / aq_err[isamp]**2) * lIl_err[isamp]**2
+
+        
+p1,=ax.plot(rad,lIl,marker='o',color='red',linestyle='')
+ax.errorbar(rad,lIl,yerr=lIl_err,marker='o',color='red',linestyle='')
+
+ifield=1
+fieldname = ['1','1 & 2','3','4']
+for i in range(0,np.size(nhpos['fieldflag'])):
+    if nhpos['fieldflag'][i,0] == 1:
+        ax.plot([np.squeeze(nhpos['r'][i]),np.squeeze(nhpos['r'][i])],\
+                [0,35],linestyle=':',color='blue')
+        if nhpos['fieldnum'][i,0] == 3:
+            ax.annotate('Fields 1 & 2',\
+                        xy=(np.squeeze(nhpos['r'][i]),20),\
+                        xycoords='data',\
+                        xytext=(np.squeeze(nhpos['r'][i])+0.25,20),\
+                        textcoords='data',\
+                        horizontalalignment='left',verticalalignment='center',\
+                        rotation=90)
+        if nhpos['fieldnum'][i,0] == 6:
+            ax.annotate('Field 3',\
+                        xy=(np.squeeze(nhpos['r'][i]),20),\
+                        xycoords='data',\
+                        xytext=(np.squeeze(nhpos['r'][i])+0.25,20),\
+                        textcoords='data',\
+                        horizontalalignment='left',verticalalignment='center',\
+                        rotation=90)
+        if nhpos['fieldnum'][i,0] == 7:
+            ax.annotate('Field 4',\
+                        xy=(np.squeeze(nhpos['r'][i]),20),\
+                        xycoords='data',\
+                        xytext=(np.squeeze(nhpos['r'][i])+0.25,20),\
+                        textcoords='data',\
+                        horizontalalignment='left',verticalalignment='center',\
+                        rotation=90)
+        
+ax.set_ylim([-10,60])
+ax.set_xlim([0,20])
+
+ax.set_ylabel('IPD Light $\lambda I_{\lambda}$ (nW m$^{-2}$ sr$^{-1}$)')
+
+print 2./np.sqrt(np.sum(1/lIl_err[7:10]**2))
+
+
+axa.set_ylim([-1.66,10])
+axa.set_xlim([0,20])
+axa.set_ylabel(r'Density/$D_{\odot}^{2}$ (km$^{-3}$ AU$^{-2}$)')
+
+ax.legend([p1,p2],['Pioneer 10 IPP Photometry','Poppe (2016) IPD Model'],\
+              frameon=False,numpoints=1,fontsize=10,loc=1)
+
+if 0:
+    pten_flux = np.recfromcsv('lookup/p10data_fix.txt',delimiter='   ')
+    sdc_flux = np.recfromcsv('lookup/sdc_flux_fix.txt',delimiter='   ')
+
+    sdc_flux_r = (sdc_flux['min_au'] + sdc_flux['max_au']) / 2
+
+
+    pten_asym_err = [pten_flux['err_low']/3.1e-6/6,pten_flux['err_high']/3.1e-6/6]
+    axa.errorbar(pten_flux['au'],pten_flux['flux']/3.1e-6/6,yerr=pten_asym_err,marker='s',linestyle='',fillstyle='none',color='silver')
+    p2,=axa.plot(pten_flux['au'],pten_flux['flux']/3.1e-6/6,marker='s',linestyle='',fillstyle='none',color='grey')
+
+    sdc_asym_err = [np.squeeze(sdc_flux_r-sdc_flux['min_au']),np.squeeze(sdc_flux['max_au']-sdc_flux_r)]
+    axa.errorbar(sdc_flux_r,0.0075*sdc_flux['flux']/2.5e-5,yerr=0.0075*sdc_flux['error']/2.5e-5,xerr=sdc_asym_err,marker='v',linestyle='',fillstyle='none',color='silver')
+    p3,=axa.plot(sdc_flux_r,0.0075*sdc_flux['flux']/2.5e-5,marker='v',linestyle='',fillstyle='none',color='grey')
+
+    axa.set_ylim([-0.115,0.7])
+    axa.set_xlim([0,20])
+    axa.set_ylabel('Flux in Circular Orbit Scaled to 1 AU')
+
+
+
+    p1,=ax.plot(rad,lIl,marker='o',color='red',linestyle='')
+    ax.errorbar(rad,lIl,yerr=lIl_err,marker='o',color='red',linestyle='')
+
+    ax.legend([p1,p2,p3],['Pioneer 10 IPP Photometry','Scaled Pioneer 10 Dust Counter','Scaled New Horizons SDC'],\
+              frameon=False,numpoints=1,fontsize=10,loc=1)
+
+
+ax1.semilogy(ipd_density['au'],ipd_density['au']**(-2)*ipd_density['density'],linestyle='-',color='green')
+ax1.fill_between(ipd_density['au'],0.1*ipd_density['au']**(-2)*ipd_density['density'],10*ipd_density['au']**(-2)*ipd_density['density'],color='green',alpha=0.2)
+
+plt.subplots_adjust(hspace=0)
+
+ax1.set_xlabel('Heliocentric Distance (AU)')
+ax1.set_ylim([1e-3,800])
+ax1.set_ylabel(r'log$_{10}(\rho/D_{\odot}^{2})$')
+
+    
+#plt.tight_layout()
+
+#plt.show()
+pdf = PdfPages('nh_plot_ipdlight.pdf')
+pdf.savefig()
+pdf.close()
+

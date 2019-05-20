@@ -1,0 +1,26 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import rc
+
+fig=plt.figure(figsize=(6.5,5))
+
+ax = plt.subplot(111)
+
+xmin = 0
+xmax = 10
+ymin=-10
+ymax=30
+
+
+
+
+ax.set_xlim(xmin,xmax)
+ax.set_ylim(ymin,ymax)
+ax.set_xlabel(r'$\lambda$ ($\mu$m)')
+ax.set_ylabel(r'$\lambda I_{\lambda}^{\rm COB}$ (nW m$^{-2}$ sr$^{-1}$)')
+
+plt.tight_layout()
+#plt.show()
+plt.savefig('nh_plot_cob.pdf')
+
+plt.close()
