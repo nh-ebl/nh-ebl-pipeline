@@ -2,7 +2,7 @@
 % spreadsheet, retrieves x/y location of bright stars just outside FOV from data files, and
 % compares to find relationship
 
-% Symons, May 2019 
+% Symons, May 2019
 
 %% Import data from spreadsheet
 % Import ghost data from previously made spreadsheet
