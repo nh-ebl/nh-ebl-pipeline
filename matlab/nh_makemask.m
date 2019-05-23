@@ -231,10 +231,10 @@ mask.maskfrac = maskfrac;
 mask.maxmag = max_mag;
 
 % and append it to the data structure
-data.mask = mask;
-data.stats.maskmean = datmean;
-data.stats.maskstd = datstd;
-data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
+% data.mask = mask;
+% data.stats.maskmean = datmean;
+% data.stats.maskstd = datstd;
+% data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 
 % ax1 = subplot(1,2,1);
 % imagesc(data.data.*~data.mask.onemask)
@@ -248,16 +248,16 @@ data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 % caxis([-5,100])
 % caxis(ax1.CLim)
 
-% h = figure(1);
-% clf;
-% imagesc(data.data.*~data.mask.onemask)
-% set(h,'visible','off');
-% % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-% colorbar; 
-% caxis([-10,10]);
-% title(sprintf('%s',data.header.rawfile));
-% ext = '.png';
-% imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
-% print(h,imagename, '-dpng');
+h = figure(1);
+clf;
+imagesc(data.data.*~mask.onemask)
+set(h,'visible','off');
+% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+colorbar; 
+caxis([-10,10]);
+title(sprintf('%s',data.header.rawfile));
+ext = '.png';
+imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
+print(h,imagename, '-dpng');
 
 end
