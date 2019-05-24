@@ -33,8 +33,8 @@ for ifile=1:size(datafiles,1)
     
     if procstepflag > 1
         
-%         data = nh_findghost(data);
-        data = nh_makemask(data);
+        data = nh_findghost(data);
+%         data = nh_makemask(data);
         
         save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         

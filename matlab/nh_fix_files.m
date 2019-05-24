@@ -68,7 +68,7 @@ function nh_fix_files()
        darkpst = subfile(23:43); 
      end
      
-     darkstring = sprintf('%s%s/%seng.fit',paths.engdir,darkpre,darkpst);
+     darkstring = sprintf('%s%s/%seng_1.fit',paths.engdir,darkpre,darkpst);
      
      data.ref.file = darkstring;
      
