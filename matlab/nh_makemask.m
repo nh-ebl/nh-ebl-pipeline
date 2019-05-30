@@ -256,8 +256,8 @@ set(h,'visible','off');
 colorbar; 
 caxis([-10,10]);
 title(sprintf('%s',data.header.rawfile));
-ext = '.png';
-imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
-print(h,imagename, '-dpng');
+% ext = '.png';
+% imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
+% print(h,imagename, '-dpng');
 
 end

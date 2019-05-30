@@ -9,8 +9,8 @@ close all
 
 %==================User Settings==================
 %Linux Path
-path = '/data/symons/nh_data/'
-phase = 'pluto'
+path = '/data/symons/NH_old_data/NH/'
+phase = ''
 
 %Windows Path
 %phase = ''; %make it empty to keep it simple
@@ -19,14 +19,16 @@ phase = 'pluto'
 %fitsDataFileName = '0FITsDataSummary.txt'; %set the file name for the dataArray of the FITs file keywords (0 makes it at the top!)
 %fitsDataFileDelimiter = '\t'; %sets the delimiter between value entries
 %-----csv file (Excel opens it nicely! - also csv stands for comma seperated value)-----
-fitsDataFileName = '0sol_elon_data.csv'; %set the file name for the dataArray of the FITs file keywords (0 makes it at the top!)
+fitsDataFileName = '0exp_time_data_old.csv'; %set the file name for the dataArray of the FITs file keywords (0 makes it at the top!)
 fitsDataFileDelimiter = ','; %sets the delimiter between value entries
 
 %Make a list of all of the needed keywords in FITs file
 fitsKeywordList = {... %start this off
     'SPCBRRA'... %Right Ascension (Boresight RA EME J2000)
     'SPCBRDEC'... %Declination (Boresight DEC EME J2000)
+    'SPCUTCAL'... %Date and time in UTC
     'SOL_ELON'... %Solar Elongation
+    'EXPTIME'... %Exposure Time
     'TARGET'... %Intended Target
     'TRGFOVN'... %Number of targets in view
     'TRGFOV00'... %MUST BE LAST! Actual target in frame, can be more than one - uses TRGFOV00, TRGFOV01 naming scheme
@@ -36,7 +38,7 @@ fitsKeywordList = {... %start this off
 
 %==================Read the FITs Files==================
 %Get the names of the FITs files in the directory
-filename = sprintf('%s%s/selected_data/*fit',path,phase); %prep the file name looking system
+filename = sprintf('%s%s/regist/selected_data/good/*fit',path,phase); %prep the file name looking system
 files = dir(filename); %get list of all FITs files in the directory
 
 %Preallocate arrays
@@ -49,7 +51,7 @@ FLG_fitsKeywordListEdited = 0; %flag that denotes that the fits keyword list was
 %1st - loop through each FITs file found in the directory
 for( i = 1:length(files) )
     i
-    info= fitsinfo(sprintf('%s%s/selected_data/%s',path,phase,files(i).name)); %get FITs file header info
+    info= fitsinfo(sprintf('%s%s/regist/selected_data/good/%s',path,phase,files(i).name)); %get FITs file header info
 
     dataArray{i,1} = files(i).name; %record the file name in the first entry
     
