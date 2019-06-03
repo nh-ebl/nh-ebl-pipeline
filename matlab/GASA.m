@@ -5,6 +5,9 @@
 % Symons, May 2019
 % Thayer June 2019
 
+clear all
+close all
+
 %% Import data from spreadsheet
 % Import ghost data from previously made spreadsheet
 % Script for importing data from the following spreadsheet:
@@ -80,7 +83,7 @@ for ifile=1:size(datafiles,1)
     data.ghost.ghosty = oldghostinfo{ifile,15};
     data.ghost.ghostrad = oldghostinfo{ifile,16};
     data.ghost.ghostdist = oldghostinfo{ifile,17};
-    data.ghost.ghostpartial = oldghostinfo{ifile,13};
+    data.ghost.ghostpartial = oldghostinfo{ifile,18};
     data.ghost.ghostmag= oldghostinfo{ifile,20};
     
     % If no ghost, do nothing
@@ -174,7 +177,7 @@ for ifile=1:size(datafiles,1)
             % Make plot of ghost location and bright star locations - blue for
             % regular ghost and red for partial ghost
             % this plot is for second star options, just to check them out
-%                         h = figure(1);
+%                         h = figure;
 %                         clf;
 %                         x1=200;
 %                         x2=455;
@@ -230,11 +233,11 @@ for ifile=1:size(datafiles,1)
     end
     
     % Save new data to mat files
-    %     save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+%         save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
     
 end
 % For new data files
-
+cntr = 7; % counter for figures
 for ifile=1:size(ndatafiles,1)
     
     % Print current file number
@@ -248,7 +251,7 @@ for ifile=1:size(ndatafiles,1)
     data.ghost.ghosty = ghostinfo{ifile,15};
     data.ghost.ghostrad = ghostinfo{ifile,16};
     data.ghost.ghostdist = ghostinfo{ifile,17};
-    data.ghost.ghostpartial = ghostinfo{ifile,13};
+    data.ghost.ghostpartial = ghostinfo{ifile,18};
     data.ghost.ghostmag = ghostinfo{ifile,20};
     
     % If no ghost, do nothing
@@ -343,7 +346,8 @@ for ifile=1:size(ndatafiles,1)
             % Make plot of ghost location and bright star locations - blue for
             % regular ghost and red for partial ghost
             % this plot is for second star options, just to check them out
-%                         h = figure(1);
+%                         cntr = cntr + 1;
+%                         h = figure(cntr);
 %                         clf;
 %                         x1=200;
 %                         x2=455;
@@ -371,7 +375,8 @@ for ifile=1:size(ndatafiles,1)
         
         % Make plot of ghost location and bright star locations - blue for
         % regular ghost and red for partial ghost
-%                 h = figure(1);
+%                 cntr = cntr + 1;
+%                 h = figure(cntr);
 %                 set(h,'visible','off');
 %                 clf;
 %                 x1=200;
