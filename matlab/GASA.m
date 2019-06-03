@@ -150,6 +150,10 @@ for ifile=1:size(datafiles,1)
         starrad(ifile,1) = M;
         starxadj(ifile,1) = starx(I,1);
         staryadj(ifile,1) = stary(I,1);
+        
+        %assigning mags to graph properly
+        brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
+        ghostmag((ifile+16),1) = data.ghost.ghostmag;
         % For all stars, save star/cent distance, ghost/cent distance, and
         % star/ghost distance
         starcentdistall(ifile,1) = stardistcent(1,I);
@@ -259,7 +263,7 @@ for ifile=1:size(ndatafiles,1)
         fprintf('No ghost.');
     else
         % If ghost exists, save ghost position
-        ghostdist(ifile,1) = data.ghost.ghostdist;
+        ghostdist((ifile+16),1) = data.ghost.ghostdist;
         % If ghost is partial, save that information
         if strcmp(data.ghost.ghostpartial , 'partial ') == 1
             ghostpart((ifile+16),1) = 1;
@@ -281,6 +285,7 @@ for ifile=1:size(ndatafiles,1)
         
         % For all stars, retrieve x and y position
         for j = 1:numstars
+            
             
             x = data.ghost.brightxpix(1,j);
             y = data.ghost.brightypix(1,j);
@@ -330,6 +335,10 @@ for ifile=1:size(ndatafiles,1)
         ghostposadj((ifile+16),1) = sqrt((199+data.ghost.ghostx)^2 + (199+data.ghost.ghosty)^2);
         ghostxadj((ifile+16),1) = 199+data.ghost.ghostx;
         ghostyadj((ifile+16),1) = 199+data.ghost.ghosty;
+        
+        %assigning mags to graph properly
+        brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
+        ghostmag((ifile+16),1) = data.ghost.ghostmag;
         
         % If more than one star per ghost (never seen more than 2), save
         % info for star that's farther away
@@ -439,17 +448,44 @@ figure(6);
 scatter(starxadj(starxadj~=0), ghostxadj(ghostxadj~=0));
 xlabel('Star x position');
 ylabel('Ghost x position');
+hold on
+%best fit linear x positions
+fitx= polyfit(starxadj(starxadj~=0),ghostxadj(ghostxadj~=0),1)
+starxfit=linspace(min(starxadj(starxadj~=0)),max(starxadj(starxadj~=0)));
+ghostxfit= (fitx(1).*starxfit + fitx(2));
+plot(starxfit,ghostxfit);
+legend('data','fit x');
+text(350,355,'y=0.1208x+296.7564')
+hold off
 
 % Plot star y position vs ghost y position
 figure(7);
 scatter(staryadj(staryadj~=0), ghostyadj(ghostyadj~=0));
 xlabel('Star y position');
 ylabel('Ghost y position');
+hold on
+%best fit linear y positions
+fity= polyfit(staryadj(staryadj~=0),ghostyadj(ghostyadj~=0),1)
+staryfit=linspace(min(staryadj(staryadj~=0)),max(staryadj(staryadj~=0)));
+ghostyfit=(fity(1).*staryfit + fity(2));
+plot(staryfit,ghostyfit);
+legend('data', 'fit y');
+text(400,360,'y=0.1127x+293.9804')
+hold off
 
 % Plot star mag vs ghost mag
 figure(8);
 scatter(brightmag(brightmag~=0), ghostmag(ghostmag~=0));
 xlabel('Star Magnitude');
 ylabel('Ghost Magnitude');
+hold on
+%best fit linear magnitudes
+fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1)
+starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
+ghostfit= (fit(1)*starfit + fit(2));
+plot(starfit,ghostfit);
+legend('data','fit');
+text(5,17,'y=1.2726x+6.9524')
+hold off
 
 drawnow;
