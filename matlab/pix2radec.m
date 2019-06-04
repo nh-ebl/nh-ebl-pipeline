@@ -22,8 +22,8 @@ function [alpha,delta]=pix2radec(astrometry,xpix,ypix)
 
   radeg = 180.0d0 ./ pi;
   
-  u = xpix - astrometry.id__rpix1;
-  v = ypix - astrometry.id__rpix2;
+  u = xpix - astrometry.id__rpix2;
+  v = ypix - astrometry.id__rpix1;
 
   up = u;  
   vp = v;

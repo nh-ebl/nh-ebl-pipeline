@@ -69,6 +69,7 @@ star2posadj = NaN*ones((size(datafiles,1)+size(ndatafiles,1)),1);
 brightmag= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 ghostmag= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 
+
 % For old data files
 for ifile=1:size(datafiles,1)
     
@@ -85,7 +86,7 @@ for ifile=1:size(datafiles,1)
     data.ghost.ghostdist = oldghostinfo{ifile,17};
     data.ghost.ghostpartial = oldghostinfo{ifile,18};
     data.ghost.ghostmag= oldghostinfo{ifile,20};
-    
+    [data.ghost.ghostra,data.ghost.ghostdec]=pix2radec(data.astrometry,data.ghost.ghostx,data.ghost.ghosty);
     % If no ghost, do nothing
     if  strcmp(data.ghost.ghostx, 0) == 1
         fprintf('No ghost ');
@@ -206,9 +207,9 @@ for ifile=1:size(datafiles,1)
 %                             pause;
 %                         end
         end
-        
-        % Make plot of ghost location and bright star locations - blue for
-        % regular ghost and red for partial ghost
+%         
+%         % Make plot of ghost location and bright star locations - blue for
+%         % regular ghost and red for partial ghost
 %                 h = figure(1);
 %                 set(h,'visible','off');
 %                 clf;
@@ -233,13 +234,14 @@ for ifile=1:size(datafiles,1)
 %                 ext = '.png';
 %                 imagename = sprintf('%s%s%s',paths.ghostdir,data.header.timestamp,ext);
 %                 print(h,imagename, '-dpng');
-%         
+% %         
     end
     
     % Save new data to mat files
-%         save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+         save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
     
 end
+
 % For new data files
 cntr = 7; % counter for figures
 for ifile=1:size(ndatafiles,1)
@@ -262,6 +264,7 @@ for ifile=1:size(ndatafiles,1)
     if strcmp(data.ghost.ghostx , '') == 1 || data.ghost.ghostx == 0
         fprintf('No ghost.');
     else
+        [data.ghost.ghostra,data.ghost.ghostdec]=pix2radec(data.astrometry,data.ghost.ghostx,data.ghost.ghosty);
         % If ghost exists, save ghost position
         ghostdist((ifile+16),1) = data.ghost.ghostdist;
         % If ghost is partial, save that information
@@ -381,9 +384,9 @@ for ifile=1:size(ndatafiles,1)
 %                             pause;
 %                         end
         end
-        
-        % Make plot of ghost location and bright star locations - blue for
-        % regular ghost and red for partial ghost
+%         
+%         % Make plot of ghost location and bright star locations - blue for
+%         % regular ghost and red for partial ghost
 %                 cntr = cntr + 1;
 %                 h = figure(cntr);
 %                 set(h,'visible','off');
@@ -413,9 +416,14 @@ for ifile=1:size(ndatafiles,1)
     end
     
     % Save new data to mat files
-    %     save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'ndata');
+         save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
     
 end
+
+%translate pix to ra and dec
+
+
+
 % Plot ghost total position vs distance from center to closest star
 figure(2);
 scatter(starcentdistall(starcentdistall~=0),ghostposadj(ghostposadj~=0));
@@ -450,7 +458,7 @@ xlabel('Star x position');
 ylabel('Ghost x position');
 hold on
 %best fit linear x positions
-fitx= polyfit(starxadj(starxadj~=0),ghostxadj(ghostxadj~=0),1)
+fitx= polyfit(starxadj(starxadj~=0),ghostxadj(ghostxadj~=0),1);
 starxfit=linspace(min(starxadj(starxadj~=0)),max(starxadj(starxadj~=0)));
 ghostxfit= (fitx(1).*starxfit + fitx(2));
 plot(starxfit,ghostxfit);
@@ -465,7 +473,7 @@ xlabel('Star y position');
 ylabel('Ghost y position');
 hold on
 %best fit linear y positions
-fity= polyfit(staryadj(staryadj~=0),ghostyadj(ghostyadj~=0),1)
+fity= polyfit(staryadj(staryadj~=0),ghostyadj(ghostyadj~=0),1);
 staryfit=linspace(min(staryadj(staryadj~=0)),max(staryadj(staryadj~=0)));
 ghostyfit=(fity(1).*staryfit + fity(2));
 plot(staryfit,ghostyfit);
@@ -480,7 +488,7 @@ xlabel('Star Magnitude');
 ylabel('Ghost Magnitude');
 hold on
 %best fit linear magnitudes
-fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1)
+fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1);
 starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
 ghostfit= (fit(1)*starfit + fit(2));
 plot(starfit,ghostfit);

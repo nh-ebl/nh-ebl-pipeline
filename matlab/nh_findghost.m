@@ -4,6 +4,8 @@
 % Set up to be run from nh_pipeline
 
 % Symons, May 2019
+% Thayer, June 2019
+%added the RA and DEC variables and recorded their values
 
 function data = nh_findghost(data)
 
@@ -37,6 +39,11 @@ quad4 = 0;
 quadxpix = zeros(ncat,1);
 quadypix = zeros(ncat,1);
 quadmag = zeros(ncat,1);
+brightra=zeros(ncat,1);
+brightdec=zeros(ncat,1);
+raa=zeros(ncat,1);
+decc=zeros(ncat,1);
+
 
 % loop over each catalog entry;
 for row = 1:ncat
@@ -44,7 +51,8 @@ for row = 1:ncat
     % retrieve magnitudes and star/galaxy classification
     mags = [B1mag(row),B2mag(row),R1mag(row),R2mag(row),I2mag(row)];
     sg = [B1sg(row),B2sg(row),R1sg(row),R2sg(row),I2sg(row)];
-    
+    raa=RA(row);
+    decc=DEC(row);
     % using all magnitudes, calculate average magnitude
     lambda_mag = [425,462.5,645,650,810];
     whpl = (mags < 20) & (mags > 1);
@@ -66,7 +74,7 @@ for row = 1:ncat
     
     %find x/y coordinate of the object
     [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
-    
+   
     % check if the object is in the target zone
     check = 0;
     % quad 1
@@ -117,10 +125,13 @@ end
 quadxpix = quadxpix(quadxpix~=0);
 quadypix = quadypix(quadypix~=0);
 quadmag = quadmag(quadmag~=0);
+brightra= raa(raa~=0);
+brightdec=decc(decc~=0);
 
 % save bright star info to data
 data.ghost.brightmag = quadmag;
 data.ghost.brightxpix = quadxpix;
 data.ghost.brightypix = quadypix; 
-
+data.ghost.brightra = raa;
+data.ghost.brightdec = decc;
 end
