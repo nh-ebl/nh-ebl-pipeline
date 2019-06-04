@@ -420,8 +420,6 @@ for ifile=1:size(ndatafiles,1)
     
 end
 
-%translate pix to ra and dec
-
 
 
 % Plot ghost total position vs distance from center to closest star
