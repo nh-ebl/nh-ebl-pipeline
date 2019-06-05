@@ -383,6 +383,7 @@ for ifile=1:size(ndatafiles,1)
 %                         if( (ifile+16) < 134 && (ifile+16) > 120 )
 %                             pause;
 %                         end
+%hold off;
         end
 %         
 %         % Make plot of ghost location and bright star locations - blue for
@@ -412,6 +413,7 @@ for ifile=1:size(ndatafiles,1)
 %                 ext = '.png';
 %                 imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
 %                 print(h,imagename, '-dpng');
+%hold off;
         
     end
     

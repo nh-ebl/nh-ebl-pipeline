@@ -54,7 +54,7 @@ ghostmag= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 for ifile=1:size(datafiles,1)
     
     % Print current file number
-    disp(sprintf('On file %d of %d.',ifile,size(datafiles,1)));
+    fprintf('On file %d of %d.\n',ifile,size(datafiles,1));
     
     % Load data
     load(sprintf('%s%s',paths.datadir,datafiles(ifile).name));
@@ -81,7 +81,7 @@ for ifile=1:size(datafiles,1)
         elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
             ghostpart(ifile,1) = 0.5;
         end
-        
+    end
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,2);
         
@@ -203,22 +203,245 @@ for ifile=1:size(datafiles,1)
                 xlim([0,654]);
                 ylim([0,654]);
                 pbaspect([1 1 1]);
-%                 scatter(starx,stary,'p','filled');
-                if ghostpart(ifile,1) == 1
-                    scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
-                elseif ghostpart(ifile,1) == 0
+                    
+                if ghostpart(ifile,1) == 0 && (data.ghost.ghostx)>=0 && (data.ghost.ghostx)<=116;
                     scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
                 end
-               for (data.ghost.ghostx)<~0 && (data.ghost.ghostx)>~116;
+               if (data.ghost.ghostx)>=0 && (data.ghost.ghostx)<=116;
                    scatter(starx,stary,'b','filled');
                end
+               if (data.ghost.ghostx)>=117 && (data.ghost.ghostx)<=160;
+                    scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'g','filled');
+                    scatter(starx,stary,'g','filled');
+               end
                 title(sprintf('%s',data.header.rawfile));
-                ext = '.png';
-                imagename = sprintf('%s%s%s',paths.ghostdir,data.header.timestamp,ext);
-                print(h,imagename, '-dpng');
-               
+%                 ext = '.png';
+%                 imagename = sprintf('%s%s%s',paths.ghostdir,data.header.timestamp,ext);
+%                 print(h,imagename, '-dpng');
+%              
                 
         
        
-    end
 end
+
+% For new data files
+cntr = 7; % counter for figures
+for ifile=1:size(ndatafiles,1)
+    
+    % Print current file number
+    disp(sprintf('On file %d of %d.',ifile,size(ndatafiles,1)));
+    
+    % Load data
+    load(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name));
+    
+    % Append ghost x and y position, radius, total position, and if partial
+    data.ghost.ghostx = ghostinfo{ifile,14};
+    data.ghost.ghosty = ghostinfo{ifile,15};
+    data.ghost.ghostrad = ghostinfo{ifile,16};
+    data.ghost.ghostdist = ghostinfo{ifile,17};
+    data.ghost.ghostpartial = ghostinfo{ifile,18};
+    data.ghost.ghostmag = ghostinfo{ifile,20};
+    
+    % If no ghost, do nothing
+    if strcmp(data.ghost.ghostx , '') == 1 || data.ghost.ghostx == 0
+        fprintf('No ghost.');
+    else
+        [data.ghost.ghostra,data.ghost.ghostdec]=pix2radec(data.astrometry,data.ghost.ghostx,data.ghost.ghosty);
+        % If ghost exists, save ghost position
+        ghostdist((ifile+16),1) = data.ghost.ghostdist;
+        % If ghost is partial, save that information
+        if strcmp(data.ghost.ghostpartial , 'partial ') == 1
+            ghostpart((ifile+16),1) = 1;
+            % If ghost not visible in set where other ghosts exist, save that
+            % info
+        elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
+            ghostpart((ifile+16),1) = 0.5;
+        end
+        
+        % Calculate number of potential bright stars contributing to ghost
+        numstars = size(data.ghost.brightmag,2);
+        
+        % Preallocate space for list of star distance to center, star
+        % distance to ghost, and x and y coord of star
+        stardistcent = zeros(1,numstars);
+        stardistghost = zeros(1,numstars);
+        starx = zeros(numstars,1);
+        stary = zeros(numstars,1);
+        
+        % For all stars, retrieve x and y position
+        for j = 1:numstars
+            
+            
+            x = data.ghost.brightxpix(1,j);
+            y = data.ghost.brightypix(1,j);
+            
+            % Adjust coordinates for large (654x654) grid
+            if x < 0
+                x = 199 + x;
+            else
+                x = x + 199;
+            end
+            if y < 0
+                y = 199 + y;
+            else
+                y = y + 199;
+            end
+            
+            % Save star x and y adjusted positions
+            starx(j,1) = x;
+            stary(j,1) = y;
+            
+            % Calculate distance from center pixel to star pixel and
+            % distance from star pixel to ghost pixel
+            stardistcent(1,j) = sqrt((x-(199+128))^2 + (y-(199+128))^2);
+            stardistghost(1,j) = sqrt((x-(199+data.ghost.ghostx))^2 + (y-(199+(256-data.ghost.ghosty)))^2);
+        end
+        
+        % Save star to center and star to ghost distances
+        data.ghost.stardistcent = stardistcent;
+        data.ghost.stardistghost = stardistghost;
+        % Find which star (if more than one) is closest to ghost (assuming
+        % that is the cause of the ghost)
+        [M,I] = min(stardistghost);
+        % Save the star/ghost distance and x and y coords for the closest
+        % star to ghost
+        starrad((ifile+16),1) = M;
+        starxadj((ifile+16),1) = starx(I,1);
+        staryadj((ifile+16),1) = stary(I,1);
+
+        % For all stars, save star/cent distance, ghost/cent distance, and
+        % star/ghost distance
+        starcentdistall((ifile+16),1) = stardistcent(1,I);
+        ghostcentdistall((ifile+16),1) = sqrt(((199+128) - (199+data.ghost.ghostx))^2 + ((199+128) - (199+data.ghost.ghosty))^2);
+        starghostdistall((ifile+16),1) = stardistghost(1,I);
+        % Save star total position, ghost total position, and ghost x and y
+        % adjusted coords
+        starposadj((ifile+16),1) = sqrt(starxadj((ifile+16),1)^2 + staryadj((ifile+16),1)^2);
+        ghostposadj((ifile+16),1) = sqrt((199+data.ghost.ghostx)^2 + (199+data.ghost.ghosty)^2);
+        ghostxadj((ifile+16),1) = 199+data.ghost.ghostx;
+        ghostyadj((ifile+16),1) = 199+data.ghost.ghosty;
+        
+        %assigning mags to graph properly
+        brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
+        ghostmag((ifile+16),1) = data.ghost.ghostmag;
+        
+        % If more than one star per ghost (never seen more than 2), save
+        % info for star that's farther away
+        if( length(stardistghost) > 1 ) %check out 2 star options instances
+            
+            % Find star with max distance
+            [M,I] = max(stardistghost);
+            %             star2rad(ifile,1) = M;
+            % Save x and y adjusted coords and adjusted total position
+            star2xadj((ifile+16),1) = starx(I,1);
+            star2yadj((ifile+16),1) = stary(I,1);
+            star2posadj((ifile+16),1) = sqrt(star2xadj((ifile+16),1)^2 + star2yadj((ifile+16),1)^2);
+            
+            % Make plot of ghost location and bright star locations - blue for
+            % regular ghost and red for partial ghost
+            % this plot is for second star options, just to check them out
+%                         cntr = cntr + 1;
+%                         h = figure(cntr);
+% %                         clf;
+%                         x1=200;
+%                         x2=455;
+%                         y1=200;
+%                         y2=455;
+%                         xbox = [x1, x2, x2, x1, x1];
+%                         ybox = [y1, y1, y2, y2, y1];
+%                         plot(xbox, ybox, 'k-', 'LineWidth', 3);
+%                         hold on;
+%                         xlim([0,654]);
+%                         ylim([0,654]);
+%                         pbaspect([1 1 1]);
+%                         scatter(starx,stary,'y','filled');
+%                         scatter(starx(I,1),stary(I,1),'g','filled');
+%                         if ghostpart((ifile+16),1) == 1
+%                             scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
+%                         elseif ghostpart((ifile+16),1) == 0
+%                             scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
+%                         end
+%                         title(sprintf('%s',data.header.rawfile));
+%                         if( (ifile+16) < 134 && (ifile+16) > 120 )
+%                             pause;
+%                         end
+        end
+%         
+%         % Make plot of ghost location and bright star locations - blue for
+%         % regular ghost and red for partial ghost
+                cntr = cntr + 1;
+                h = figure(2);
+                set(h,'visible','on');
+%                 clf;
+                x1=200;
+                x2=455;
+                y1=200;
+                y2=455;
+                xbox = [x1, x2, x2, x1, x1];
+                ybox = [y1, y1, y2, y2, y1];
+                plot(xbox, ybox, 'k-', 'LineWidth', 3);
+                xlim([0,654]);
+                ylim([0,654]);
+                pbaspect([1 1 1]);
+                hold on;
+                 if ghostpart((ifile+16),1) == 1
+                    g1= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'y','filled');
+                    hold on;
+                    scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'y','filled');
+%                  
+                 elseif (data.ghost.ghostx)>=120 && (data.ghost.ghostx)<=125
+                    g3= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
+                    hold on;
+                    scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'r','filled');
+%                     
+                 elseif (data.ghost.ghostx)>=126 && (data.ghost.ghostx)<=130
+                    g5= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'m','filled');
+                    hold on;
+
+                    scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'m','filled');
+%                   
+                 elseif (data.ghost.ghostx)>= 131 && (data.ghost.ghostx)<=135
+                    g7= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'c','filled');
+                    hold on;
+
+                    scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'c','filled');
+%                    
+                 elseif (data.ghost.ghostx)>=136 && (data.ghost.ghostx)<=140
+                    g99= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
+                    hold on;
+
+                    scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'b','filled');
+                    
+                 elseif (data.ghost.ghostx)>=141 && (data.ghost.ghostx)<=150
+                    g11= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'k','filled');
+                    hold on;
+
+                    scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'k','filled');
+                    
+                  
+                  
+                 end
+             
+                
+%                 title(sprintf('%s',data.header.rawfile));
+%                 ext = '.png';
+%                 imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
+%                 print(h,imagename, '-dpng');
+        
+    end
+    
+    % Save new data to mat files
+%          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
+%     
+end
+legend([g1,g3,g5,g7,g99,g11],{'Partial','120-125','126-130','131-135','136-140','141-150'});
+
+
+
+
+
+
+
+
+
+ 

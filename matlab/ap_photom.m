@@ -43,4 +43,5 @@ skysub_apsum = apsum - bkgsum;
 
 %inputs like data.data.*~data.mask.onemask, data.ghost.ghostx,
 %data.ghost.ghosty, data.ghost.ghostrad
+%ninner = 2 nouter = 3
 end
