@@ -7,8 +7,8 @@
 %attempting to plot all of the star ghost graphs in one to watch a
 %transition occur instead of individulaized graphs for each file
 
-clear all
-close all
+% clear all
+% close all
 
 %% Import data from spreadsheet
 % Import ghost data from previously made spreadsheet
@@ -185,37 +185,37 @@ for ifile=1:size(datafiles,1)
             % Make plot of ghost location and bright star locations - blue for
             % regular ghost and red for partial ghost
             % this plot is for second star options, just to check them out
-                        h = figure;
-                        clf;
-                        x1=200;
-                        x2=455;
-                        y1=200;
-                        y2=455;
-                        xbox = [x1, x2, x2, x1, x1];
-                        ybox = [y1, y1, y2, y2, y1];
-                        plot(xbox, ybox, 'k-', 'LineWidth', 3);
-                        hold on;
-                        xlim([0,654]);
-                        ylim([0,654]);
-                        pbaspect([1 1 1]);
-                        scatter(starx,stary,'y','filled');
-                        scatter(starx(I,1),stary(I,1),'g','filled');
-                        if ghostpart(ifile,1) == 1
-                            scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
-                        elseif ghostpart(ifile,1) == 0
-                            scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
-                        end
-                        title(sprintf('%s',data.header.rawfile));
-                        if( ifile < 134 && ifile > 120 )
-                            pause;
-                        end
+%                         h = figure;
+% %                         clf;
+%                         x1=200;
+%                         x2=455;
+%                         y1=200;
+%                         y2=455;
+%                         xbox = [x1, x2, x2, x1, x1];
+%                         ybox = [y1, y1, y2, y2, y1];
+%                         plot(xbox, ybox, 'k-', 'LineWidth', 3);
+%                         hold on;
+%                         xlim([0,654]);
+%                         ylim([0,654]);
+%                         pbaspect([1 1 1]);
+%                         scatter(starx,stary,'y','filled');
+%                         scatter(starx(I,1),stary(I,1),'g','filled');
+%                         if ghostpart(ifile,1) == 1
+%                             scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
+%                         elseif ghostpart(ifile,1) == 0
+%                             scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
+%                         end
+%                         title(sprintf('%s',data.header.rawfile));
+%                         if( ifile < 134 && ifile > 120 )
+%                             pause;
+%                         end
         end
 %         
 %         % Make plot of ghost location and bright star locations - blue for
 %         % regular ghost and red for partial ghost
                 h = figure(1);
-                set(h,'visible','off');
-                clf;
+                set(h,'visible','on');
+%                 clf;
                 x1=200;
                 x2=455;
                 y1=200;
@@ -227,7 +227,7 @@ for ifile=1:size(datafiles,1)
                 xlim([0,654]);
                 ylim([0,654]);
                 pbaspect([1 1 1]);
-                scatter(starx,stary,'y','filled');
+                scatter(starx,stary,'p','filled');
                 if ghostpart(ifile,1) == 1
                     scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
                 elseif ghostpart(ifile,1) == 0
@@ -237,11 +237,13 @@ for ifile=1:size(datafiles,1)
                 ext = '.png';
                 imagename = sprintf('%s%s%s',paths.ghostdir,data.header.timestamp,ext);
                 print(h,imagename, '-dpng');
-%         
+               
+                
+        
     end
     
     % Save new data to mat files
-         save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+%          save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
     
 end
 
@@ -361,39 +363,39 @@ for ifile=1:size(ndatafiles,1)
             % Make plot of ghost location and bright star locations - blue for
             % regular ghost and red for partial ghost
             % this plot is for second star options, just to check them out
-                        cntr = cntr + 1;
-                        h = figure(cntr);
-                        clf;
-                        x1=200;
-                        x2=455;
-                        y1=200;
-                        y2=455;
-                        xbox = [x1, x2, x2, x1, x1];
-                        ybox = [y1, y1, y2, y2, y1];
-                        plot(xbox, ybox, 'k-', 'LineWidth', 3);
-                        hold on;
-                        xlim([0,654]);
-                        ylim([0,654]);
-                        pbaspect([1 1 1]);
-                        scatter(starx,stary,'y','filled');
-                        scatter(starx(I,1),stary(I,1),'g','filled');
-                        if ghostpart((ifile+16),1) == 1
-                            scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
-                        elseif ghostpart((ifile+16),1) == 0
-                            scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
-                        end
-                        title(sprintf('%s',data.header.rawfile));
-                        if( (ifile+16) < 134 && (ifile+16) > 120 )
-                            pause;
-                        end
+%                         cntr = cntr + 1;
+%                         h = figure(cntr);
+% %                         clf;
+%                         x1=200;
+%                         x2=455;
+%                         y1=200;
+%                         y2=455;
+%                         xbox = [x1, x2, x2, x1, x1];
+%                         ybox = [y1, y1, y2, y2, y1];
+%                         plot(xbox, ybox, 'k-', 'LineWidth', 3);
+%                         hold on;
+%                         xlim([0,654]);
+%                         ylim([0,654]);
+%                         pbaspect([1 1 1]);
+%                         scatter(starx,stary,'y','filled');
+%                         scatter(starx(I,1),stary(I,1),'g','filled');
+%                         if ghostpart((ifile+16),1) == 1
+%                             scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
+%                         elseif ghostpart((ifile+16),1) == 0
+%                             scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
+%                         end
+%                         title(sprintf('%s',data.header.rawfile));
+%                         if( (ifile+16) < 134 && (ifile+16) > 120 )
+%                             pause;
+%                         end
         end
 %         
 %         % Make plot of ghost location and bright star locations - blue for
 %         % regular ghost and red for partial ghost
                 cntr = cntr + 1;
-                h = figure(cntr);
-                set(h,'visible','off');
-                clf;
+                h = figure(2);
+                set(h,'visible','on');
+%                 clf;
                 x1=200;
                 x2=455;
                 y1=200;
@@ -405,9 +407,9 @@ for ifile=1:size(ndatafiles,1)
                 xlim([0,654]);
                 ylim([0,654]);
                 pbaspect([1 1 1]);
-                scatter(starx,stary,'y','filled');
+                scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'p','filled');
                 if ghostpart((ifile+16),1) == 1
-                    scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
+%                     scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
                 elseif ghostpart((ifile+16),1) == 0
                     scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
                 end
@@ -419,13 +421,9 @@ for ifile=1:size(ndatafiles,1)
     end
     
     % Save new data to mat files
-         save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
-    
+%          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
+%     
 end
-
-
-
-
 
 % % Plot ghost total position vs distance from center to closest star
 % figure(2);
