@@ -49,7 +49,7 @@ star2yadj = NaN*ones((size(datafiles,1)+size(ndatafiles,1)),1);
 star2posadj = NaN*ones((size(datafiles,1)+size(ndatafiles,1)),1);
 brightmag= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 ghostmag= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
-
+cts= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 % For old data files
 for ifile=1:size(datafiles,1)
     
@@ -82,6 +82,10 @@ for ifile=1:size(datafiles,1)
             ghostpart(ifile,1) = 0.5;
         end
     end
+     %
+        cts(ifile,1) = ap_photom(data.data,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
+        flux= (cts(ifile,1)./data.astrom.exptime);
+        ghostmag(ifile,1)=(-2.5*log(flux)+20);
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,2);
         
@@ -132,9 +136,8 @@ for ifile=1:size(datafiles,1)
         starxadj(ifile,1) = starx(I,1);
         staryadj(ifile,1) = stary(I,1);
         
-        %assigning mags to graph properly
+        %assigning star mag to a variable
         brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
-        ghostmag((ifile+16),1) = data.ghost.ghostmag;
         % For all stars, save star/cent distance, ghost/cent distance, and
         % star/ghost distance
         starcentdistall(ifile,1) = stardistcent(1,I);
@@ -257,7 +260,10 @@ for ifile=1:size(ndatafiles,1)
         elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
             ghostpart((ifile+16),1) = 0.5;
         end
-        
+         %
+        cts((ifile+16),1) = ap_photom(data.data,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
+        flux= (cts((ifile+16),1)./data.astrom.exptime);
+        ghostmag((ifile+16),1)=(-2.5*log(flux)+20);
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,2);
         
@@ -321,9 +327,9 @@ for ifile=1:size(ndatafiles,1)
         ghostxadj((ifile+16),1) = 199+data.ghost.ghostx;
         ghostyadj((ifile+16),1) = 199+data.ghost.ghosty;
         
-        %assigning mags to graph properly
+        %assigning star mag to a variable
         brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
-        ghostmag((ifile+16),1) = data.ghost.ghostmag;
+        
         
         % If more than one star per ghost (never seen more than 2), save
         % info for star that's farther away
@@ -421,7 +427,6 @@ for ifile=1:size(ndatafiles,1)
                   
                   
                  end
-             
                 
 %                 title(sprintf('%s',data.header.rawfile));
 %                 ext = '.png';
@@ -432,16 +437,34 @@ for ifile=1:size(ndatafiles,1)
     
     % Save new data to mat files
 %          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
-%     
+% 
+
+
 end
 legend([g1,g3,g5,g7,g99,g11],{'Partial','120-125','126-130','131-135','136-140','141-150'});
 
 
 
 
+% Plot star mag vs ghost mag
+%   h = figure(3);
+%       set(h,'visible','on');
+%                
+%                 hold on;
+%                 if ghostpart((ifile+16),1)==1
+%                     gg2= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'k');
+%                 elseif (data.ghost.ghostx)>=120 && (data.ghost.ghostx)<=125
+%                     gg4= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'b');
+%                 elseif (data.ghost.ghostx)>=126 && (data.ghost.ghostx)<=130
+%                     gg6= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'r');
+%                 elseif (data.ghost.ghostx)>= 131 && (data.ghost.ghostx)<=135
+%                     gg8= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'y');
+%                 elseif (data.ghost.ghostx)>=136 && (data.ghost.ghostx)<=140
+%                     gg10= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'m');
+%                 elseif (data.ghost.ghostx)>=141 && (data.ghost.ghostx)<=150
+%                     gg12= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'c');
+%                 end
+% hold off;
 
 
 
-
-
- 

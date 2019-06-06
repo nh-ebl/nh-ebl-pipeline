@@ -68,7 +68,7 @@ star2yadj = NaN*ones((size(datafiles,1)+size(ndatafiles,1)),1);
 star2posadj = NaN*ones((size(datafiles,1)+size(ndatafiles,1)),1);
 brightmag= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 ghostmag= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
-mags= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+cts= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 
 
 
@@ -88,7 +88,6 @@ for ifile=1:size(datafiles,1)
     data.ghost.ghostrad = oldghostinfo{ifile,16};
     data.ghost.ghostdist = oldghostinfo{ifile,17};
     data.ghost.ghostpartial = oldghostinfo{ifile,18};
-% %     data.ghost.ghostmag= oldghostinfo{ifile,20};
     [data.ghost.ghostra,data.ghost.ghostdec]=pix2radec(data.astrometry,data.ghost.ghostx,data.ghost.ghosty);
     % If no ghost, do nothing
     if  strcmp(data.ghost.ghostx, 0) == 1
@@ -104,6 +103,11 @@ for ifile=1:size(datafiles,1)
         elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
             ghostpart(ifile,1) = 0.5;
         end
+        
+        %
+        cts(ifile,1) = ap_photom(data.data,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
+        flux= (cts(ifile,1)./data.astrom.exptime);
+        ghostmag(ifile,1)=(-2.5*log(flux)+20);
         
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,2);
@@ -155,9 +159,9 @@ for ifile=1:size(datafiles,1)
         starxadj(ifile,1) = starx(I,1);
         staryadj(ifile,1) = stary(I,1);
         
-        %assigning mags to graph properly
+        %assigning star mag to a variable
         brightmag(ifile,1) = data.ghost.brightmag(1,I);
-% %         ghostmag(ifile,1) = data.ghost.ghostmag;
+
         % For all stars, save star/cent distance, ghost/cent distance, and
         % star/ghost distance
         starcentdistall(ifile,1) = stardistcent(1,I);
@@ -241,12 +245,7 @@ for ifile=1:size(datafiles,1)
     end
     
     % Save new data to mat files
-%          save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
-
-%using the function ap_photom.m, the mags will be read in and graphed later
-mags(ifile,1) = ap_photom(data.data,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
-ghostmag(ifile,1)= mags(ifile,1);
-%     
+%          save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data')
 end
 
 % For new data files
@@ -265,7 +264,6 @@ for ifile=1:size(ndatafiles,1)
     data.ghost.ghostrad = ghostinfo{ifile,16};
     data.ghost.ghostdist = ghostinfo{ifile,17};
     data.ghost.ghostpartial = ghostinfo{ifile,18};
-% %     data.ghost.ghostmag = ghostinfo{ifile,20};
     
     % If no ghost, do nothing
     if strcmp(data.ghost.ghostx , '') == 1 || data.ghost.ghostx == 0
@@ -282,6 +280,11 @@ for ifile=1:size(ndatafiles,1)
         elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
             ghostpart((ifile+16),1) = 0.5;
         end
+        
+        %
+        cts((ifile+16),1) = ap_photom(data.data,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
+        flux= (cts((ifile+16),1)./data.astrom.exptime);
+        ghostmag((ifile+16),1)=(-2.5*log(flux)+20);
         
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,2);
@@ -346,10 +349,9 @@ for ifile=1:size(ndatafiles,1)
         ghostxadj((ifile+16),1) = 199+data.ghost.ghostx;
         ghostyadj((ifile+16),1) = 199+data.ghost.ghosty;
         
-        %assigning mags to graph properly
+        %assigning star magnitude to a variable
         brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
-% %         ghostmag((ifile+16),1) = data.ghost.ghostmag;
-        
+
         % If more than one star per ghost (never seen more than 2), save
         % info for star that's farther away
         if( length(stardistghost) > 1 ) %check out 2 star options instances
@@ -426,13 +428,7 @@ for ifile=1:size(ndatafiles,1)
     
     % Save new data to mat files
 %          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
-%   
-mags((ifile+16),1) = ap_photom(data.data,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
-ghostmag((ifile+16),1) = mags((ifile+16),1);
-
 end
-
-
 
 % Plot ghost total position vs distance from center to closest star
 figure(2);
@@ -497,27 +493,12 @@ scatter(brightmag(brightmag~=0), ghostmag(ghostmag~=0));
 xlabel('Star Magnitude');
 ylabel('Ghost Magnitude');
 hold on
-fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1);
+fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1)
 starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
 ghostfit=(fit(1)*starfit + fit(2));
 plot (starfit, ghostfit);
 legend('data', 'fit');
 text(x,y,'y=mx+b')
 hold off;
-
-
-% % figure(8);
-% % scatter(brightmag(brightmag~=0), ghostmag(ghostmag~=0));
-% % xlabel('Star Magnitude');
-% % ylabel('Ghost Magnitude');
-% % hold on
-% % %best fit linear magnitudes
-% % fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1);
-% % starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
-% % ghostfit= (fit(1)*starfit + fit(2));
-% % plot(starfit,ghostfit);
-% % legend('data','fit');
-% % text(5,17,'y=1.2726x+6.9524')
-% % hold off
 
 drawnow;
