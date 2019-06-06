@@ -107,7 +107,7 @@ for ifile=1:size(datafiles,1)
         %
         cts(ifile,1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
         flux= (cts(ifile,1)./data.astrom.exptime);
-        ghostmag(ifile,1)=(-2.5*log(flux)+20);
+        ghostmag(ifile,1)=(-2.5*log10(flux)+20);
         
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,2);
@@ -358,7 +358,7 @@ for ifile=1:size(ndatafiles,1)
        
         cts((ifile+16),1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
         flux= (cts((ifile+16),1)./data.astrom.exptime);
-        ghostmag((ifile+16),1)=(-2.5*log(flux)+20);
+        ghostmag((ifile+16),1)=(-2.5*log10(flux)+20);
         brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
 
         
@@ -505,13 +505,15 @@ figure(8);
 scatter(brightmag(brightmag~=0), ghostmag(ghostmag~=0));
 xlabel('Star Magnitude');
 ylabel('Ghost Magnitude');
+xlim([3.9,6.6]);
+ylim([13.5,18]);
 hold on
 fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1)
 starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
 ghostfit=(fit(1)*starfit + fit(2));
 plot (starfit, ghostfit);
 legend('data', 'fit');
-text(4.5,12,'y=1.5958x+0.5534')
+text(4.5,17.5,'y=0.6930x+11.5544')
 hold off;
 
 drawnow;

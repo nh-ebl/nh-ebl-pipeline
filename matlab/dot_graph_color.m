@@ -208,16 +208,16 @@ for ifile=1:size(datafiles,1)
                 pbaspect([1 1 1]);
                     
                 if ghostpart(ifile,1) == 0 && (data.ghost.ghostx)>=0 && (data.ghost.ghostx)<=116;
-                    scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
+                    g1=scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'y','filled');
                 end
                if (data.ghost.ghostx)>=0 && (data.ghost.ghostx)<=116;
-                   scatter(starx,stary,'b','filled');
+                   scatter(starx,stary,'y','filled');
                end
                if (data.ghost.ghostx)>=117 && (data.ghost.ghostx)<=160;
-                    scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'g','filled');
+                    g2= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'g','filled');
                     scatter(starx,stary,'g','filled');
                end
-                title(sprintf('%s',data.header.rawfile));
+%                 title(sprintf('%s',data.header.rawfile));
 %                 ext = '.png';
 %                 imagename = sprintf('%s%s%s',paths.ghostdir,data.header.timestamp,ext);
 %                 print(h,imagename, '-dpng');
@@ -263,7 +263,7 @@ for ifile=1:size(ndatafiles,1)
          %
         cts((ifile+16),1) = ap_photom(data.data,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
         flux= (cts((ifile+16),1)./data.astrom.exptime);
-        ghostmag((ifile+16),1)=(-2.5*log(flux)+20);
+        ghostmag((ifile+16),1)=(-2.5*log10(flux)+20);
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,2);
         
@@ -376,7 +376,7 @@ for ifile=1:size(ndatafiles,1)
 %         % Make plot of ghost location and bright star locations - blue for
 %         % regular ghost and red for partial ghost
                 cntr = cntr + 1;
-                h = figure(2);
+                h = figure(1);
                 set(h,'visible','on');
 %                 clf;
                 x1=200;
@@ -391,81 +391,79 @@ for ifile=1:size(ndatafiles,1)
                 pbaspect([1 1 1]);
                 hold on;
                  if ghostpart((ifile+16),1) == 1
-                    g1= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'y','filled');
-                    hold on;
-                    scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'y','filled');
-%                  
-                 elseif (data.ghost.ghostx)>=120 && (data.ghost.ghostx)<=125
+%                     g1= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'y','filled');
+%                     hold on;
+%                     scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'y','filled');
+                 elseif (brightmag((ifile+16),1)<6)
                     g3= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
-                    hold on;
+                   
                     scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'r','filled');
-%                     
-                 elseif (data.ghost.ghostx)>=126 && (data.ghost.ghostx)<=130
-                    g5= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'m','filled');
-                    hold on;
-
-                    scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'m','filled');
-%                   
-                 elseif (data.ghost.ghostx)>= 131 && (data.ghost.ghostx)<=135
-                    g7= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'c','filled');
-                    hold on;
-
+                 elseif (brightmag((ifile+16),1)>6)
+                    g4= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'c','filled');
+                 
                     scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'c','filled');
-%                    
-                 elseif (data.ghost.ghostx)>=136 && (data.ghost.ghostx)<=140
-                    g99= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
-                    hold on;
-
-                    scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'b','filled');
-                    
-                 elseif (data.ghost.ghostx)>=141 && (data.ghost.ghostx)<=150
-                    g11= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'k','filled');
-                    hold on;
-
-                    scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'k','filled');
+             
+                 
+               
                     
                   
                   
-                 end
-                
+                 end    
+                 
 %                 title(sprintf('%s',data.header.rawfile));
 %                 ext = '.png';
 %                 imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
 %                 print(h,imagename, '-dpng');
         
     end
-    
+  
     % Save new data to mat files
 %          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
 % 
 
 
 end
-legend([g1,g3,g5,g7,g99,g11],{'Partial','120-125','126-130','131-135','136-140','141-150'});
+legend([g1,g2,g3,g4,],{'PrePluto Star Mag 3.9555','PrePluto Mag 6.3535','Mag < 5.7967','Mag 6.1574'});
 
 
 
+  % Plot star mag vs ghost mag
+  h = figure(3);
+      set(h,'visible','on');
+      x1=200;
+      x2=455;
+      y1=200;
+      y2=455;
+      xbox = [x1, x2, x2, x1, x1];
+      ybox = [y1, y1, y2, y2, y1];
+      plot(xbox, ybox, 'k-', 'LineWidth', 3);
+      xlim([3.5,6.6]);
+      ylim([0,20.1]);
+      pbaspect([1 1 1]);
+               
+                hold on;
+                if ghostpart((ifile+16),1)==1
+                    gg2= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'y');
+                    
+                elseif (data.ghost.ghostx)>=120 && (data.ghost.ghostx)<125
+                    gg4= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'r');
+                    
+                elseif (data.ghost.ghostx)>=126 && (data.ghost.ghostx)<=130
+                    gg6= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'m');
+                    
+                elseif (data.ghost.ghostx)>= 131 && (data.ghost.ghostx)<=135
+                    gg8= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'c');
+                    
+                elseif (data.ghost.ghostx)>=136 && (data.ghost.ghostx)<=140
+                    gg10= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'b');
+                    
+                elseif (data.ghost.ghostx)>=141 && (data.ghost.ghostx)<=150
+                    gg12= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'k');
+                    
+                end
+hold off;
 
 
-% Plot star mag vs ghost mag
-%   h = figure(3);
-%       set(h,'visible','on');
-%                
-%                 hold on;
-%                 if ghostpart((ifile+16),1)==1
-%                     gg2= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'k');
-%                 elseif (data.ghost.ghostx)>=120 && (data.ghost.ghostx)<=125
-%                     gg4= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'b');
-%                 elseif (data.ghost.ghostx)>=126 && (data.ghost.ghostx)<=130
-%                     gg6= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'r');
-%                 elseif (data.ghost.ghostx)>= 131 && (data.ghost.ghostx)<=135
-%                     gg8= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'y');
-%                 elseif (data.ghost.ghostx)>=136 && (data.ghost.ghostx)<=140
-%                     gg10= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'m');
-%                 elseif (data.ghost.ghostx)>=141 && (data.ghost.ghostx)<=150
-%                     gg12= scatter(brightmag(brightmag~=0),ghostmag(ghostmag~=0),'c');
-%                 end
-% hold off;
 
 
 
