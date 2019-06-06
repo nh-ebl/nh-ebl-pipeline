@@ -105,7 +105,7 @@ for ifile=1:size(datafiles,1)
         end
         
         %
-        cts(ifile,1) = ap_photom(data.data,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
+        cts(ifile,1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
         flux= (cts(ifile,1)./data.astrom.exptime);
         ghostmag(ifile,1)=(-2.5*log(flux)+20);
         
@@ -277,14 +277,14 @@ for ifile=1:size(ndatafiles,1)
             ghostpart((ifile+16),1) = 1;
             % If ghost not visible in set where other ghosts exist, save that
             % info
+            
         elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
             ghostpart((ifile+16),1) = 0.5;
+       
         end
         
         %
-        cts((ifile+16),1) = ap_photom(data.data,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
-        flux= (cts((ifile+16),1)./data.astrom.exptime);
-        ghostmag((ifile+16),1)=(-2.5*log(flux)+20);
+       
         
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,2);
@@ -350,7 +350,20 @@ for ifile=1:size(ndatafiles,1)
         ghostyadj((ifile+16),1) = 199+data.ghost.ghosty;
         
         %assigning star magnitude to a variable
+         if strcmp(data.ghost.ghostpartial , 'partial ') == 1
+            
+        elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
+            
+         else 
+       
+        cts((ifile+16),1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
+        flux= (cts((ifile+16),1)./data.astrom.exptime);
+        ghostmag((ifile+16),1)=(-2.5*log(flux)+20);
         brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
+
+        
+         end
+    
 
         % If more than one star per ghost (never seen more than 2), save
         % info for star that's farther away
@@ -498,7 +511,7 @@ starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
 ghostfit=(fit(1)*starfit + fit(2));
 plot (starfit, ghostfit);
 legend('data', 'fit');
-text(x,y,'y=mx+b')
+text(4.5,12,'y=1.5958x+0.5534')
 hold off;
 
 drawnow;

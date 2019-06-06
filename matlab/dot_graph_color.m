@@ -446,6 +446,7 @@ legend([g1,g3,g5,g7,g99,g11],{'Partial','120-125','126-130','131-135','136-140',
 
 
 
+
 % Plot star mag vs ghost mag
 %   h = figure(3);
 %       set(h,'visible','on');
