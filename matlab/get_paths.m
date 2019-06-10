@@ -5,6 +5,7 @@ function paths=get_paths()
    paths.catdir = '/data/symons/NH_old_data/usnob1/mat_files/';
    paths.maskdir = '/data/symons/NH_old_data/masks/';
    paths.ghostdir = '/data/symons/NH_old_data/ghosts/';
+   paths.magdir = '/data/symons/NH_old_data/mags/';
    %paths.darkfitsdir = '/data/zemcov/NH/NH/launch/dark/selected_data/';
    %paths.darkdir = '/data/zemcov/NH/dark/';
    paths.engdir = '/data/symons/NH_old_data/eng/data/';

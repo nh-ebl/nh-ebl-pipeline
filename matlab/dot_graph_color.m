@@ -85,7 +85,7 @@ for ifile=1:size(datafiles,1)
         end
     end
      %
-        cts(ifile,1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
+        cts(ifile,1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3, data, paths);
         flux= (cts(ifile,1)./data.astrom.exptime);
         ghostmag(ifile,1)=(-2.5*log10(flux)+20);
         % Calculate number of potential bright stars contributing to ghost
@@ -193,28 +193,28 @@ for ifile=1:size(datafiles,1)
 %                         end
         end
         % Plot star mag vs ghost mag
-  h = figure(2);
-      set(h,'visible','on');
-  xlim([3.5,6.6]);
-  xlabel('Star Magnitude');
-  ylim([13,18]);
-  ylabel('Ghost Magnitude');
-               
-                hold on;
-                 
-                if (brightmag((ifile),1)<4) 
-                    gg4= scatter(brightmag((ifile),1),ghostmag((ifile),1),'y','filled');
-                    hold on;
-                elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6)) 
-                    gg6= scatter(brightmag((ifile),1),ghostmag((ifile),1),'m','filled');
-                    hold on;
-                elseif ((brightmag((ifile),1)>6) && (brightmag((ifile),1)<6.2)) 
-                    gg8= scatter(brightmag((ifile),1),ghostmag((ifile),1),'c','filled');
-                    hold on;
-                elseif (brightmag((ifile),1)>6.2) 
-                    gg10= scatter(brightmag((ifile),1),ghostmag((ifile),1),'g','filled');
-                    hold on;
-                end
+%   h = figure(2);
+%       set(h,'visible','on');
+%   xlim([3.5,6.6]);
+%   xlabel('Star Magnitude');
+%   ylim([13,18]);
+%   ylabel('Ghost Magnitude');
+%                
+%                 hold on;
+%                  
+%                 if (brightmag((ifile),1)<4) 
+%                     gg4= scatter(brightmag((ifile),1),ghostmag((ifile),1),'y','filled');
+%                     hold on;
+%                 elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6)) 
+%                     gg6= scatter(brightmag((ifile),1),ghostmag((ifile),1),'m','filled');
+%                     hold on;
+%                 elseif ((brightmag((ifile),1)>6) && (brightmag((ifile),1)<6.2)) 
+%                     gg8= scatter(brightmag((ifile),1),ghostmag((ifile),1),'c','filled');
+%                     hold on;
+%                 elseif (brightmag((ifile),1)>6.2) 
+%                     gg10= scatter(brightmag((ifile),1),ghostmag((ifile),1),'g','filled');
+%                     hold on;
+%                 end
         
   % Make plot of ghost location and bright star locations - blue for
 %         % regular ghost and red for partial ghost
@@ -286,7 +286,7 @@ for ifile=1:size(ndatafiles,1)
             ghostpart((ifile+16),1) = 0.5;
         end
          %
-        cts((ifile+16),1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
+        cts((ifile+16),1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3, data, npaths);
         flux((ifile+16),1)= (cts((ifile+16),1)./data.astrom.exptime);
         ghostmag((ifile+16),1)=(-2.5*log10(flux((ifile+16),1))+20);
         % Calculate number of potential bright stars contributing to ghost
@@ -399,28 +399,28 @@ for ifile=1:size(ndatafiles,1)
         end
 %         
   % Plot star mag vs ghost mag
-  h = figure(2);
-      set(h,'visible','on');
-  xlim([3.5,6.6]);
-  xlabel('Star Magnitude');
-  ylim([13,18]);
-  ylabel('Ghost Magnitude');
-               
-                hold on;
-                 
-                if (brightmag((ifile+16),1)<4) 
-                    gg4= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'y','filled');
-                    hold on;
-                elseif ((brightmag((ifile+16),1)>4) && (brightmag((ifile+16),1)<6)) 
-                    gg6= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'r','filled');
-                    hold on;
-                elseif ((brightmag((ifile+16),1)>6) && (brightmag((ifile+16),1)<6.2)) 
-                    gg8= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'c','filled');
-                    hold on;
-                elseif (brightmag((ifile+16),1)>6.2) 
-                    gg10= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'g','filled');
-                    hold on;
-                end
+%   h = figure(2);
+%       set(h,'visible','on');
+%   xlim([3.5,6.6]);
+%   xlabel('Star Magnitude');
+%   ylim([13,18]);
+%   ylabel('Ghost Magnitude');
+%                
+%                 hold on;
+%                  
+%                 if (brightmag((ifile+16),1)<4) 
+%                     gg4= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'y','filled');
+%                     hold on;
+%                 elseif ((brightmag((ifile+16),1)>4) && (brightmag((ifile+16),1)<6)) 
+%                     gg6= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'r','filled');
+%                     hold on;
+%                 elseif ((brightmag((ifile+16),1)>6) && (brightmag((ifile+16),1)<6.2)) 
+%                     gg8= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'c','filled');
+%                     hold on;
+%                 elseif (brightmag((ifile+16),1)>6.2) 
+%                     gg10= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'g','filled');
+%                     hold on;
+%                 end
 
 
 
@@ -469,12 +469,12 @@ for ifile=1:size(ndatafiles,1)
 end
     
 
-fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1);
-starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
-ghostfit=(fit(1)*starfit + fit(2));
-plot (starfit, ghostfit);
-text(4.5,17,'y=0.6806x+11.6902');
-legend([gg4,gg6,gg8,gg10],{'Mag 3.95','Mag 5.79','Mag 6.15','Mag 6.35',});
+% fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1);
+% starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
+% ghostfit=(fit(1)*starfit + fit(2));
+% plot (starfit, ghostfit);
+% text(4.5,17,'y=0.6806x+11.6902');
+% legend([gg4,gg6,gg8,gg10],{'Mag 3.95','Mag 5.79','Mag 6.15','Mag 6.35',});
 
     % Save new data to mat files
 %          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
@@ -484,7 +484,7 @@ legend([gg4,gg6,gg8,gg10],{'Mag 3.95','Mag 5.79','Mag 6.15','Mag 6.35',});
 
 % legend([g1,g2,g3,g4,],{'PrePluto Star Mag 3.9555','PrePluto Mag 6.3535','Mag < 5.7967','Mag 6.1574'});
 
-drawnow;
+% drawnow;
 
 
 
