@@ -69,6 +69,8 @@ star2posadj = NaN*ones((size(datafiles,1)+size(ndatafiles,1)),1);
 brightmag= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 ghostmag= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 cts= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostxguess=zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostyguess=zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 
 
 
@@ -174,6 +176,8 @@ for ifile=1:size(datafiles,1)
         ghostxadj(ifile,1) = 199+data.ghost.ghostx;
         ghostyadj(ifile,1) = 199+data.ghost.ghosty;
         
+        ghostxguess(ifile,1)= 0.1208*starxadj(ifile,1)+296.7564;
+        ghostyguess(ifile,1)=0.1127*staryadj(ifile,1)+293.9804;
         % If more than one star per ghost (never seen more than 2), save
         % info for star that's farther away
         if( length(stardistghost) > 1 ) %check out 2 star options instances
@@ -349,6 +353,8 @@ for ifile=1:size(ndatafiles,1)
         ghostxadj((ifile+16),1) = 199+data.ghost.ghostx;
         ghostyadj((ifile+16),1) = 199+data.ghost.ghosty;
         
+        ghostxguess((ifile+16),1)= 0.1208*starxadj((ifile+16),1)+296.7564;
+        ghostyguess((ifile+16),1)=0.1127*staryadj((ifile+16),1)+293.9804;
         %assigning star magnitude to a variable
          if strcmp(data.ghost.ghostpartial , 'partial ') == 1
             
@@ -377,6 +383,8 @@ for ifile=1:size(ndatafiles,1)
             star2yadj((ifile+16),1) = stary(I,1);
             star2posadj((ifile+16),1) = sqrt(star2xadj((ifile+16),1)^2 + star2yadj((ifile+16),1)^2);
             
+            
+   
             % Make plot of ghost location and bright star locations - blue for
             % regular ghost and red for partial ghost
             % this plot is for second star options, just to check them out
@@ -443,77 +451,95 @@ for ifile=1:size(ndatafiles,1)
 %          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
 end
 
-% Plot ghost total position vs distance from center to closest star
-figure(2);
-scatter(starcentdistall(starcentdistall~=0),ghostposadj(ghostposadj~=0));
-xlabel('Distance from center to star');
-ylabel('Ghost position');
-
-% Plot distance from center to ghost vs distance from center to star
-figure(3);
-scatter(starcentdistall(starcentdistall~=0),ghostcentdistall(ghostcentdistall~=0));
-xlabel('Distance from center to star');
-ylabel('Distance from center to ghost');
-
-% Plot ghost total position vs star total position
-figure(4);
-scatter(starposadj(starposadj~=0),ghostposadj(ghostposadj~=0));
-xlabel('Star position');
-ylabel('Ghost position');
-
-% Plot distance from star to ghost vs distance from center to star
-figure(5);
-scatter(starcentdistall(starcentdistall~=0),starghostdistall(starghostdistall~=0));
-xlabel('Distance from center to star');
-ylabel('Distance from star to ghost');
-% Optionally, add second (farther away) star data to this plot
-% hold on;
-% scatter(star2posadj,ghostposadj,'MarkerEdgeColor','r');
-
-% Plot star x position vs ghost x position
-figure(6);
-scatter(starxadj(starxadj~=0), ghostxadj(ghostxadj~=0));
-xlabel('Star x position');
-ylabel('Ghost x position');
-hold on
-%best fit linear x positions
+% % Plot ghost total position vs distance from center to closest star
+% figure(2);
+% scatter(starcentdistall(starcentdistall~=0),ghostposadj(ghostposadj~=0));
+% xlabel('Distance from center to star');
+% ylabel('Ghost position');
+% 
+% % Plot distance from center to ghost vs distance from center to star
+% figure(3);
+% scatter(starcentdistall(starcentdistall~=0),ghostcentdistall(ghostcentdistall~=0));
+% xlabel('Distance from center to star');
+% ylabel('Distance from center to ghost');
+% 
+% % Plot ghost total position vs star total position
+% figure(4);
+% scatter(starposadj(starposadj~=0),ghostposadj(ghostposadj~=0));
+% xlabel('Star position');
+% ylabel('Ghost position');
+% 
+% % Plot distance from star to ghost vs distance from center to star
+% figure(5);
+% scatter(starcentdistall(starcentdistall~=0),starghostdistall(starghostdistall~=0));
+% xlabel('Distance from center to star');
+% ylabel('Distance from star to ghost');
+% % Optionally, add second (farther away) star data to this plot
+% % hold on;
+% % scatter(star2posadj,ghostposadj,'MarkerEdgeColor','r');
+% 
+% % Plot star x position vs ghost x position
+% figure(6);
+% scatter(starxadj(starxadj~=0), ghostxadj(ghostxadj~=0));
+% xlabel('Star x position');
+% ylabel('Ghost x position');
+% hold on
+% %best fit linear x positions
 fitx= polyfit(starxadj(starxadj~=0),ghostxadj(ghostxadj~=0),1);
 starxfit=linspace(min(starxadj(starxadj~=0)),max(starxadj(starxadj~=0)));
 ghostxfit= (fitx(1).*starxfit + fitx(2));
-plot(starxfit,ghostxfit);
-legend('data','fit x');
-text(350,355,'y=0.1208x+296.7564')
-hold off
-
-% Plot star y position vs ghost y position
-figure(7);
-scatter(staryadj(staryadj~=0), ghostyadj(ghostyadj~=0));
-xlabel('Star y position');
-ylabel('Ghost y position');
-hold on
-%best fit linear y positions
+% plot(starxfit,ghostxfit);
+% legend('data','fit x');
+% text(350,355,'y=0.1208x+296.7564')
+% hold off
+% 
+% % Plot star y position vs ghost y position
+% figure(7);
+% scatter(staryadj(staryadj~=0), ghostyadj(ghostyadj~=0));
+% xlabel('Star y position');
+% ylabel('Ghost y position');
+% hold on
+% %best fit linear y positions
 fity= polyfit(staryadj(staryadj~=0),ghostyadj(ghostyadj~=0),1);
 staryfit=linspace(min(staryadj(staryadj~=0)),max(staryadj(staryadj~=0)));
 ghostyfit=(fity(1).*staryfit + fity(2));
-plot(staryfit,ghostyfit);
-legend('data', 'fit y');
-text(400,360,'y=0.1127x+293.9804')
-hold off
-
-% Plot star mag vs ghost mag
-figure(8);
-scatter(brightmag(brightmag~=0), ghostmag(ghostmag~=0));
-xlabel('Star Magnitude');
-ylabel('Ghost Magnitude');
-xlim([3.9,6.6]);
-ylim([13.5,18]);
-hold on
-fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1)
+% plot(staryfit,ghostyfit);
+% legend('data', 'fit y');
+% text(400,360,'y=0.1127x+293.9804')
+% hold off
+% 
+% % Plot star mag vs ghost mag
+% figure(8);
+% scatter(brightmag(brightmag~=0), ghostmag(ghostmag~=0));
+% xlabel('Star Magnitude');
+% ylabel('Ghost Magnitude');
+% xlim([3.9,6.6]);
+% ylim([13.5,18]);
+% hold on
+fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1);
 starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
 ghostfit=(fit(1)*starfit + fit(2));
-plot (starfit, ghostfit);
-legend('data', 'fit');
-text(4.5,17.5,'y=0.6930x+11.5544')
-hold off;
+% plot (starfit, ghostfit);
+% legend('data', 'fit');
+% text(4.5,17.5,'y=0.6930x+11.5544')
+% hold off;
+% 
+% drawnow;
 
-drawnow;
+ %ghost location test
+ 
+ figure(9);
+ hold on;
+ scatter(ghostxadj(ghostxadj~=0),ghostxguess(ghostxguess~=0));
+ fitgx=polyfit();
+ xlabel('ghost x adj');
+ ylabel('ghost x guess');
+ hold off;
+ figure(10);
+ hold on;
+ scatter(ghostyadj(ghostyadj~=0),ghostyguess(ghostyguess~=0));
+ fitgy=();
+ xlabel('ghost y adj');
+ ylabel('ghost y guess');
+ hold off;
+
