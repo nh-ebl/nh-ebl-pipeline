@@ -249,15 +249,15 @@ data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 % caxis(ax1.CLim)
 
 h = figure(1);
-clf;
+% clf;
 imagesc(data.data.*~mask.onemask)
-set(h,'visible','off');
-% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+set(h,'visible','on');
+set (gcf, 'WindowButtonMotionFcn', @mouseMove);
 colorbar; 
 caxis([-10,10]);
 title(sprintf('%s',data.header.rawfile));
 ext = '.png';
 imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
-print(h,imagename, '-dpng');
+% print(h,imagename, '-dpng');
 
 end

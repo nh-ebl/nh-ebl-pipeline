@@ -39,25 +39,25 @@ aparea = pi*rad.^2;
 bkgsum = skysum/skymaskarea*aparea;
 %compute the background subtracted aperture sum
 skysub_apsum = apsum - bkgsum;
-flux = skysub_apsum/data.astrom.exptime;
-mag = -2.5*log10(flux)+20;
+% flux = skysub_apsum/data.astrom.exptime;
+% mag = -2.5*log10(flux)+20;
 info = '';
 info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',num2str(flux),' Mag: ',num2str(mag)];
 
-h = figure(1);
-clf;
-set(h,'visible','off');
-totalmask = skymask + mask;
-imagesc(totalmask.*image);
-pbaspect([1 1 1]);
-colorbar; 
-caxis([-20,20]);
-t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on'); 
-t2.LineStyle = 'none';
-title(sprintf('%s',data.header.rawfile));
-ext = '.png';
-imagename = sprintf('%s%s%s',paths.magdir,data.header.timestamp,ext);
-print(h,imagename, '-dpng');
+% h = figure(1);
+% clf;
+% set(h,'visible','off');
+% totalmask = skymask + mask;
+% imagesc(totalmask.*image);
+% pbaspect([1 1 1]);
+% colorbar; 
+% caxis([-20,20]);
+% t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on'); 
+% t2.LineStyle = 'none';
+% title(sprintf('%s',data.header.rawfile));
+% ext = '.png';
+% imagename = sprintf('%s%s%s',paths.magdir,data.header.timestamp,ext);
+% print(h,imagename, '-dpng');
            
 
 %inputs like data.data.*~data.mask.onemask, data.ghost.ghostx,
