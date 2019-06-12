@@ -41,8 +41,8 @@ bkgsum = skysum/skymaskarea*aparea;
 skysub_apsum = apsum - bkgsum;
 % flux = skysub_apsum/data.astrom.exptime;
 % mag = -2.5*log10(flux)+20;
-info = '';
-info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',num2str(flux),' Mag: ',num2str(mag)];
+% info = '';
+% info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',num2str(flux),' Mag: ',num2str(mag)];
 
 % h = figure(1);
 % clf;
