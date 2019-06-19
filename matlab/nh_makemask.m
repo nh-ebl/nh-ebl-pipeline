@@ -9,10 +9,11 @@
 function data = nh_makemask(data)
 
 % get the paths for this file
-paths = get_paths();
+% paths = get_paths();
+npaths = get_paths_new();
 
 % load up the corresponding catalog file
-load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
+load(sprintf('%sfield_%d_data.mat',npaths.catdir,data.header.fieldnum));
 
 % figure out the length of the catalog
 [~,ncat] = size(RA);
@@ -154,7 +155,7 @@ end
 %% thus ends the star catalog masking
 %% here begins the manual masking
 
-filein = sprintf('%s%s.mat',paths.mandir,data.header.timestamp);
+filein = sprintf('%s%s.mat',npaths.mandir,data.header.timestamp);
 
 if numel(dir(filein))
     load(filein);
@@ -256,8 +257,9 @@ set (gcf, 'WindowButtonMotionFcn', @mouseMove);
 colorbar; 
 caxis([-10,10]);
 title(sprintf('%s',data.header.rawfile));
-ext = '.png';
-imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
+grid minor;
+% ext = '.png';
+% imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
 end
