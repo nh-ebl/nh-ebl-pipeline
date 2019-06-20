@@ -44,16 +44,16 @@ skysub_apsum = apsum - bkgsum;
 % info = '';
 % info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',num2str(flux),' Mag: ',num2str(mag)];
 
-h = figure(1);
-clf;
+% h = figure(1);
+% clf;
 % set(h,'visible','off');
-totalmask = skymask + mask;
-imagesc(totalmask.*image);
-pbaspect([1 1 1]);
-set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-colorbar; 
-caxis([-20,20]);
-grid on;
+% totalmask = skymask + mask;
+% imagesc(totalmask.*image);
+% pbaspect([1 1 1]);
+% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+% colorbar; 
+% caxis([-20,20]);
+% grid on;
 
 % t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on'); 
 % t2.LineStyle = 'none';
