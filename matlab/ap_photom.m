@@ -3,6 +3,10 @@
 %of aperture, and desired multiplicative factor for sky annulus (ninner*rad
 %= inner annulus rad, nouter*rad = outer annulus rad)
 
+%inputs like data.data.*~data.mask.onemask, data.ghost.ghostx,
+%data.ghost.ghosty, data.ghost.ghostrad
+%ninner = 2 nouter = 3
+
 %Symons June 2019
 
 function skysub_apsum = ap_photom(image, sourcex, sourcey, rad, ninner, nouter, data, paths)
@@ -44,23 +48,34 @@ skysub_apsum = apsum - bkgsum;
 % info = '';
 % info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',num2str(flux),' Mag: ',num2str(mag)];
 
+% Make ghost histogram
+ghost = image(mask);
+idx = ghost>0;
+h = figure(1);
+clf;
+% set(h,'visible','off');
+g = histogram(ghost(idx),15);
+[N,edges] = histcounts(ghost(idx),15);
+[M,I] = max(N);
+title(sprintf('%s',data.header.rawfile));
+ext = '.png';
+% imagename = sprintf('%s%s%s',npaths.histdir,data.header.timestamp,ext);
+% print(h,imagename, '-dpng');
+
+%Plot 'bullseye' of ghost aperture and sky annulus
 % h = figure(1);
 % clf;
 % set(h,'visible','off');
 % totalmask = skymask + mask;
 % imagesc(totalmask.*image);
 % pbaspect([1 1 1]);
-% colorbar; 
+% colorbar;
 % caxis([-20,20]);
-% t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on'); 
+% t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on');
 % t2.LineStyle = 'none';
 % title(sprintf('%s',data.header.rawfile));
 % ext = '.png';
 % imagename = sprintf('%s%s%s',paths.magdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
-           
 
-%inputs like data.data.*~data.mask.onemask, data.ghost.ghostx,
-%data.ghost.ghosty, data.ghost.ghostrad
-%ninner = 2 nouter = 3
 end
