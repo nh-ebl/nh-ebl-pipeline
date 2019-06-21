@@ -69,9 +69,18 @@ ext = '.png';
 % totalmask = skymask + mask;
 % imagesc(totalmask.*image);
 % pbaspect([1 1 1]);
+<<<<<<< HEAD
 % colorbar;
 % caxis([-20,20]);
 % t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on');
+=======
+% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+% colorbar; 
+% caxis([-20,20]);
+% grid on;
+
+% t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on'); 
+>>>>>>> 9099ffc0e5ff63d9f96b7dfe79e900add115f430
 % t2.LineStyle = 'none';
 % title(sprintf('%s',data.header.rawfile));
 % ext = '.png';
