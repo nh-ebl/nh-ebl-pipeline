@@ -112,7 +112,7 @@ for ifile=1:size(datafiles,1)
         % ghost brightness analysis
         %using ap_photom, the brightness of the ghost is determined and
         %assigned to variables
-        cts(ifile,1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
+        cts(ifile,1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3,data,paths);
         Flux(ifile,1)= (cts(ifile,1)./data.astrom.exptime);
         ghostmag(ifile,1)=(-2.5*log10(Flux(ifile,1))+20);
        
@@ -417,7 +417,7 @@ for ifile=1:size(ndatafiles,1)
         else 
         %using ap_photom, the brightness of the ghost is determined and
         %assigned to variables
-        cts((ifile+16),1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3);
+        cts((ifile+16),1) = ap_photom(data.data.*~data.mask.onemask,data.ghost.ghostx,data.ghost.ghosty,data.ghost.ghostrad,2,3,data,npaths);
         Flux((ifile+16),1)= (cts((ifile+16),1)./data.astrom.exptime);
         ghostmag((ifile+16),1)=(-2.5*log10(Flux((ifile+16),1))+20);
         brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
