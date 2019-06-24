@@ -11,6 +11,8 @@
 
 function skysub_apsum = ap_photom(image, sourcex, sourcey, rad, ninner, nouter, data, paths)
 
+%Aperture photometry method to determine background-subtracted counts for
+%ghost inside aperture
 %meshgrid based on image size
 [xgrid, ygrid] = meshgrid(1:size(image,2), 1:size(image,1));
 %create mask where meshgrid values are less than radius distance from
@@ -48,17 +50,33 @@ skysub_apsum = apsum - bkgsum;
 % info = '';
 % info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',num2str(flux),' Mag: ',num2str(mag)];
 
-% Make ghost histogram
+% Make ghost histogram as alternative method of estimating number of counts
+% inside ghost
+%Preallocate for edge values of peak histogram value
+minmaxedge = zeros(2,1);
+%Save only ghost area of image
 ghost = image(mask);
+%Find indices where pixel values are > 0
 idx = ghost>0;
-h = figure(1);
-clf;
-% set(h,'visible','off');
-g = histogram(ghost(idx),15);
+%Save the bin edges and bin counts for a histogram of the ghost
 [N,edges] = histcounts(ghost(idx),15);
+%Find the bin with maximum counts
 [M,I] = max(N);
-title(sprintf('%s',data.header.rawfile));
-ext = '.png';
+%Calculate edge values for that bin
+minmaxedge(1,1) = edges(I);
+minmaxedge(2,1) = edges(I+1);
+%Pixel value is average of those bin edges
+pixval = mean(minmaxedge);
+%Total counts for ghost are pixel value x number of pixels in ghost
+skysub_apsum = pixval*length(values);
+
+%Plot actual histogram of ghost
+% h = figure(1);
+% clf;
+% set(h,'visible','off');
+% g = histogram(ghost(idx),15);
+% title(sprintf('%s',data.header.rawfile));
+% ext = '.png';
 % imagename = sprintf('%s%s%s',npaths.histdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
