@@ -75,7 +75,7 @@ ghostxguess=zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 ghostyguess=zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 ghostmagguess=zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 Flux= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
-
+ghostrad= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 % For old data files
 for ifile=1:size(datafiles,1)
     
@@ -157,6 +157,7 @@ for ifile=1:size(datafiles,1)
         % Save star to center and star to ghost distances
         data.ghost.stardistcent = stardistcent;
         data.ghost.stardistghost = stardistghost;
+        
         % Find which star (if more than one) is closest to ghost (assuming
         % that is the cause of the ghost)
         [M,I] = min(stardistghost);
@@ -168,7 +169,7 @@ for ifile=1:size(datafiles,1)
         
         %assigning star mag to a variable
         brightmag(ifile,1) = data.ghost.brightmag(1,I);
-
+        ghostrad(ifile,1)= data.ghost.ghostrad;
         % For all stars, save star/cent distance, ghost/cent distance, and
         % star/ghost distance
         starcentdistall(ifile,1) = stardistcent(1,I);
@@ -184,6 +185,12 @@ for ifile=1:size(datafiles,1)
         ghostxguess(ifile,1)= 0.1208*starxadj(ifile,1)+296.7564;
         ghostyguess(ifile,1)=0.1127*staryadj(ifile,1)+293.9804;
         ghostmagguess(ifile,1)=0.6930*brightmag(ifile,1)+11.5544;
+        
+        ghostxcent(ifile,1)= ghostxadj(ifile,1)-327;
+        ghostycent(ifile,1)= ghostyadj(ifile,1)-327;
+        starxcent(ifile,1)= starxadj(ifile,1)-327;
+        starycent(ifile,1)= staryadj(ifile,1)-327;
+       
         % If more than one star per ghost (never seen more than 2), save
         % info for star that's farther away
         if( length(stardistghost) > 1 ) %check out 2 star options instances
@@ -232,10 +239,9 @@ for ifile=1:size(datafiles,1)
 %                 set(h,'visible','on');
 %                 xlim([3.5,6.6]);
 %                 xlabel('Star Magnitude');
-%                 ylim([13,18]);
+%                 ylim([12,16.5]);
 %                 ylabel('Ghost Magnitude');
-%                 
-%                     
+% 
 %                 if (brightmag((ifile),1)<4) 
 %                     g1= scatter(brightmag(ifile,1),ghostmag(ifile,1),'r','filled');
 %                     hold on;
@@ -298,10 +304,37 @@ for ifile=1:size(datafiles,1)
 % Save new data to mat files
 %          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
 % %   
-ghostxcent(ifile,1)= ghostxadj(ifile,1)-327;
-ghostycent(ifile,1)= ghostyadj(ifile,1)-327;
-starxcent(ifile,1)= starxadj(ifile,1)-327;
-starycent(ifile,1)= staryadj(ifile,1)-327;
+if (brightmag(ifile,1)<4)
+    gm1= ghostmag(ifile,1);
+    gr1= ghostrad(ifile,1);
+elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6))
+    gm2= ghostmag(ifile,1);
+    gr2= ghostrad(ifile,1);
+elseif ((brightmag((ifile),1)>6) && (brightmag((ifile),1)<6.2))
+    gm3= ghostmag(ifile,1);
+    gr3= ghostrad(ifile,1);
+elseif ((brightmag((ifile),1)>6.2))
+    gm4= ghostmag(ifile,1);
+    gr4= ghostrad(ifile,1);
+end
+
+        figure(4);
+        hold on;
+        xlabel('Ghost Radius');
+        xlim([11.5 20]);
+        ylabel('Ghost Magnitude');
+        ylim([13.5 17]);
+        if (brightmag((ifile),1)<4)
+            g1= scatter(gr1(gr1~=0),gm1(gm1~=0),'r', 'filled');
+        elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6))
+            g2= scatter(gr2,gm2,'m', 'filled');
+        elseif ((brightmag((ifile),1)>6) && (brightmag((ifile),1)<6.2))
+            g3= scatter(gr3,gm3,'c', 'filled');
+        elseif ((brightmag((ifile),1)>6.2))
+            g4= scatter(gr4,gm4,'b', 'filled');
+        end
+        
+
     end
     
 
@@ -386,6 +419,7 @@ for ifile=1:size(ndatafiles,1)
         % Save star to center and star to ghost distances
         data.ghost.stardistcent = stardistcent;
         data.ghost.stardistghost = stardistghost;
+        
         % Find which star (if more than one) is closest to ghost (assuming
         % that is the cause of the ghost)
         [M,I] = min(stardistghost);
@@ -422,8 +456,14 @@ for ifile=1:size(ndatafiles,1)
         ghostmag((ifile+16),1)=(-2.5*log10(Flux((ifile+16),1))+20);
         brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
         ghostmagguess((ifile+16),1)=0.6930*brightmag((ifile+16),1)+11.5544;
+        ghostrad((ifile+16),1)= data.ghost.ghostrad;
+        
         end
-    
+        ghostxcent((ifile+16),1)= ghostxadj((ifile+16),1)-327;
+        ghostycent((ifile+16),1)= ghostyadj((ifile+16),1)-327;
+        starxcent((ifile+16),1)= starxadj((ifile+16),1)-327;
+        starycent((ifile+16),1)= staryadj((ifile+16),1)-327;
+        
 
         % If more than one star per ghost (never seen more than 2), save
         % info for star that's farther away
@@ -477,7 +517,7 @@ for ifile=1:size(ndatafiles,1)
 %                set(h,'visible','on');
 %                xlim([3.5,6.6]);
 %                xlabel('Star Magnitude');
-%                ylim([13,18]);
+%                ylim([12,16.5]);
 %                ylabel('Ghost Magnitude');
 %                
 %                 if (brightmag((ifile+16),1)<4) 
@@ -530,7 +570,7 @@ for ifile=1:size(ndatafiles,1)
 %                  hold on;
 %                     scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'b','filled');
 %                  end
-                 
+%                  
 %                 title(sprintf('%s',data.header.rawfile));
 %                 ext = '.png';
 %                 imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
@@ -538,11 +578,36 @@ for ifile=1:size(ndatafiles,1)
 % Save new data to mat files
 %          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
 
+if (brightmag((ifile+16),1)<4)
+    gm1= ghostmag((ifile+16),1);
+    gr1= ghostrad((ifile+16),1);
+elseif ((brightmag((ifile+16),1)>4) && (brightmag((ifile+16),1)<6))
+    gm2= ghostmag((ifile+16),1);
+    gr2= ghostrad((ifile+16),1);
+elseif ((brightmag((ifile+16),1)>6) && (brightmag((ifile+16),1)<6.2))
+    gm3= ghostmag((ifile+16),1);
+    gr3= ghostrad((ifile+16),1);
+elseif ((brightmag((ifile+16),1)>6.2))
+    gm4= ghostmag((ifile+16),1);
+    gr4= ghostrad((ifile+16),1);
+end
 
-ghostxcent((ifile+16),1)= ghostxadj((ifile+16),1)-327;
-ghostycent((ifile+16),1)= ghostyadj((ifile+16),1)-327;
-starxcent((ifile+16),1)= starxadj((ifile+16),1)-327;
-starycent((ifile+16),1)= staryadj((ifile+16),1)-327;
+        figure(4);
+        hold on;
+        xlabel('Ghost Radius');
+        xlim([11.5 20]);
+        ylabel('Ghost Magnitude');
+        ylim([13.5 17]);
+        if (brightmag((ifile),1)<4)
+            g1= scatter(gr1(gr1~=0),gm1(gm1~=0),'r', 'filled');
+        elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6))
+            g2= scatter(gr2,gm2,'m', 'filled');
+        elseif ((brightmag((ifile),1)>6) && (brightmag((ifile),1)<6.2))
+            g3= scatter(gr3,gm3,'c', 'filled');
+        elseif ((brightmag((ifile),1)>6.2))
+            g4= scatter(gr4,gm4,'b', 'filled');
+        end
+      
     end
     
 end
@@ -555,8 +620,8 @@ end
 % figure(3);
 % hold on;
 % plot (starfit, ghostfit);
-% text(4.5,17,'y=0.6806x+11.6902');
-% legend([g1,g2,g3,g4],{'Mag 3.9555','Mag 5.7967','Mag 6.1574','Mag 6.3535',});
+% text(4.5,13,'y=0.9931x+8.8923');
+legend([g1,g2,g3,g4],{'Mag 3.9555','Mag 5.7967','Mag 6.1574','Mag 6.3535',});
 % hold off;
 % figure(2);
 % hold on;
@@ -564,8 +629,8 @@ end
 % hold off;
 
 %% Graphs
-cntr = 4; % counter for figures
-% % Plot ghost total position vs distance from center to closest star
+cntr = 5; % counter for figures
+% Plot ghost total position vs distance from center to closest star
 % figure(cntr);
 % scatter(starcentdistall(starcentdistall~=0),ghostposadj(ghostposadj~=0));
 % xlabel('Distance from center to star');
@@ -601,29 +666,30 @@ startadj= rad2deg(startadj);
 ghosttadj= rad2deg(ghosttadj);
 
 % Plot star r position vs ghost r position
-figure(cntr+4);
-hold on;
+% figure(cntr+4);
+% hold on;
 % scatter(starradj(starradj~=0), ghostradj(ghostradj~=0));
-fitr=polyfit(starradj(starradj~=0),ghostradj(ghostradj~=0),1);
-starrfit= linspace(min(starradj(starradj~=0)),max(starradj(starradj~=0)));
-ghostrfit= (fitr(1).*starrfit + fitr(2));
-plot(starrfit,ghostrfit);
-xlabel('Star r position');
-ylabel('Ghost r position');
-% polarscatter(starradj(starradj~=0), ghostradj(ghostradj~=0));
+% fitr=polyfit(starradj(starradj~=0),ghostradj(ghostradj~=0),1);
+% starrfit= linspace(min(starradj(starradj~=0)),max(starradj(starradj~=0)));
+% ghostrfit= (fitr(1).*starrfit + fitr(2));
+% plot(starrfit,ghostrfit);
+% xlabel('Star r position');
+% ylabel('Ghost r position');
+% % polarscatter(starradj(starradj~=0), ghostradj(ghostradj~=0));
 % title('[starradj, ghostradj]');
-
-% Plot star t position vs ghost t position
-figure(cntr+5);
-hold on;
-scatter(startadj(startadj~=0), ghosttadj(ghosttadj~=0));
-xlabel('Star theta position');
-ylabel('Ghost theta position');
-fitt=polyfit(startadj(startadj~=0),ghosttadj(ghosttadj~=0),1);
-startfit= linspace(min(startadj(startadj~=0)),max(startadj(startadj~=0)));
-ghosttfit= (fitt(1).*startfit + fitt(2));
-plot(startfit,ghosttfit);
-% polarscatter(startadj(startadj~=0), ghosttadj(ghosttadj~=0));
+% 
+% % Plot star t position vs ghost t position
+% figure(cntr+5);
+% hold on;
+% scatter(startadj(startadj~=0), ghosttadj(ghosttadj~=0));
+% xlabel('Star theta position');
+% ylabel('Ghost theta position');
+% fitt=polyfit(startadj(startadj~=0),ghosttadj(ghosttadj~=0),1);
+% startfit= linspace(min(startadj(startadj~=0)),max(startadj(startadj~=0)));
+% ghosttfit= (fitt(1).*startfit + fitt(2));
+% plot(startfit,ghosttfit);
+% text(0,100,'y=0.8886x-5.4691');
+% % polarscatter(startadj(startadj~=0), ghosttadj(ghosttadj~=0));
 % title('[startadj,ghosttadj]');
 
 % Plot star mag vs ghost mag
@@ -632,14 +698,13 @@ plot(startfit,ghosttfit);
 % xlabel('Star Magnitude');
 % ylabel('Ghost Magnitude');
 % xlim([3.9,6.6]);
-% ylim([13.5,18]);
-% hold on
+% ylim([12,16.5]);
+% hold on;
 % fitmag= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1);
 % starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
 % ghostfit=(fitmag(1)*starfit + fitmag(2));
 % plot (starfit, ghostfit);
-% legend('data', 'fit');
-% text(4.5,17.5,'y=0.6930x+11.5544')
+% text(4.5,13,'y=0.9931x+8.8923')
 % hold off;
 
 %% Ghost Test Location
@@ -693,3 +758,8 @@ plot(startfit,ghosttfit);
 %  xlabel('Ghost Mag');
 %  ylabel('Guess-fit');
 %  hold off;
+
+%% 
+
+%plot ghost magnitude against ghost radius
+

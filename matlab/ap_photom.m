@@ -68,7 +68,7 @@ minmaxedge(2,1) = edges(I+1);
 %Pixel value is average of those bin edges
 pixval = mean(minmaxedge);
 %Total counts for ghost are pixel value x number of pixels in ghost
-skysub_apsum = pixval*length(values);
+% skysub_apsum = pixval*length(values);
 
 %Plot actual histogram of ghost
 % h = figure(1);
