@@ -68,7 +68,11 @@ minmaxedge(2,1) = edges(I+1);
 %Pixel value is average of those bin edges
 pixval = mean(minmaxedge);
 %Total counts for ghost are pixel value x number of pixels in ghost
-% skysub_apsum = pixval*length(values);
+skysub_apsum = pixval*length(values);
+flux = skysub_apsum/data.astrom.exptime;
+mag = -2.5*log10(flux)+20;
+info = '';
+info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',num2str(flux),' Mag: ',num2str(mag)];
 
 %Plot actual histogram of ghost
 % h = figure(1);
@@ -83,13 +87,13 @@ pixval = mean(minmaxedge);
 %Plot 'bullseye' of ghost aperture and sky annulus
 % h = figure(1);
 % clf;
-% set(h,'visible','off');
+% % set(h,'visible','off');
 % totalmask = skymask + mask;
 % imagesc(totalmask.*image);
 % pbaspect([1 1 1]);
 % colorbar;
 % caxis([-20,20]);
-% t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on');
+% % t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on');
 % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
 % colorbar; 
 % caxis([-20,20]);
@@ -98,6 +102,30 @@ pixval = mean(minmaxedge);
 % t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on'); 
 % t2.LineStyle = 'none';
 % title(sprintf('%s',data.header.rawfile));
+% ext = '.png';
+% imagename = sprintf('%s%s%s',paths.magdir,data.header.timestamp,ext);
+% print(h,imagename, '-dpng');
+
+%Plot entire image with circle around ghost
+h = figure(1);
+clf;
+set(h,'visible','off');
+th = 0:pi/50:2*pi;
+xunit = rad*cos(th)+sourcex;
+yunit = rad*sin(th)+sourcey;
+imagesc(image);
+hold on;
+plot(xunit,yunit);
+pbaspect([1 1 1]);
+colorbar;
+caxis([-20,20]);
+t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on');
+t2.LineStyle = 'none';
+% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+colorbar; 
+caxis([-20,20]);
+grid on;
+title(sprintf('%s',data.header.rawfile));
 % ext = '.png';
 % imagename = sprintf('%s%s%s',paths.magdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
