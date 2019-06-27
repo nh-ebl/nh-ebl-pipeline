@@ -118,16 +118,15 @@ hold on;
 plot(xunit,yunit);
 pbaspect([1 1 1]);
 colorbar;
-caxis([-20,20]);
+caxis([-5,5]);
 t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on');
 t2.LineStyle = 'none';
 % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
 colorbar; 
-caxis([-20,20]);
 grid on;
 title(sprintf('%s',data.header.rawfile));
-% ext = '.png';
-% imagename = sprintf('%s%s%s',paths.magdir,data.header.timestamp,ext);
-% print(h,imagename, '-dpng');
+ext = '.png';
+imagename = sprintf('%s%s%s',paths.magdir,data.header.timestamp,ext);
+print(h,imagename, '-dpng');
 
 end
