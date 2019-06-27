@@ -76,6 +76,55 @@ ghostyguess=zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 ghostmagguess=zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 Flux= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 ghostrad= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+partx= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+party= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+dotp= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+stodp= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+bm1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+bm2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+bm3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+bm4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+gm1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+gm2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+gm3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+gm4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+gr1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+gr2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+gr3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+gr4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostx1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostx2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostx3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostx4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghosty1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghosty2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghosty3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghosty4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostxo1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostxo2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostxo3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostxo4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostyo1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostyo2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostyo3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+ghostyo4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+starx1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+starx2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+starx3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+starx4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+stary1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+stary2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+stary3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+stary4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+starxo1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+starxo2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+starxo3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+starxo4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+staryo1= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+staryo2= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+staryo3= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+staryo4= zeros((size(datafiles,1)+size(ndatafiles,1)),1);
+
 % For old data files
 for ifile=1:size(datafiles,1)
     
@@ -222,9 +271,9 @@ for ifile=1:size(datafiles,1)
 %                         scatter(starx,stary,'y','filled');
 %                         scatter(starx(I,1),stary(I,1),'g','filled');
 %                         if ghostpart(ifile,1) == 1
-%                             scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
+%                             scatter(ghostxadj(ifile,1),ghostyadj(ifile,1),'r','filled');
 %                         elseif ghostpart(ifile,1) == 0
-%                             scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
+%                             scatter(ghostxadj(ifile,1),ghostyadj(ifile,1),'b','filled');
 %                         end
 %                         title(sprintf('%s',data.header.rawfile));
 %                         if( ifile < 134 && ifile > 120 )
@@ -239,7 +288,7 @@ for ifile=1:size(datafiles,1)
 %                 set(h,'visible','on');
 %                 xlim([3.5,6.6]);
 %                 xlabel('Star Magnitude');
-%                 ylim([12,16.5]);
+%                 ylim([13,17]);
 %                 ylabel('Ghost Magnitude');
 % 
 %                 if (brightmag((ifile),1)<4) 
@@ -271,28 +320,28 @@ for ifile=1:size(datafiles,1)
 %                 pbaspect([1 1 1]);
 %                 hold on;
 %                  if ghostpart((ifile),1) == 1
-% %                     gg1= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'y','filled');
+% %                     gg1= scatter(ghostxadj(ifile,1),ghostyadj(ifile,1),'y','filled');
 % %                     hold on;
 % %                     scatter(starxadj(ifile,1),staryadj(ifile,1),'y','filled');
 % %                  elseif (brightmag((ifile),1)~=0)
 %                      
 %                  elseif (brightmag((ifile),1)<4)
-%                     g1= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
+%                     g1= scatter(ghostxadj(ifile,1),ghostyadj(ifile,1),'r','filled');
 %                    hold on;
 %                     scatter(starxadj((ifile),1),staryadj((ifile),1),'r','filled');
 %                     
 %                  elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6))
-%                     g2= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'m','filled');
+%                     g2= scatter(ghostxadj(ifile,1),ghostyadj(ifile,1),'m','filled');
 %                  hold on;
 %                     scatter(starxadj((ifile),1),staryadj((ifile),1),'m','filled');
 %                     
 %                  elseif ((brightmag((ifile),1)>6) && (brightmag((ifile),1)<6.2))
-%                      g3= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'c','filled');
+%                      g3= scatter(ghostxadj(ifile,1),ghostyadj(ifile,1),'c','filled');
 %                  hold on;
 %                     scatter(starxadj((ifile),1),staryadj((ifile),1),'c','filled');
 %                     
 %                  elseif ((brightmag((ifile),1)>6.2))
-%                      g4= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
+%                      g4= scatter(ghostxadj(ifile,1),ghostyadj(ifile,1),'b','filled');
 %                  hold on;
 %                     scatter(starxadj((ifile),1),staryadj((ifile),1),'b','filled');
 %                  end
@@ -303,42 +352,69 @@ for ifile=1:size(datafiles,1)
 %                 print(h,imagename, '-dpng');
 % Save new data to mat files
 %          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
-% %   
-if (brightmag(ifile,1)<4)
-    gm1= ghostmag(ifile,1);
-    gr1= ghostrad(ifile,1);
-elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6))
-    gm2= ghostmag(ifile,1);
-    gr2= ghostrad(ifile,1);
-elseif ((brightmag((ifile),1)>6) && (brightmag((ifile),1)<6.2))
-    gm3= ghostmag(ifile,1);
-    gr3= ghostrad(ifile,1);
-elseif ((brightmag((ifile),1)>6.2))
-    gm4= ghostmag(ifile,1);
-    gr4= ghostrad(ifile,1);
+% % 
+
+if ghostpart((ifile),1) == 1
+partx((ifile),1)= ghostxadj(ifile,1);
+party((ifile),1)= ghostyadj(ifile,1);
+dotp((ifile),1)= starxadj((ifile),1);
+stodp((ifile),1)= starxadj((ifile),1);  
 end
 
-        figure(4);
-        hold on;
-        xlabel('Ghost Radius');
-        xlim([11.5 20]);
-        ylabel('Ghost Magnitude');
-        ylim([13.5 17]);
-        if (brightmag((ifile),1)<4)
-            g1= scatter(gr1(gr1~=0),gm1(gm1~=0),'r', 'filled');
-        elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6))
-            g2= scatter(gr2,gm2,'m', 'filled');
-        elseif ((brightmag((ifile),1)>6) && (brightmag((ifile),1)<6.2))
-            g3= scatter(gr3,gm3,'c', 'filled');
-        elseif ((brightmag((ifile),1)>6.2))
-            g4= scatter(gr4,gm4,'b', 'filled');
-        end
-        
-
-    end
+if (brightmag(ifile,1)<4)
+    bm1((ifile),1)= brightmag((ifile),1);
+    gm1(ifile,1)= ghostmag(ifile,1);
+    gr1(ifile,1)= ghostrad(ifile,1);
+    ghostx1((ifile),1)= ghostxadj(ifile,1);
+    ghosty1((ifile),1)= ghostyadj(ifile,1);
+    starx1((ifile),1)= starxadj((ifile),1);
+    stary1((ifile),1)= staryadj((ifile),1);
+    starxo1((ifile),1)=starxcent((ifile),1);
+    staryo1((ifile),1)=starycent((ifile),1);
+    ghostxo1((ifile),1)=ghostxcent((ifile),1);
+    ghostyo1((ifile),1)=ghostycent((ifile),1);
     
-
-
+elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6))
+    bm2((ifile),1)= brightmag((ifile),1);
+    gm2(ifile,1)= ghostmag(ifile,1);
+    gr2(ifile,1)= ghostrad(ifile,1);
+    ghostx2((ifile),1)= ghostxadj(ifile,1);
+    ghosty2((ifile),1)= ghostyadj(ifile,1);
+    starx2((ifile),1)= starxadj((ifile),1);
+    stary2((ifile),1)= staryadj((ifile),1);
+    starxo2((ifile),1)=starxcent((ifile),1);
+    staryo2((ifile),1)=starycent((ifile),1);
+    ghostxo2((ifile),1)=ghostxcent((ifile),1);
+    ghostyo2((ifile),1)=ghostycent((ifile),1);
+    
+elseif ((brightmag((ifile),1)>6) && (brightmag((ifile),1)<6.2))
+    bm3((ifile),1)= brightmag((ifile),1);
+    gm3(ifile,1)= ghostmag(ifile,1);
+    gr3(ifile,1)= ghostrad(ifile,1);
+    ghostx3((ifile),1)= ghostxadj(ifile,1);
+    ghosty3((ifile),1)= ghostyadj(ifile,1);
+    starx3((ifile),1)= starxadj((ifile),1);
+    stary3((ifile),1)= staryadj((ifile),1);
+    starxo3((ifile),1)=starxcent((ifile),1);
+    staryo3((ifile),1)=starycent((ifile),1);
+    ghostxo3((ifile),1)=ghostxcent((ifile),1);
+    ghostyo3((ifile),1)=ghostycent((ifile),1);
+    
+elseif ((brightmag((ifile),1)>6.2))
+    bm4((ifile),1)= brightmag((ifile),1);
+    gm4(ifile,1)= ghostmag(ifile,1);
+    gr4(ifile,1)= ghostrad(ifile,1);
+    ghostx4((ifile),1)= ghostxadj(ifile,1);
+    ghosty4((ifile),1)= ghostyadj(ifile,1);
+    starx4((ifile),1)= starxadj((ifile),1);
+    stary4((ifile),1)= staryadj((ifile),1);
+    starxo4((ifile),1)=starxcent((ifile),1);
+    staryo4((ifile),1)=starycent((ifile),1);
+    ghostxo4((ifile),1)=ghostxcent((ifile),1);
+    ghostyo4((ifile),1)=ghostycent((ifile),1);
+    
+end
+    end
 end
 
 % For new data files
@@ -371,7 +447,7 @@ for ifile=1:size(ndatafiles,1)
             ghostpart((ifile+16),1) = 1;
             % If ghost not visible in set where other ghosts exist, save that
             % info
-            
+            ghostrad((ifile+16),1)= data.ghost.ghostrad;
         elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
             ghostpart((ifile+16),1) = 0.5;
        
@@ -436,10 +512,11 @@ for ifile=1:size(ndatafiles,1)
         starghostdistall((ifile+16),1) = stardistghost(1,I);
         % Save star total position, ghost total position, and ghost x and y
         % adjusted coords
-        starposadj((ifile+16),1) = sqrt(starxadj((ifile+16),1)^2 + staryadj((ifile+16),1)^2);
-        ghostposadj((ifile+16),1) = sqrt((199+data.ghost.ghostx)^2 + (199+data.ghost.ghosty)^2);
         ghostxadj((ifile+16),1) = 199+data.ghost.ghostx;
         ghostyadj((ifile+16),1) = 199+data.ghost.ghosty;
+        starposadj((ifile+16),1) = sqrt(starxadj((ifile+16),1)^2 + staryadj((ifile+16),1)^2);
+        ghostposadj((ifile+16),1) = sqrt((199+data.ghost.ghostx)^2 + (199+data.ghost.ghosty)^2);
+        
         
         ghostxguess((ifile+16),1)= 0.1208*starxadj((ifile+16),1)+296.7564;
         ghostyguess((ifile+16),1)=0.1127*staryadj((ifile+16),1)+293.9804;
@@ -456,7 +533,7 @@ for ifile=1:size(ndatafiles,1)
         ghostmag((ifile+16),1)=(-2.5*log10(Flux((ifile+16),1))+20);
         brightmag((ifile+16),1) = data.ghost.brightmag(1,I);
         ghostmagguess((ifile+16),1)=0.6930*brightmag((ifile+16),1)+11.5544;
-        ghostrad((ifile+16),1)= data.ghost.ghostrad;
+        
         
         end
         ghostxcent((ifile+16),1)= ghostxadj((ifile+16),1)-327;
@@ -499,41 +576,39 @@ for ifile=1:size(ndatafiles,1)
 %                         scatter(starx,stary,'y','filled');
 %                         scatter(starx(I,1),stary(I,1),'g','filled');
 %                         if ghostpart((ifile+16),1) == 1
-%                             scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
+%                             scatter(ghostxadj((ifile+16),1),ghostyadj((ifile+16),1),'r','filled');
 %                         elseif ghostpart((ifile+16),1) == 0
-%                             scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
+%                             scatter(ghostxadj((ifile+16),1),ghostyadj((ifile+16),1),'b','filled');
 %                         end
 %                         title(sprintf('%s',data.header.rawfile));
 %                         if( (ifile+16) < 134 && (ifile+16) > 120 )
 %                             pause;
 %                         end
-%hold off;
+%                           hold off;
         end
-%         
-% Plot star magnitude vs ghost magnitude: Vertical plot; this displays the
-% magnitudes organized by color, with the color representing different
-% star magnitudes  
-%                h = figure(3);
-%                set(h,'visible','on');
-%                xlim([3.5,6.6]);
-%                xlabel('Star Magnitude');
-%                ylim([12,16.5]);
-%                ylabel('Ghost Magnitude');
-%                
+%  Plot star magnitude vs ghost magnitude: Vertical plot; this displays the
+%  magnitudes organized by color, with the color representing different
+%  star magnitudes
+%                 h = figure(3);
+%                 set(h,'visible','on');
+%                 xlim([3.5,6.6]);
+%                 xlabel('Star Magnitude');
+%                 ylim([13,17]);
+%                 ylabel('Ghost Magnitude');
+% 
 %                 if (brightmag((ifile+16),1)<4) 
 %                     g1= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'r','filled');
 %                     hold on;
 %                 elseif ((brightmag((ifile+16),1)>4) && (brightmag((ifile+16),1)<6)) 
-%                     g2= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'m','filled');
+%                     g2= scatter(brightmag(ifile,1), ghostmag(ifile,1),'m','filled');
 %                     hold on;
 %                 elseif ((brightmag((ifile+16),1)>6) && (brightmag((ifile+16),1)<6.2)) 
-%                     g3= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'c','filled');
+%                     g3= scatter(brightmag((ifile+16),1), ghostmag((ifile+16),1),'c','filled');
 %                     hold on;
 %                 elseif (brightmag((ifile+16),1)>6.2) 
 %                     g4= scatter(brightmag((ifile+16),1),ghostmag((ifile+16),1),'b','filled');
 %                     hold on;
 %                 end
-
 % Dot graph! Inside the box is the ghost location, outside is star location
 % but is color coded by the star magnitude
 %                 h = figure(2);
@@ -550,27 +625,32 @@ for ifile=1:size(ndatafiles,1)
 %                 pbaspect([1 1 1]);
 %                 hold on;
 %                  if ghostpart((ifile+16),1) == 1
-% %                     gg1= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'y','filled');
+% %                     gg1= scatter(ghostxadj((ifile+16),1),ghostyadj((ifile+16),1),'y','filled');
 % %                     hold on;
 % %                     scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'y','filled');
+% %                  elseif (brightmag((ifile+16),1)~=0)
+%                      
 %                  elseif (brightmag((ifile+16),1)<4)
-%                     g1= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'r','filled');
+%                     g1= scatter(ghostxadj((ifile+16),1),ghostyadj((ifile+16),1),'r','filled');
 %                    hold on;
 %                     scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'r','filled');
+%                     
 %                  elseif ((brightmag((ifile+16),1)>4) && (brightmag((ifile+16),1)<6))
-%                     g2= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'m','filled');
+%                     g2= scatter(ghostxadj((ifile+16),1),ghostyadj((ifile+16),1),'m','filled');
 %                  hold on;
 %                     scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'m','filled');
+%                     
 %                  elseif ((brightmag((ifile+16),1)>6) && (brightmag((ifile+16),1)<6.2))
-%                     g3= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'c','filled');
+%                      g3= scatter(ghostxadj((ifile+16),1),ghostyadj((ifile+16),1),'c','filled');
 %                  hold on;
 %                     scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'c','filled');
-%                  elseif (brightmag((ifile+16),1)>6.2)
-%                     g4= scatter(199+data.ghost.ghostx,199+(256-data.ghost.ghosty),'b','filled');
+%                     
+%                  elseif ((brightmag((ifile+16),1)>6.2))
+%                      g4= scatter(ghostxadj((ifile+16),1),ghostyadj((ifile+16),1),'b','filled');
 %                  hold on;
 %                     scatter(starxadj((ifile+16),1),staryadj((ifile+16),1),'b','filled');
 %                  end
-%                  
+                 
 %                 title(sprintf('%s',data.header.rawfile));
 %                 ext = '.png';
 %                 imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
@@ -578,79 +658,151 @@ for ifile=1:size(ndatafiles,1)
 % Save new data to mat files
 %          save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
 
-if (brightmag((ifile+16),1)<4)
-    gm1= ghostmag((ifile+16),1);
-    gr1= ghostrad((ifile+16),1);
+
+%for ghost partials
+if ghostpart((ifile+16),1) == 1
+    partx((ifile+16),1)= ghostxadj((ifile+16),1);
+    party((ifile+16),1)= ghostyadj((ifile+16),1);
+    dotp((ifile+16),1)=starxadj((ifile+16),1);
+    stodp((ifile+16),1)=starxadj((ifile+16),1);
+elseif (brightmag((ifile+16),1)<4)
+    bm1((ifile+16),1)= brightmag((ifile+16),1);
+    gm1((ifile+16),1)= ghostmag((ifile+16),1);
+    gr1((ifile+16),1)= ghostrad((ifile+16),1);
+    ghostx1((ifile+16),1)= ghostxadj((ifile+16),1);
+    ghosty1((ifile+16),1)= ghostyadj((ifile+16),1);
+    starx1((ifile+16),1)= starxadj((ifile+16),1);
+    stary1((ifile+16),1)= staryadj((ifile+16),1);
+    starxo1((ifile+16),1)=starxcent((ifile+16),1);
+    staryo1((ifile+16),1)=starycent((ifile+16),1);
+    ghostxo1((ifile+16),1)= ghostxcent((ifile+16),1);
+    ghostyo1((ifile+16),1)= ghostycent((ifile+16),1);
 elseif ((brightmag((ifile+16),1)>4) && (brightmag((ifile+16),1)<6))
-    gm2= ghostmag((ifile+16),1);
-    gr2= ghostrad((ifile+16),1);
+    bm2((ifile+16),1)= brightmag((ifile+16),1);
+    gm2((ifile+16),1)= ghostmag((ifile+16),1);
+    gr2((ifile+16),1)= ghostrad((ifile+16),1);
+    ghostx2((ifile+16),1)= ghostxadj((ifile+16),1);
+    ghosty2((ifile+16),1)= ghostyadj((ifile+16),1);
+    starx2((ifile+16),1)= starxadj((ifile+16),1);
+    stary2((ifile+16),1)= staryadj((ifile+16),1);
+    starxo2 ((ifile+16),1)=starxcent((ifile+16),1);
+    staryo2((ifile+16),1)=starycent((ifile+16),1);
+    ghostxo2((ifile+16),1)= ghostxcent((ifile+16),1);
+    ghostyo2((ifile+16),1)= ghostycent((ifile+16),1);
 elseif ((brightmag((ifile+16),1)>6) && (brightmag((ifile+16),1)<6.2))
-    gm3= ghostmag((ifile+16),1);
-    gr3= ghostrad((ifile+16),1);
+    bm3((ifile+16),1)= brightmag((ifile+16),1);
+    gm3((ifile+16),1)= ghostmag((ifile+16),1);
+    gr3((ifile+16),1)= ghostrad((ifile+16),1);
+    ghostx3 ((ifile+16),1)= ghostxadj((ifile+16),1);
+    ghosty3((ifile+16),1)= ghostyadj((ifile+16),1);
+    starx3((ifile+16),1)= starxadj((ifile+16),1);
+    stary3((ifile+16),1)= staryadj((ifile+16),1);
+    starxo3((ifile+16),1)=starxcent((ifile+16),1);
+    staryo3((ifile+16),1)=starycent((ifile+16),1);
+    ghostxo3((ifile+16),1)= ghostxcent((ifile+16),1);
+    ghostyo3((ifile+16),1)=ghostycent((ifile+16),1);
 elseif ((brightmag((ifile+16),1)>6.2))
-    gm4= ghostmag((ifile+16),1);
-    gr4= ghostrad((ifile+16),1);
+    bm4((ifile+16),1)= brightmag((ifile+16),1);
+    gm4((ifile+16),1)= ghostmag((ifile+16),1);
+    gr4((ifile+16),1)= ghostrad((ifile+16),1);
+    ghostx4((ifile+16),1)= ghostxadj((ifile+16),1);
+    ghosty4((ifile+16),1)= ghostyadj((ifile+16),1);
+    starx4((ifile+16),1)= starxadj((ifile+16),1);
+    stary4((ifile+16),1)= staryadj((ifile+16),1);
+    starxo4((ifile+16),1)=starxcent((ifile+16),1);
+    staryo4((ifile+16),1)=starycent((ifile+16),1);
+    ghostxo4((ifile+16),1)=ghostxcent((ifile+16),1);
+    ghostyo4((ifile+16),1)=ghostycent((ifile+16),1);
 end
-
-        figure(4);
-        hold on;
-        xlabel('Ghost Radius');
-        xlim([11.5 20]);
-        ylabel('Ghost Magnitude');
-        ylim([13.5 17]);
-        if (brightmag((ifile),1)<4)
-            g1= scatter(gr1(gr1~=0),gm1(gm1~=0),'r', 'filled');
-        elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6))
-            g2= scatter(gr2,gm2,'m', 'filled');
-        elseif ((brightmag((ifile),1)>6) && (brightmag((ifile),1)<6.2))
-            g3= scatter(gr3,gm3,'c', 'filled');
-        elseif ((brightmag((ifile),1)>6.2))
-            g4= scatter(gr4,gm4,'b', 'filled');
-        end
-      
     end
-    
 end
+%% Graphs
 
-% These are for the plots inside the for loop.
-% The fit is for the magnitude plot(figure 3).
+% % Plot star magnitude vs ghost magnitude: Vertical plot; this displays the
+% % magnitudes organized by color, with the color representing different
+% % star magnitudes  
+% figure(2);
+% xlim([3.5,6.6]);
+% xlabel('Star Magnitude');
+% ylim([13,17]);
+% ylabel('Ghost Magnitude');
+% mg1= scatter(bm1(bm1~=0),gm1(gm1~=0),'r','filled');
+% hold on;
+% mg2= scatter(bm2(bm2~=0),gm2(gm2~=0),'m','filled');
+% hold on;
+% mg3= scatter(bm3(bm3~=0),gm3(gm3~=0),'c','filled');
+% hold on;
+% mg4= scatter(bm4(bm4~=0),gm4(gm4~=0),'b','filled');
 % fit= polyfit(brightmag(brightmag~=0),ghostmag(ghostmag~=0),1);
 % starfit=linspace(min(brightmag(brightmag~=0)),max(brightmag(brightmag~=0)));
 % ghostfit=(fit(1)*starfit + fit(2));
-% figure(3);
-% hold on;
 % plot (starfit, ghostfit);
-% text(4.5,13,'y=0.9931x+8.8923');
-legend([g1,g2,g3,g4],{'Mag 3.9555','Mag 5.7967','Mag 6.1574','Mag 6.3535',});
-% hold off;
-% figure(2);
+% text(5,13.5,'y=0.9931x+8.8923');
+% legend([mg1,mg2,mg3,mg4],{'Mag 3.9555','Mag 5.7967','Mag 6.1574','Mag 6.3535',});
+% 
+% % Dot graph! Inside the box is the ghost location, outside is star location
+% % but is color coded by the star magnitude
+% figure(3);
+% x1=200;
+% x2=455;
+% y1=200;
+% y2=455;
+% xbox = [x1, x2, x2, x1, x1];
+% ybox = [y1, y1, y2, y2, y1];
+% plot(xbox, ybox, 'k-', 'LineWidth', 3);
+% xlim([0,654]);
+% ylim([0,654]);
+% pbaspect([1 1 1]);
 % hold on;
-% legend([g1,g2,g3,g4],{'Mag 3.9555','Mag 5.7967','Mag 6.1574','Mag 6.3535',});
+% g1= scatter(ghostx1(ghostx1~=0),ghosty1(ghosty1~=0),'r','filled');
+% hold on;
+% scatter(starx1(starx1~=0),stary1(stary1~=0),'r','filled');
+% g2= scatter(ghostx2(ghostx2~=0),ghosty2(ghosty2~=0),'m','filled');
+% hold on;
+% scatter(starx2(starx2~=0),stary2(stary2~=0),'m','filled');
+% g3= scatter(ghostx3(ghostx3~=0),ghosty3(ghosty3~=0),'c','filled');
+% hold on;
+% scatter(starx3(starx3~=0),stary3(stary3~=0),'c','filled');
+% g4= scatter(ghostx4(ghostx4~=0),ghosty4(ghosty4~=0),'b','filled');
+% hold on;
+% scatter(starx4(starx4~=0),stary4(stary4~=0),'b','filled');
+% legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 % hold off;
-
-%% Graphs
-cntr = 5; % counter for figures
-% Plot ghost total position vs distance from center to closest star
-% figure(cntr);
+% 
+% %ghost radius vs ghost magnitude
+% figure(4);
+% hold on;
+% xlabel('Ghost Radius');
+% xlim([12.5 20.5]);
+% ylabel('Ghost Magnitude');
+% ylim([13.5 17]);
+% g1= scatter(gr1(gr1~=0),gm1(gm1~=0),'r', 'filled');
+% g2= scatter(gr2(gr2~=0),gm2(gm2~=0),'m', 'filled');
+% g3= scatter(gr3(gr3~=0),gm3(gm3~=0),'c', 'filled');
+% g4= scatter(gr4(gr4~=0),gm4(gm4~=0),'b', 'filled');
+% legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+% 
+% % Plot ghost total position vs distance from center to closest star
+% figure(5);
 % scatter(starcentdistall(starcentdistall~=0),ghostposadj(ghostposadj~=0));
 % xlabel('Distance from center to star');
 % ylabel('Ghost position');
 % 
 % % Plot distance from center to ghost vs distance from center to star
-% figure(cntr+1);
+% figure(6);
 % scatter(starcentdistall(starcentdistall~=0),ghostcentdistall(ghostcentdistall~=0));
 % xlabel('Distance from center to star');
 % ylabel('Distance from center to ghost');
 % 
 % % Plot ghost total position vs star total position
-% figure(cntr+2);
+% figure(7);
 % scatter(starposadj(starposadj~=0),ghostposadj(ghostposadj~=0));
 % % scatter(starposadjpol,ghostposadjpol);
 % xlabel('Star position');
 % ylabel('Ghost position');
 % 
 % % Plot distance from star to ghost vs distance from center to star
-% figure(cntr+3);
+% figure(8);
 % scatter(starcentdistall(starcentdistall~=0),starghostdistall(starghostdistall~=0));
 % xlabel('Distance from center to star');
 % ylabel('Distance from star to ghost');
@@ -664,9 +816,9 @@ cntr = 5; % counter for figures
 startadj= rad2deg(startadj);
 [ghosttadj,ghostradj]=cart2pol(ghostxcent, ghostycent);
 ghosttadj= rad2deg(ghosttadj);
-
-% Plot star r position vs ghost r position
-% figure(cntr+4);
+% 
+% % Plot star r position vs ghost r position
+% figure(9);
 % hold on;
 % scatter(starradj(starradj~=0), ghostradj(ghostradj~=0));
 % fitr=polyfit(starradj(starradj~=0),ghostradj(ghostradj~=0),1);
@@ -677,9 +829,9 @@ ghosttadj= rad2deg(ghosttadj);
 % ylabel('Ghost r position');
 % % polarscatter(starradj(starradj~=0), ghostradj(ghostradj~=0));
 % title('[starradj, ghostradj]');
-% 
-% % Plot star t position vs ghost t position
-% figure(cntr+5);
+% % 
+% % % Plot star t position vs ghost t position
+% figure(10);
 % hold on;
 % scatter(startadj(startadj~=0), ghosttadj(ghosttadj~=0));
 % xlabel('Star theta position');
@@ -691,9 +843,9 @@ ghosttadj= rad2deg(ghosttadj);
 % text(0,100,'y=0.8886x-5.4691');
 % % polarscatter(startadj(startadj~=0), ghosttadj(ghosttadj~=0));
 % title('[startadj,ghosttadj]');
-
-% Plot star mag vs ghost mag
-% figure(cntr+6);
+% 
+% % Plot star mag vs ghost mag
+% figure(11);
 % scatter(brightmag(brightmag~=0), ghostmag(ghostmag~=0));
 % xlabel('Star Magnitude');
 % ylabel('Ghost Magnitude');
@@ -711,7 +863,7 @@ ghosttadj= rad2deg(ghosttadj);
 %%%re-edit
 
 %  %ghost location x test
-%  figure(cntr+7);
+%  figure(12);
 %  hold on;
 % %  scatter(ghostxadj(ghostxadj~=0),ghostxguess(ghostxguess~=0));
 %  fitgx=polyfit(ghostxadj(ghostxadj~=0),ghostxguess(ghostxguess~=0),1);
@@ -730,7 +882,7 @@ ghosttadj= rad2deg(ghosttadj);
 %  hold off;
 %  
 %  %ghost location y test
-%  figure(cntr+8);
+%  figure(13);
 %  hold on;
 % %  scatter(ghostyadj(ghostyadj~=0),ghostyguess(ghostyguess~=0));
 %  fitgy=polyfit(ghostyadj(ghostyadj~=0),ghostyguess(ghostyguess~=0),1);
@@ -745,7 +897,7 @@ ghosttadj= rad2deg(ghosttadj);
 %  hold off;
 %  
 %  %ghost location mag test
-%  figure(cntr+9);
+%  figure(14);
 %  hold on;
 % %  scatter(ghostmag,ghostmagguess);
 %  fitgmag=polyfit(ghostmag,ghostmagguess,1);
@@ -759,7 +911,83 @@ ghosttadj= rad2deg(ghosttadj);
 %  ylabel('Guess-fit');
 %  hold off;
 
-%% 
+%using the coordinates from just before they get transformed to polar, plot
+%x/y locations again.
+%this allows us to see the same thing as figure 2  but with the center
+%of the image being the origin
+% figure(15);
+% x1=-128;
+% x2=128;
+% y1=-128;
+% y2=128;
+% xbox = [x1, x2, x2, x1, x1];
+% ybox = [y1, y1, y2, y2, y1];
+% plot(xbox, ybox, 'k-', 'LineWidth', 3);
+% xlim([-327,327]);
+% ylim([-327,327]);
+% pbaspect([1 1 1]);
+% hold on;
+% % gg1=scatter(partx(partx~=0),party(party~=0),'y','filled');
+% % hold on;
+% % scatter(dotp(dotp~=0),stodp(stodp~=0),'y','filled');
+% g1= scatter(ghostxo1(ghostxo1~=0),ghostyo1(ghostyo1~=0),'r','filled');
+% hold on;
+% scatter(starxo1(starxo1~=0),staryo1(staryo1~=0),'r','filled');
+% g2= scatter(ghostxo2(ghostxo2~=0),ghostyo2(ghostyo2~=0),'m','filled');
+% hold on;
+% scatter(starxo2(starxo2~=0),staryo2(staryo2~=0),'m','filled');
+% g3= scatter(ghostxo3(ghostxo3~=0),ghostyo3(ghostyo3~=0),'c','filled');
+% hold on;
+% scatter(starxo3(starxo3~=0),staryo3(staryo3~=0),'c','filled');
+% g4= scatter(ghostxo4(ghostxo4~=0),ghostyo4(ghostyo4~=0),'b','filled');
+% hold on;
+% scatter(starxo4(starxo4~=0),staryo4(staryo4~=0),'b','filled');
+% legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+% hold off;
+%starx vs ghostx
+figure(16);
+xlim([-15 35]);
+ylim([-180 180]);
+hold on;
+g1= scatter(ghostxo1(ghostxo1~=0),starxo1(starxo1~=0),'r','filled');
+hold on;
+g2= scatter(ghostxo2(ghostxo2~=0),starxo2(starxo2~=0),'m','filled');
+hold on;
+g3= scatter(ghostxo3(ghostxo3~=0),starxo3(starxo3~=0),'c','filled');
+hold on;
+g4= scatter(ghostxo4(ghostxo4~=0),starxo4(starxo4~=0),'b','filled');
+hold on;
+xlabel('Ghost X');
+ylabel('Star X');
+fitxo=polyfit(ghostxcent(ghostxcent~=0),starxcent(starxcent~=0),1);
+% starxo= linspace(min(starxcent(starxcent~=0)),max(starxcent(starxcent~=0)));
+xoeq=fitxo(1)*starxcent+fitxo(2);
+plot(starxcent,xoeq);
+text(5,150,'y=8.3226x -69.0560');
+legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+%stary vsghosty
+figure(17);
+xlim([-20 35]);
+ylim([-150 215]);
+hold on;
+g1= scatter(ghostyo1(ghostyo1~=0),staryo1(staryo1~=0),'r','filled');
+hold on;
+g2= scatter(ghostyo2(ghostyo2~=0),staryo2(staryo2~=0),'m','filled');
+hold on;
+g3= scatter(ghostyo3(ghostyo3~=0),staryo3(staryo3~=0),'c','filled');
+hold on;
+g4= scatter(ghostyo4(ghostyo4~=0),staryo4(staryo4~=0),'b','filled');
+hold on;
+xlabel('Ghost Y');
+ylabel('Star Y');
+fityo=polyfit(ghostycent(ghostycent~=0),starycent(starycent~=0),1);
+staryo=linspace(min(starycent(starycent~=0)),max(starycent(starycent~=0)));
+yoeq= fityo(1)*starycent+fityo(2);
+plot(starycent, yoeq);
+text(-5,150,'y=7.6440x-4.7146');
+legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 
-%plot ghost magnitude against ghost radius
-
+figure(18);
+scatter(ghostradj,ghostrad);
+xlabel('Ghost Rho');
+ylabel('Ghost radius');
