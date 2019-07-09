@@ -70,6 +70,6 @@ function nh_dark_looker()
   correction.date = mydate;
   correction.corr = mycorr;
   
-  save('lookup/nh_refcorr.mat','correction');
+  %save('lookup/nh_refcorr.mat','correction');
     
 %end

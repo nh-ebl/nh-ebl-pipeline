@@ -169,8 +169,8 @@ function nh_dark_analysis()
   darktemp = darktemp + 273.15;
   myfunc = myfunc + 273.15;
   
-  save('../scratch/nh_dark_analysis_fig1.mat','lightdate','lighttemp',...
-      'darkdate','darktemp','mydates','myfunc','cover');
+%   save('../scratch/nh_dark_analysis_fig1.mat','lightdate','lighttemp',...
+%       'darkdate','darktemp','mydates','myfunc','cover');
   
   figure(2); clf
   semilogx(lightdate,lightref(:,1),'ro')
@@ -291,10 +291,10 @@ function nh_dark_analysis()
   tccd = tccd + 273.15;
   lighttempm = lighttempm + 273.15;
   darktempm = darktempm + 273.15;
-  
-  save('../scratch/nh_dark_analysis_fig6.mat','meanvref',...
-          'sigvref','tccd','modelone','modeltwo','lighttempm',...
-	  'lightrefm','darktempm','darkrefm');
+%   
+%   save('../scratch/nh_dark_analysis_fig6.mat','meanvref',...
+%           'sigvref','tccd','modelone','modeltwo','lighttempm',...
+% 	  'lightrefm','darktempm','darkrefm');
 
       
       
