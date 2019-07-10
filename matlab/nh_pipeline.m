@@ -15,9 +15,9 @@ close all
 procstepflag = 1.5;
 
 % paths = get_paths();
-npaths = get_paths_new();
+paths = get_paths_new();
 
-ndatafiles = dir(sprintf('%s*.mat',npaths.datadir));
+ndatafiles = dir(sprintf('%s*.mat',paths.datadir));
 
 mydate = zeros(size(ndatafiles));
 mytemp = zeros(size(ndatafiles));
@@ -30,12 +30,12 @@ for ifile=1:size(ndatafiles,1)
     
     disp(sprintf('On file %d of %d.',ifile,size(ndatafiles,1)));
     
-    load(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name));
+    load(sprintf('%s%s',paths.datadir,ndatafiles(ifile).name));
     
     if procstepflag > 1
-        
-%         data = nh_findghost(data);
-        data = nh_makemask(data);
+    
+%         data = nh_findghoststar(data,paths);
+        data = nh_makemask(data,paths);
         
 %        save(sprintf('%s%s',paths.datadir,ndatafiles(ifile).name),'data');
         
@@ -45,7 +45,7 @@ for ifile=1:size(ndatafiles,1)
         
         data = nh_add_meta(data);
         
-      %  save(sprintf('%s%s',paths.datadir,ndatafiles(ifile).name),'data');
+%        save(sprintf('%s%s',paths.datadir,ndatafiles(ifile).name),'data');
         
     end
     
@@ -69,7 +69,7 @@ for ifile=1:size(ndatafiles,1)
         
         data = nh_calcdgl(data);
         
-        %save(sprintf('%s%s',paths.datadir,ndatafiles(ifile).name),'data');
+%         save(sprintf('%s%s',paths.datadir,ndatafiles(ifile).name),'data');
         
     end
     

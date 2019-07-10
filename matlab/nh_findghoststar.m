@@ -7,10 +7,7 @@
 % Thayer, June 2019
 %added the RA and DEC variables and recorded their values
 
-function data = nh_findghost(data)
-
-% get the paths for this file
-paths = get_paths();
+function data = nh_findghoststar(data, paths)
 
 % load up the corresponding catalog file
 load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
