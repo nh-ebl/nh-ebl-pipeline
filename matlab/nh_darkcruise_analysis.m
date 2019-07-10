@@ -90,7 +90,7 @@ function nh_darkcruise_analysis()
       data.ref.line = ref_i(:,257);      
       
       % save the resulting data file
-      save(sprintf('%s%s.mat',mypaths.darkdir,timestamp),'data');
+%       save(sprintf('%s%s.mat',mypaths.darkdir,timestamp),'data');
     
     end     
   end
