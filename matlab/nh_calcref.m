@@ -23,7 +23,7 @@ function nh_dark_looker()
   mydgl = zeros(nfiles,1);
   mycrr = zeros(nfiles,1);
   
-  goodfiles = [3,5,6,7];
+  goodfiles = [1,5,6,7,8];
   
   for ifile=1:nfiles
     
