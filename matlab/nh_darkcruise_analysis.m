@@ -1,13 +1,13 @@
 function nh_darkcruise_analysis()
 
   % all files are 10s integrations.
-  preprocess = 0;
+  preprocess = 1;
   
-  mypaths = get_paths();
+  mypaths = get_paths_new();
 
   if preprocess
 
-    myfiles = dir(sprintf('%s*_0x633_sci_1.fit',mypaths.darkfitsdir));
+    myfiles = dir(sprintf('%s*sci_1.fit',mypaths.darkfitsdir));
 
     nfiles = numel(myfiles);
 
@@ -79,18 +79,18 @@ function nh_darkcruise_analysis()
 	  data.header.date_cal(6:7),data.header.date_cal(9:10),...
 	  data.header.metstr(1:6));
 	  
-      datastring = sprintf('%s/%s_%010d_%s_eng_1.fit',data_cal,...
+      datastring = sprintf('%s/%s_%010d_%s_eng.fit',data_cal,...
 	  data.header.inst,data.header.met,data.header.apid);
       
       data.ref.file = datastring;
       
       ref_i = ...
-	  fitsread(sprintf('%sdata/%s',mypaths.engdir,datastring));
+	  fitsread(sprintf('%s/%s',mypaths.engdirold,datastring));
       
       data.ref.line = ref_i(:,257);      
       
       % save the resulting data file
-%       save(sprintf('%s%s.mat',mypaths.darkdir,timestamp),'data');
+      save(sprintf('%s%s.mat',mypaths.darkdir,timestamp),'data');
     
     end     
   end
@@ -120,15 +120,24 @@ function nh_darkcruise_analysis()
   end
   
   figure(1); clf
-  plot(mydate,myref(:,1));
+  scatter(mydate,myref(:,1));
+  xlabel('date since launch')
+  ylabel('reference pixel mean')
   
   figure(2); clf 
-  plot(myref(:,1),mysig(:,1));
+  scatter(myref(:,1),mysig(:,1));
+  xlabel('reference pixel mean')
+  ylabel('dark data median')
   
   figure(3); clf
-  plot(mytemp,myref(:,1));
+  scatter(mytemp,myref(:,1));
+  xlabel('CCD temp')
+  ylabel('reference pixel mean')
   
   figure(4); clf
-  plot(mydate,myexp);
+  scatter(mydate,myexp);
+  xlabel('date since launch')
+  ylabel('exposure time')
+end
   
 %end
