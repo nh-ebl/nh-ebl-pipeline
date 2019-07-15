@@ -274,4 +274,17 @@ data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 % imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
+% Plot histogram of masked image
+maskim = data.data.*~data.mask.onemask;
+idx = maskim > 0;
+h = figure(1);
+clf;
+set(h,'visible','off');
+g = histogram(maskim(idx),30);
+set(gca,'YScale','log')
+title(sprintf('%s',data.header.rawfile));
+ext = '.png';
+imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
+print(h,imagename, '-dpng');
+
 end
