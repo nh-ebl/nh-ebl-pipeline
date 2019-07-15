@@ -2,9 +2,9 @@ function nh_dark_analysis()
 
   mypaths = get_paths();
 
-  disp(sprintf('Parsing dark files.'))
+  fprintf('Parsing dark files.\n')
   
-  darkfiles = dir(sprintf('%s*.mat',mypaths.darkdir));  
+  darkfiles = dir(sprintf('%s*.mat','/data/symons/nh_data/darkfits/'));  
   
   ndarkfiles = numel(darkfiles);
 
@@ -151,11 +151,11 @@ function nh_dark_analysis()
   xlabel('Days from launch')
   ylabel('CCD Temperature (C)')
 
-  fitx = [darkdate;lightdate];
-  fity = [darktemp;lighttemp];
+  x = [darkdate;lightdate];
+  y = [darktemp;lighttemp];
   thismean = median(lighttemp);
-  fity = fity - thismean;
-  f = fit(fitx,fity,'exp1');
+  z = y - thismean;
+  f = fit(x,z,'exp1');
   mydates = [50:4000];  
   myfunc = f.a * exp(f.b .* mydates) + thismean;
   semilogx(mydates,myfunc,'b');

@@ -1,6 +1,6 @@
 function nh_dark_looker()
 
-  paths = get_paths();
+  paths = get_paths_new();
 
   datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
