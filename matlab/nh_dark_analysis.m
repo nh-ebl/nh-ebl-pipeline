@@ -62,7 +62,7 @@ function nh_dark_analysis()
   lightfiles = dir(sprintf('%s*.mat',mypaths.datadir));  
   
   isgood = zeros(numel(lightfiles),1);
-  goodfields = [3,5,6,7];
+  goodfields = [1,5,6,7,8];
   
   for ifile=1:numel(lightfiles)
     
