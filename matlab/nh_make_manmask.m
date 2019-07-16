@@ -1,8 +1,8 @@
 function nh_make_manmask(filenum)
 
-  paths = get_paths();
+  paths = get_paths_new();
    
-  %datafiles = dir(sprintf('%s*.mat',paths.datadir));
+  datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
   load(sprintf('%s%s.mat',paths.datadir,filenum));
   
@@ -226,7 +226,10 @@ function nh_make_manmask(filenum)
     mask(:,135:137) = 0;
     mask(133:135,:) = 0;
   end
-  
+  if strcmp(filenum,'2457583.7727459')
+      mask(43:94,181:192) =0;
+      
+  end
   
   
   figure(2); clf

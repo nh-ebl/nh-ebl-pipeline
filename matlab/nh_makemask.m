@@ -270,18 +270,29 @@ colorbar;
 caxis([-10,10]);
 title(sprintf('%s',data.header.rawfile));
 grid minor;
-% ext = '.png';
+ext = '.png';
 % imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
 %Plot actual histogram of all masks
-h = figure(2);
-% clf;
-set(h,'visible','on');
-g = histogram(data.data.*~data.mask.onemask,15);
-title(sprintf('%s',data.header.rawfile));
+% h = figure(2);
+% % clf;
+% set(h,'visible','on');
+% g = histogram(data.data.*~data.mask.onemask,15);
+% title(sprintf('%s',data.header.rawfile));
 % ext = '.png';
 % imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
+
+h = figure(3);
+% clf;
+imagesc(data.data.*~data.mask.manmask)
+set(h,'visible','on');
+% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+colorbar; 
+caxis([-10,10]);
+title(sprintf('%s',data.header.rawfile));
+grid minor;
+ext = '.png';
 
 end
