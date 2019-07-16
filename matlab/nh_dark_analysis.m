@@ -1,10 +1,10 @@
 function nh_dark_analysis()
 
-  mypaths = get_paths();
+  mypaths = get_paths_new();
 
   fprintf('Parsing dark files.\n')
   
-  darkfiles = dir(sprintf('%s*.mat','/data/symons/nh_data/darkfits/'));  
+  darkfiles = dir(sprintf('%s*.mat','/data/symons/nh_data/dark/'));  
   
   ndarkfiles = numel(darkfiles);
 
@@ -135,8 +135,9 @@ function nh_dark_analysis()
   lightlIlmq = lightlIlm(whpl,2);
   lightlIlm = [lightlIlmp,lightlIlmq];
   
-  disp(sprintf('Making plots.'))
+  fprintf('Making plots.\n')
   
+  figure;
   figure(1); clf
   semilogx(lightdate,lighttemp,'r.')
   hold on                           
@@ -172,6 +173,7 @@ function nh_dark_analysis()
 %   save('../scratch/nh_dark_analysis_fig1.mat','lightdate','lighttemp',...
 %       'darkdate','darktemp','mydates','myfunc','cover');
   
+  figure;
   figure(2); clf
   semilogx(lightdate,lightref(:,1),'ro')
   hold on             
@@ -193,10 +195,14 @@ function nh_dark_analysis()
   meanvref = sum(lightrefm(:,1)./lightrefm(:,2).^2)./sum(1./lightrefm(:,2).^2);
   sigvref = std(lightref(:,1))./2;
   
+  figure;
   figure(3); clf
-  plot(lightref(:,1),lightsig(:,1),'ro')
-  hold on
-  plot(darkref(:,1),darksig(:,1),'bo')
+  hold on;
+  xlabel('ref')
+  ylabel('sig')
+  scatter(lightref(:,1),lightsig(:,1),'r');
+  hold on;
+  scatter(darkref(:,1),darksig(:,1),'b');
   
   %vreffit = polyfit(darkref(:,1),darksig(:,1),1);
   [a_york, b_york, sigma_ayork, sigma_byork] =...
@@ -212,7 +218,8 @@ function nh_dark_analysis()
   
   xlabel('Mean of Reference Pixels')
   ylabel('Mean of Light Pixels')  
-    
+  
+  figure;
   figure(4); clf
   plot(darktemp,darkref(:,1),'bo')
   hold on
@@ -233,6 +240,7 @@ function nh_dark_analysis()
   xlabel('CCD Temperature')
   ylabel('Mean of Reference Pixels, Cover On')
   
+  figure;
   figure(5); clf
   tccd = [-85:1:-50];
   plot(tccd,b_york.*tccd+a_york,'b')
@@ -256,6 +264,7 @@ function nh_dark_analysis()
   xlabel('CCD Temperature')
   ylabel('Mean of Reference Pixels')
   
+  figure;
   figure(6); clf
   tccd = [-85:1:-45];
   darkcurrent = 10.*(1./22).*1e4.*122.*(tccd+273).^3.*exp(-6400./(tccd+273));
@@ -267,7 +276,6 @@ function nh_dark_analysis()
   darkcurrenth = 2.545.*10.*(1./22).*1e4.*122.*(tccd+273).^3.*exp(-6400./(tccd+273));
   plot(tccd,darkcurrenth+meanvref,'k:')
   modeltwo = darkcurrenth+meanvref;
-
   errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'bh')
   for ifield=1:4
     plot([darktempm(ifield)-0.15,darktempm(ifield)+0.15],...
@@ -298,7 +306,7 @@ function nh_dark_analysis()
 
       
       
-      
+  figure;    
   figure(7); clf
   plot(lightrefm(:,1),lightlIlm(:,1),'ro')
   hold on
@@ -311,9 +319,6 @@ function nh_dark_analysis()
   
   ylabel('Mean of Masked Flight Image (DN)')
   xlabel('Mean of Reference Pixels (DN)')
-  
-  dbstop
-  
     
     plot(lighttemp,lightref(:,1),'ro')
   hold on
@@ -337,11 +342,6 @@ function nh_dark_analysis()
   cover = data.header.cover_jd - data.header.launch_jd;
   cover = [cover,cover];
   plot(cover,ylim,'k:')
-  
-  
-  
-  
-  dbstop
   
   
   

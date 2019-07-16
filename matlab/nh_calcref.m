@@ -1,4 +1,4 @@
-function nh_dark_looker()
+function nh_calcref()
 
   paths = get_paths_new();
 
@@ -47,26 +47,26 @@ function nh_dark_looker()
       mystring = sprintf('%d, %s, %f, %f',myfieldnum(ifile),...
 	  mytarget{ifile},mysig(ifile),mycrr(ifile));
 
-      disp(mystring)
+      disp(mystring);
     end
     
   end
       
   isgood = logical(isgood);
   
-  plot(mycrr(isgood),mysig(isgood),'o');
+  scatter(mycrr(isgood),mysig(isgood),'r');
+  hold on;
+  [rho,pval] = corr(mycrr(isgood),mysig(isgood));
   
-  [rho,pval] = corr(mycrr(isgood),mysig(isgood))
-  
-  [linfit,fiterr] = polyfit(mycrr(isgood),mysig(isgood),1)
-  ste = sqrt(diag(inv(fiterr.R)*inv(fiterr.R')).*fiterr.normr.^2./fiterr.df)
+  [linfit,fiterr] = polyfit(mycrr(isgood),mysig(isgood),1);
+  ste = sqrt(diag(inv(fiterr.R)*inv(fiterr.R')).*fiterr.normr.^2./fiterr.df);
 
   mycorr = linfit(1).*mycrr + linfit(2);
 
-  [rho,pval] = corr(mycrr(isgood),mysig(isgood)-mycorr(isgood))
+  [rho,pval] = corr(mycrr(isgood),mysig(isgood)-mycorr(isgood));
   
-  plot(mycrr(isgood),mysig(isgood)-mycorr(isgood),'o');
-        
+  scatter(mycrr(isgood),mysig(isgood)-mycorr(isgood),'b');
+     title('calcref');   
   correction.date = mydate;
   correction.corr = mycorr;
   
