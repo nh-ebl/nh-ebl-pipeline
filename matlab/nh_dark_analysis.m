@@ -1,6 +1,7 @@
 function nh_dark_analysis()
 
-  mypaths = get_paths_new();
+  paths = get_paths();
+  npaths=get_paths_new();
 
   fprintf('Parsing dark files.\n')
   
@@ -17,7 +18,7 @@ function nh_dark_analysis()
   
   for ifile=1:ndarkfiles
     
-    load(sprintf('%s%s',mypaths.darkdir,darkfiles(ifile).name));
+    load(sprintf('%s%s',paths.darkdir,darkfiles(ifile).name));
 
     darktemp(ifile) = data.header.ccdtemp;
     darkdate(ifile) = data.header.date_jd - data.header.launch_jd;
@@ -57,7 +58,7 @@ function nh_dark_analysis()
     darkrefm(jfield,2) = sqrt(1./256+std(darkref(whpl,1)).^2);%sqrt(1./sum(1./darkref(whpl,2).^2));
   end
     
-  disp(sprintf('Parsing light files.'))
+  fprintf('Parsing light files.\n')
   
   lightfiles = dir(sprintf('%s*.mat',mypaths.datadir));  
   
@@ -72,8 +73,8 @@ function nh_dark_analysis()
     end
   end
   
-  lightfiles = sum(isgood);
-  %numel(lightfiles);
+  nlightfiles = sum(isgood);
+  numel(lightfiles);
 
   lighttemp = zeros(nlightfiles,1);
   lightdate = zeros(nlightfiles,1);
@@ -138,7 +139,6 @@ function nh_dark_analysis()
   
   fprintf('Making plots.\n')
   
-  figure;
   figure(1); clf
   semilogx(lightdate,lighttemp,'r.')
   hold on                           
@@ -154,7 +154,7 @@ function nh_dark_analysis()
   ylabel('CCD Temperature (C)')
 
   x = [darkdate;lightdate];
-  y = [darktemp;lighttemp];
+  y = [darktemp;lighttemp];untitled
   thismean = median(lighttemp);
   z = y - thismean;
   f = fit(x,z,'exp1');
@@ -174,7 +174,6 @@ function nh_dark_analysis()
 %   save('../scratch/nh_dark_analysis_fig1.mat','lightdate','lighttemp',...
 %       'darkdate','darktemp','mydates','myfunc','cover');
   
-  figure;
   figure(2); clf
   semilogx(lightdate,lightref(:,1),'ro')
   hold on             
