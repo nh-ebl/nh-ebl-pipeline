@@ -274,20 +274,20 @@ ext = '.png';
 % imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
-<<<<<<< HEAD
+
 % Plot histogram of masked image
-maskim = data.data.*~data.mask.onemask;
-idx = maskim > 0;
-h = figure(1);
-clf;
-set(h,'visible','off');
-g = histogram(maskim(idx),30);
-set(gca,'YScale','log')
-title(sprintf('%s',data.header.rawfile));
-ext = '.png';
-imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
-print(h,imagename, '-dpng');
-=======
+% maskim = data.data.*~data.mask.onemask;
+% idx = maskim > 0;
+% h = figure(1);
+% clf;
+% set(h,'visible','off');
+% g = histogram(maskim(idx),30);
+% set(gca,'YScale','log')
+% title(sprintf('%s',data.header.rawfile));
+% ext = '.png';
+% imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
+% print(h,imagename, '-dpng');
+
 %Plot actual histogram of all masks
 % h = figure(2);
 % % clf;
@@ -297,7 +297,7 @@ print(h,imagename, '-dpng');
 % ext = '.png';
 % imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
->>>>>>> e6705299f23212f029f8e3508edaf0713347037c
+
 
 h = figure(3);
 % clf;
