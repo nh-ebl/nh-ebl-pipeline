@@ -34,6 +34,7 @@ for ifile=1:size(datafiles,1)
     if procstepflag > 1
     
 %         data = nh_findghoststar(data,paths);
+        data = nh_make_manmask(data,paths);
         data = nh_makemask(data,paths);
         
 %        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');

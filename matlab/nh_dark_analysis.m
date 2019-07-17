@@ -72,7 +72,7 @@ function nh_dark_analysis()
     end
   end
   
-  lightfiles = sum(isgood);
+  nlightfiles = sum(isgood);
   %numel(lightfiles);
 
   lighttemp = zeros(nlightfiles,1);
