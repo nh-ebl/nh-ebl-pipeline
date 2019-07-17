@@ -7,15 +7,19 @@
   paths = get_paths();
   npaths = get_paths_new();
 
-  fprintf('Parsing dark files.\n')
+  fprintf('Parsing dark files.\n');
   
-  %Load both data directories
-  %old
+  %Load all data directories
+  %old dark
   darkfiles = dir(sprintf('%s*.mat',paths.darkdir));  
-  %new
+  %new dark
   ndarkfiles = dir(sprintf('%s*.mat',npaths.darkdir));
-
-  %Preallocate space for variables
+  %old light
+  lightfiles = dir(sprintf('%s*.mat',paths.datadir)); 
+  %new light
+  nlightfiles = dir(sprintf('%s*.mat',npaths.datadir));
+  
+  %Preallocate space for variables dark
   darktemp = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
   darkdate = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
   darksig = zeros((size(darkfiles,2)+size(ndarkfiles,2)),2);
@@ -23,29 +27,40 @@
   darkexp = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
   darkfield = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
   
+  %Preallocate space for variables light
+  lighttemp = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
+  lightdate = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
+  lightsig = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
+  lightref = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
+  lightexp = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
+  lightfield = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
+  lightlIl = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
+%   isgood = zeros(numel(lightfiles),1);
+%   goodfields = [1,5,6,7,8];
+  
   %For old data files
   for ifile=1:size(darkfiles)
     
     load(sprintf('%s%s',paths.darkdir,darkfiles(ifile).name));
 
-    darktemp(ifile) = data.header.ccdtemp;
-    darkdate(ifile) = data.header.date_jd - data.header.launch_jd;
+    darktemp(ifile,1) = data.header.ccdtemp;
+    darkdate(ifile,1) = data.header.date_jd - data.header.launch_jd;
     darksig(ifile,1) = median(data.dark(:));
     darksig(ifile,2) = std(data.dark(:));
     darkref(ifile,1) = mean(data.ref.line);
     darkref(ifile,2) = std(data.ref.line);
-    darkexp(ifile) = data.header.exptime;
-    if darkdate(ifile) < 94
-      darkfield(ifile) = 1;
+    darkexp(ifile,1) = data.header.exptime;
+    if darkdate(ifile,1) < 94
+      darkfield(ifile,1) = 1;
     end
-    if darkdate(ifile) > 94 & darkdate(ifile) < 96
-      darkfield(ifile) = 2;
+    if darkdate(ifile,1) > 94 && darkdate(ifile,1) < 96
+      darkfield(ifile,1) = 2;
     end
-    if darkdate(ifile) > 102 & darkdate(ifile) < 103
-      darkfield(ifile) = 3;
+    if darkdate(ifile,1) > 102 && darkdate(ifile,1) < 103
+      darkfield(ifile,1) = 3;
     end
-    if darkdate(ifile) > 103 & darkdate(ifile) < 104
-      darkfield(ifile) = 4;
+    if darkdate(ifile,1) > 103 && darkdate(ifile,1) < 104
+      darkfield(ifile,1) = 4;
     end
     
   end
@@ -55,34 +70,82 @@
     
     load(sprintf('%s%s',npaths.darkdir,ndarkfiles(ifile).name));
 
-    darktemp(ifile+359) = data.header.ccdtemp;
-    darkdate(ifile+359) = data.header.date_jd - data.header.launch_jd;
+    darktemp(ifile+359,1) = data.header.ccdtemp;
+    darkdate(ifile+359,1) = data.header.date_jd - data.header.launch_jd;
     darksig(ifile+359,1) = median(data.dark(:));
     darksig(ifile+359,2) = std(data.dark(:));
     darkref(ifile+359,1) = mean(data.ref.line);
     darkref(ifile+359,2) = std(data.ref.line);
-    darkexp(ifile+359) = data.header.exptime;
-    if darkdate(ifile+359) < 94
-      darkfield(ifile+359) = 1;
+    darkexp(ifile+359,1) = data.header.exptime;
+    if darkdate(ifile+359,1) < 94
+      darkfield(ifile+359,1) = 1;
     end
-    if darkdate(ifile+359) > 94 & darkdate(ifile+359) < 96
-      darkfield(ifile+359) = 2;
+    if darkdate(ifile+359,1) > 94 && darkdate(ifile+359,1) < 96
+      darkfield(ifile+359,1) = 2;
     end
-    if darkdate('ifile/home/dignan/nh_ebl_pipeline/matlab') > 102 & darkdate(ifile+359) < 103
-      darkfield(ifile+359) = 3;
+    if darkdate(ifile+359,1) > 102 && darkdate(ifile+359) < 103
+      darkfield(ifile+359,1) = 3;
     end
-    if darkdate(ifile+359) > 103 & darkdate(ifile+359) < 104
-      darkfield(ifile+359) = 4;
+    if darkdate(ifile+359,1) > 103 && darkdate(ifile+359,1) < 104
+      darkfield(ifile+359,1) = 4;
     end
     
   end
+  
+   fprintf('Parsing light files.\n');
+  
+  %For old data files
+  for ifile=1:size(lightfiles)
+      
+      load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
+      
+      lighttemp(ifile+721,1) = data.header.ccdtemp;
+      lightdate(ifile+721,1) = data.header.date_jd - data.header.launch_jd;    
+      lightsig(ifile+721,1) = data.ref.engmean;
+      lightsig(ifile+721,2) = sqrt(data.ref.engmean);
+      lightref(ifile+721,1) = mean(data.ref.line);
+      lightref(ifile+721,2) = std(data.ref.line);
+      lightexp(ifile+721,1) = data.header.exptime;
+      lightfield(ifile+721,1) = data.header.fieldnum;
+      lightlIl(ifile+721,1) = data.stats.maskmean./data.header.exptime;
+      lightlIl(ifile+721,2) = data.stats.maskstd;
+      
+    
+    if sum(data.header.fieldnum == goodfields)
+      isgood(ifile+721) = 1;
+    end
+    
+  end
+  
+  %For new data files
+  for ifile=1:size(nlightfiles)
+      
+      load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
+       
+      lighttemp(ifile+737,1) = data.header.ccdtemp;
+      lightdate(ifile+737,1) = data.header.date_jd - data.header.launch_jd;    
+      lightsig(ifile+737,1) = data.ref.engmean;
+      lightsig(ifile+737,2) = sqrt(data.ref.engmean);
+      lightref(ifile+737,1) = mean(data.ref.line);
+      lightref(ifile+737,2) = std(data.ref.line);
+      lightexp(ifile+737,1) = data.header.exptime;
+      lightfield(ifile+737,1) = data.header.fieldnum;
+      lightlIl(ifile+737,1) = data.stats.maskmean./data.header.exptime;
+      lightlIl(ifile+737,2) = data.stats.maskstd;
+   
+    if sum(data.header.fieldnum == goodfields)
+      isgood(ifile+737) = 1;
+    end
+    
+  end
+  
   nfields = 4;
   darktempm = zeros(nfields,1);
   darkerrm = zeros(nfields,1);
   darkdatem = zeros(nfields,1);
   darkrefm = zeros(nfields,2);
+ 
   
-    
   for jfield=1:nfields
     whpl = darkfield == jfield;
     darktempm(jfield) = mean(darktemp(whpl));
@@ -92,78 +155,16 @@
 	sum(1./darkref(whpl,2).^2);
     darkrefm(jfield,2) = sqrt(1./256+std(darkref(whpl,1)).^2);%sqrt(1./sum(1./darkref(whpl,2).^2));
   end
-    
-  fprintf('Parsing light files.\n')
   
-  %Load both data directories
-  %old
-  lightfiles = dir(sprintf('%s*.mat',paths.datadir)); 
-  %new
-  nlightfiles = dir(sprintf('%s*.mat',npaths.datadir));
- 
-  isgood = zeros(numel(lightfiles),1);
-  goodfields = [1,5,6,7,8];
-  
-  %For old data files
-  for ifile=1:size(lightfiles)
-    
-    load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
-    if sum(data.header.fieldnum == goodfields)
-      isgood(ifile) = 1;
-    end
-  end
-  
-  %For new data files
-  for ifile=1:size(nlightfiles)
-    
-    load(sprintf('%s%s',paths.datadir,nlightfiles(ifile).name));
-    if sum(data.header.fieldnum == goodfields)
-      isgood(ifile) = 1;
-    end
-  end
-  
-  
-  nlightfiles = sum(isgood);
-  numel(lightfiles)
-  
-  %Preallocate space for variables
-  lighttemp = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
-  lightdate = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
-  lightsig = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
-  lightref = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
-  lightexp = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
-  lightfield = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
-  lightlIl = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
-  
-  jfile = 1;
-  for ifile=1:size(lightfiles)
-    
-    if isgood(ifile) == 1
-      load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
-
-      lighttemp(jfile) = data.header.ccdtemp;
-      lightdate(jfile) = data.header.date_jd - data.header.launch_jd;    
-      lightsig(jfile,1) = data.ref.engmean;
-      lightsig(jfile,2) = sqrt(data.ref.engmean);
-      lightref(jfile,1) = mean(data.ref.line);
-      lightref(jfile,2) = std(data.ref.line);
-      lightexp(jfile) = data.header.exptime;
-      lightfield(jfile) = data.header.fieldnum;
-      lightlIl(jfile,1) = data.stats.maskmean./data.header.exptime;
-      lightlIl(jfile,2) = data.stats.maskstd;
-    
-      jfile = jfile + 1;
-    end
-      
-  end
-  
+%   nlightfiles = sum(isgood);
+%   numel(lightfiles);
   nfields = 14;
   lighttempm = zeros(nfields,1);
   lighterrm = zeros(nfields,1);
   lightdatem = zeros(nfields,1);
   lightrefm = zeros(nfields,2);
   lightlIlm = zeros(nfields,2);
-    
+  
   for jfield=1:nfields
     whpl = lightfield == jfield;
     lighttempm(jfield) = mean(lighttemp(whpl));
@@ -191,19 +192,19 @@
   fprintf('Making plots.\n')
   
   figure(1); clf
-  semilogx(lightdate,lighttemp,'r.')
-  hold on                           
-  %errorbar(lightdate,lighttemp,0.15.*ones(size(lightdate)),'ro')
-  %semilogx(lightdatem,lighttempm,'ko');
-  %errorbar(lightdatem,lighttempm,2.*sqrt(lighterrm.^2+(0.15.*ones(size(lightdatem))).^2),'ko')
-  semilogx(darkdate,darktemp,'b.')  
-  hold on
-  %errorbar(darkdate,darktemp,0.15.*ones(size(darkdate)),'bo')
-  %semilogx(darkdatem,darktempm,'ko');
-  %errorbar(darkdatem,darktempm,2.*sqrt(darkerrm.^2 + (0.15.*ones(size(darkdatem))).^2),'ko');
-  %xlim([80,4000])
-  xlabel('Days from launch')
-  ylabel('CCD Temperature (C)')
+  semilogx(lightdate,lighttemp,'r.');
+  hold on ;                          
+  errorbar(lightdate,lighttemp,0.15.*ones(size(lightdate)),'ro');
+  semilogx(lightdatem,lighttempm,'ko');
+  errorbar(lightdatem,lighttempm,2.*sqrt(lighterrm.^2+(0.15.*ones(size(lightdatem))).^2),'ko');
+  semilogx(darkdate,darktemp,'b.') ; 
+  hold on;
+  errorbar(darkdate,darktemp,0.15.*ones(size(darkdate)),'bo');
+  semilogx(darkdatem,darktempm,'ko');
+  errorbar(darkdatem,darktempm,2.*sqrt(darkerrm.^2 + (0.15.*ones(size(darkdatem))).^2),'ko');
+  xlim([80,4000]);
+  xlabel('Days from launch');
+  ylabel('CCD Temperature (C)');
 
   x = [darkdate;lightdate];
   y = [darktemp;lighttemp];
@@ -219,7 +220,7 @@
 
   cover = data.header.cover_jd - data.header.launch_jd;
   cover = [cover,cover];
-  plot(cover,ylim,'k:')
+  plot(cover,ylim,'k:');
   
   lighttemp = lighttemp + 273.15;
   darktemp = darktemp + 273.15;
@@ -230,21 +231,21 @@
   
   figure(2); clf
   semilogx(lightdate,lightref(:,1),'ro')
-  hold on             
+  hold on   ;          
 %   errorbar(lightdate,lightref(:,1),lightref(:,2)./sqrt(256),'ro')
   semilogx(lightdatem,lightrefm(:,1),'kh');
 %   errorbar(lightdatem,lightrefm(:,1),lightrefm(:,2),'kh')
-  semilogx(darkdate,darkref(:,1),'bo')  
+  semilogx(darkdate,darkref(:,1),'bo') ; 
 %   errorbar(darkdate,darkref(:,1),darkref(:,2)./sqrt(256),'bo')
   semilogx(darkdatem,darkrefm(:,1),'kh');
 %   errorbar(darkdatem,darkrefm(:,1),darkrefm(:,2),'kh')
   xlim([80,4000])
-  xlabel('Days from launch')
-  ylabel('Mean of Reference Pixels')
+  xlabel('Days from launch');
+  ylabel('Mean of Reference Pixels');
   
   cover = data.header.cover_jd - data.header.launch_jd;
   cover = [cover,cover];
-  plot(cover,ylim,'k:')
+  plot(cover,ylim,'k:');
   
   meanvref = sum(lightrefm(:,1)./lightrefm(:,2).^2)./sum(1./lightrefm(:,2).^2);
   sigvref = std(lightref(:,1))./2;
@@ -270,12 +271,12 @@
   plot([meanvref-sigvref,meanvref-sigvref],ylim,'r:');
   
   
-  xlabel('Mean of Reference Pixels')
-  ylabel('Mean of Light Pixels')  
+  xlabel('Mean of Reference Pixels');
+  ylabel('Mean of Light Pixels') ; 
   
   figure;
   figure(4); clf
-  plot(darktemp,darkref(:,1),'bo')
+  plot(darktemp,darkref(:,1),'bo');
   hold on
   
   [a_york, b_york, sigma_ayork, sigma_byork] =...
@@ -283,24 +284,24 @@
       darkref(:,2)');
   
   tccd = [-54.5:0.1:-52.0];
-  plot(tccd,b_york.*tccd+a_york,'b')
-  plot(darktempm,darkrefm(:,1),'kh')
-  errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'kh')
+  plot(tccd,b_york.*tccd+a_york,'b');
+  plot(darktempm,darkrefm(:,1),'kh');
+  errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'kh');
   for ifield=1:4
     plot([darktempm(ifield)-0.15,darktempm(ifield)+0.15],...
 	[darkrefm(ifield,1),darkrefm(ifield,1)],'k');
   end
     
-  xlabel('CCD Temperature')
-  ylabel('Mean of Reference Pixels, Cover On')
+  xlabel('CCD Temperature');
+  ylabel('Mean of Reference Pixels, Cover On');
   
   figure;
   figure(5); clf
   tccd = [-85:1:-50];
-  plot(tccd,b_york.*tccd+a_york,'b')
+  plot(tccd,b_york.*tccd+a_york,'b');
   hold on
-  plot(darktempm,darkrefm(:,1),'bh')
-  errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'bh')
+  plot(darktempm,darkrefm(:,1),'bh');
+  errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'bh');
   for ifield=1:4
     plot([darktempm(ifield)-0.15,darktempm(ifield)+0.15],...
 	[darkrefm(ifield,1),darkrefm(ifield,1)],'b');
@@ -315,22 +316,22 @@
   plot(xlim,[meanvref+sigvref,meanvref+sigvref],'r:');
   plot(xlim,[meanvref-sigvref,meanvref-sigvref],'r:');
 
-  xlabel('CCD Temperature')
-  ylabel('Mean of Reference Pixels')
+  xlabel('CCD Temperature');
+  ylabel('Mean of Reference Pixels');
   
   figure;
   figure(6); clf
   tccd = [-85:1:-45];
   darkcurrent = 10.*(1./22).*1e4.*122.*(tccd+273).^3.*exp(-6400./(tccd+273));
-  plot(tccd,darkcurrent+meanvref,'k')
+  plot(tccd,darkcurrent+meanvref,'k');
   modelone = darkcurrent+meanvref;
-  hold on  
+  hold on;
   darkcurrentm = 2.545*10.*(1./22).*1e4.*122.*(darktempm+273).^3.*exp(-6400./(darktempm+273)) + meanvref;
-  sum((darkcurrentm - darkrefm(:,1)).^2./darkrefm(:,2).^2)
+  sum((darkcurrentm - darkrefm(:,1)).^2./darkrefm(:,2).^2);
   darkcurrenth = 2.545.*10.*(1./22).*1e4.*122.*(tccd+273).^3.*exp(-6400./(tccd+273));
-  plot(tccd,darkcurrenth+meanvref,'k:')
+  plot(tccd,darkcurrenth+meanvref,'k:');
   modeltwo = darkcurrenth+meanvref;
-  errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'bh')
+  errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'bh');
   for ifield=1:4
     plot([darktempm(ifield)-0.15,darktempm(ifield)+0.15],...
 	[darkrefm(ifield,1),darkrefm(ifield,1)],'b');
@@ -346,9 +347,9 @@
   plot(xlim,[meanvref+sigvref,meanvref+sigvref],'r:');
   plot(xlim,[meanvref-sigvref,meanvref-sigvref],'r:');
 
-  xlabel('CCD Temperature')
-  ylabel('Mean of Reference Pixels')
-  ylim([537,548])
+  xlabel('CCD Temperature');
+  ylabel('Mean of Reference Pixels');
+  ylim([537,548]);
 
   tccd = tccd + 273.15;
   lighttempm = lighttempm + 273.15;
@@ -362,9 +363,9 @@
       
   figure;    
   figure(7); clf
-  plot(lightrefm(:,1),lightlIlm(:,1),'ro')
-  hold on
-  errorbar(lightrefm(:,1),lightlIlm(:,1),lightlIlm(:,2),'ro')
+  plot(lightrefm(:,1),lightlIlm(:,1),'ro');
+  hold on;
+  errorbar(lightrefm(:,1),lightlIlm(:,1),lightlIlm(:,2),'ro');
   for ifield=1:numel(lighttempm)
     plot([lightrefm(ifield,1)-lightrefm(ifield,2),...
 	  lightrefm(ifield,1)+lightrefm(ifield,2)],...
@@ -374,14 +375,8 @@
   ylabel('Mean of Masked Flight Image (DN)')
   xlabel('Mean of Reference Pixels (DN)')
     
-    plot(lighttemp,lightref(:,1),'ro')
-  hold on
-  
-  
-  
-  
-  
-
+    plot(lighttemp,lightref(:,1),'ro');
+  hold on;
   
   fitx = [darkdate;lightdate];
   fity = [darktemp;lighttemp];
@@ -395,7 +390,7 @@
 
   cover = data.header.cover_jd - data.header.launch_jd;
   cover = [cover,cover];
-  plot(cover,ylim,'k:')
+  plot(cover,ylim,'k:');
   
   
   
