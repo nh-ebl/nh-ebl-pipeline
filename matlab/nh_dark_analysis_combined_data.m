@@ -55,24 +55,24 @@
     
     load(sprintf('%s%s',npaths.darkdir,ndarkfiles(ifile).name));
 
-    darktemp(ifile) = data.header.ccdtemp;
-    darkdate(ifile) = data.header.date_jd - data.header.launch_jd;
-    darksig(ifile,1) = median(data.dark(:));
-    darksig(ifile,2) = std(data.dark(:));
-    darkref(ifile,1) = mean(data.ref.line);
-    darkref(ifile,2) = std(data.ref.line);
-    darkexp(ifile) = data.header.exptime;
-    if darkdate(ifile) < 94
-      darkfield(ifile) = 1;
+    darktemp(ifile+359) = data.header.ccdtemp;
+    darkdate(ifile+359) = data.header.date_jd - data.header.launch_jd;
+    darksig(ifile+359,1) = median(data.dark(:));
+    darksig(ifile+359,2) = std(data.dark(:));
+    darkref(ifile+359,1) = mean(data.ref.line);
+    darkref(ifile+359,2) = std(data.ref.line);
+    darkexp(ifile+359) = data.header.exptime;
+    if darkdate(ifile+359) < 94
+      darkfield(ifile+359) = 1;
     end
-    if darkdate(ifile) > 94 & darkdate(ifile) < 96
-      darkfield(ifile) = 2;
+    if darkdate(ifile+359) > 94 & darkdate(ifile+359) < 96
+      darkfield(ifile+359) = 2;
     end
-    if darkdate('ifile/home/dignan/nh_ebl_pipeline/matlab') > 102 & darkdate(ifile) < 103
-      darkfield(ifile) = 3;
+    if darkdate('ifile/home/dignan/nh_ebl_pipeline/matlab') > 102 & darkdate(ifile+359) < 103
+      darkfield(ifile+359) = 3;
     end
-    if darkdate(ifile) > 103 & darkdate(ifile) < 104
-      darkfield(ifile) = 4;
+    if darkdate(ifile+359) > 103 & darkdate(ifile+359) < 104
+      darkfield(ifile+359) = 4;
     end
     
   end
@@ -81,6 +81,7 @@
   darkerrm = zeros(nfields,1);
   darkdatem = zeros(nfields,1);
   darkrefm = zeros(nfields,2);
+  
     
   for jfield=1:nfields
     whpl = darkfield == jfield;
@@ -99,7 +100,7 @@
   lightfiles = dir(sprintf('%s*.mat',paths.datadir)); 
   %new
   nlightfiles = dir(sprintf('%s*.mat',npaths.datadir));
-  
+ 
   isgood = zeros(numel(lightfiles),1);
   goodfields = [1,5,6,7,8];
   
@@ -111,6 +112,7 @@
       isgood(ifile) = 1;
     end
   end
+  
   %For new data files
   for ifile=1:size(nlightfiles)
     
@@ -120,8 +122,9 @@
     end
   end
   
+  
   nlightfiles = sum(isgood);
-  numel(lightfiles);
+  numel(lightfiles)
   
   %Preallocate space for variables
   lighttemp = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
