@@ -1,13 +1,21 @@
 % nh_dark_analysis_combined_data()
 
+  %Clear temporary variables
+  clearvars idx;
+  
+  %Import paths for data location
   paths = get_paths();
   npaths = get_paths_new();
 
   fprintf('Parsing dark files.\n')
   
+  %Load both data directories
+  %old
   darkfiles = dir(sprintf('%s*.mat',paths.darkdir));  
+  %new
   ndarkfiles = dir(sprintf('%s*.mat',npaths.darkdir));
 
+  %Preallocate space for variables
   darktemp = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
   darkdate = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
   darksig = zeros((size(darkfiles,2)+size(ndarkfiles,2)),2);
@@ -15,6 +23,7 @@
   darkexp = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
   darkfield = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
   
+  %For old data files
   for ifile=1:size(darkfiles)
     
     load(sprintf('%s%s',paths.darkdir,darkfiles(ifile).name));
@@ -41,6 +50,7 @@
     
   end
   
+  %For new data files
   for ifile=1:size(ndarkfiles)
     
     load(sprintf('%s%s',npaths.darkdir,ndarkfiles(ifile).name));
@@ -84,12 +94,16 @@
     
   fprintf('Parsing light files.\n')
   
-  lightfiles = dir(sprintf('%s*.mat','/data/symons/NH_old_data/mat'));  
-  nlightfiles = dir(sprintf('%s*.mat','/data/symons/nh_data/mat'));
+  %Load both data directories
+  %old
+  lightfiles = dir(sprintf('%s*.mat',paths.datadir)); 
+  %new
+  nlightfiles = dir(sprintf('%s*.mat',npaths.datadir));
   
   isgood = zeros(numel(lightfiles),1);
   goodfields = [1,5,6,7,8];
   
+  %For old data files
   for ifile=1:size(lightfiles)
     
     load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
@@ -97,6 +111,7 @@
       isgood(ifile) = 1;
     end
   end
+  %For new data files
   for ifile=1:size(nlightfiles)
     
     load(sprintf('%s%s',paths.datadir,nlightfiles(ifile).name));
@@ -107,7 +122,8 @@
   
   nlightfiles = sum(isgood);
   numel(lightfiles);
-
+  
+  %Preallocate space for variables
   lighttemp = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
   lightdate = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
   lightsig = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
