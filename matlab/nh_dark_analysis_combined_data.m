@@ -1,21 +1,21 @@
-function nh_dark_analysis_combined_data()
+% nh_dark_analysis_combined_data()
 
   paths = get_paths();
   npaths = get_paths_new();
 
   fprintf('Parsing dark files.\n')
   
-  darkfiles = dir(sprintf('%s*.mat','/data/symons/NH_old_data/dark/'));  
-  ndarkfiles = dir(sprintf('%s*.mat','/data/symons/nh_data/dark'));
+  darkfiles = dir(sprintf('%s*.mat',paths.darkdir));  
+  ndarkfiles = dir(sprintf('%s*.mat',npaths.darkdir));
 
-  darktemp = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1;
-  darkdate = zeros(ndarkfiles,1);
-  darksig = zeros(ndarkfiles,2);
-  darkref = zeros(ndarkfiles,2);
-  darkexp = zeros(ndarkfiles,1);
-  darkfield = zeros(ndarkfiles,1);
+  darktemp = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
+  darkdate = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
+  darksig = zeros((size(darkfiles,2)+size(ndarkfiles,2)),2);
+  darkref = zeros((size(darkfiles,2)+size(ndarkfiles,2)),2);
+  darkexp = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
+  darkfield = zeros((size(darkfiles,1)+size(ndarkfiles,1)),1);
   
-  for ifile=1:ndarkfiles
+  for ifile=1:size(darkfiles)
     
     load(sprintf('%s%s',paths.darkdir,darkfiles(ifile).name));
 
@@ -40,7 +40,32 @@ function nh_dark_analysis_combined_data()
     end
     
   end
+  
+  for ifile=1:size(ndarkfiles)
+    
+    load(sprintf('%s%s',npaths.darkdir,ndarkfiles(ifile).name));
 
+    darktemp(ifile) = data.header.ccdtemp;
+    darkdate(ifile) = data.header.date_jd - data.header.launch_jd;
+    darksig(ifile,1) = median(data.dark(:));
+    darksig(ifile,2) = std(data.dark(:));
+    darkref(ifile,1) = mean(data.ref.line);
+    darkref(ifile,2) = std(data.ref.line);
+    darkexp(ifile) = data.header.exptime;
+    if darkdate(ifile) < 94
+      darkfield(ifile) = 1;
+    end
+    if darkdate(ifile) > 94 & darkdate(ifile) < 96
+      darkfield(ifile) = 2;
+    end
+    if darkdate('ifile/home/dignan/nh_ebl_pipeline/matlab') > 102 & darkdate(ifile) < 103
+      darkfield(ifile) = 3;
+    end
+    if darkdate(ifile) > 103 & darkdate(ifile) < 104
+      darkfield(ifile) = 4;
+    end
+    
+  end
   nfields = 4;
   darktempm = zeros(nfields,1);
   darkerrm = zeros(nfields,1);
@@ -59,14 +84,22 @@ function nh_dark_analysis_combined_data()
     
   fprintf('Parsing light files.\n')
   
-  lightfiles = dir(sprintf('%s*.mat',paths.datadir));  
+  lightfiles = dir(sprintf('%s*.mat','/data/symons/NH_old_data/mat'));  
+  nlightfiles = dir(sprintf('%s*.mat','/data/symons/nh_data/mat'));
   
   isgood = zeros(numel(lightfiles),1);
   goodfields = [1,5,6,7,8];
   
-  for ifile=1:numel(lightfiles)
+  for ifile=1:size(lightfiles)
     
     load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
+    if sum(data.header.fieldnum == goodfields)
+      isgood(ifile) = 1;
+    end
+  end
+  for ifile=1:size(nlightfiles)
+    
+    load(sprintf('%s%s',paths.datadir,nlightfiles(ifile).name));
     if sum(data.header.fieldnum == goodfields)
       isgood(ifile) = 1;
     end
@@ -75,16 +108,16 @@ function nh_dark_analysis_combined_data()
   nlightfiles = sum(isgood);
   numel(lightfiles);
 
-  lighttemp = zeros(nlightfiles,1);
-  lightdate = zeros(nlightfiles,1);
-  lightsig = zeros(nlightfiles,2);
-  lightref = zeros(nlightfiles,2);
-  lightexp = zeros(nlightfiles,1);
-  lightfield = zeros(nlightfiles,1);
-  lightlIl = zeros(nlightfiles,2);
+  lighttemp = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
+  lightdate = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
+  lightsig = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
+  lightref = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
+  lightexp = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
+  lightfield = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
+  lightlIl = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
   
   jfile = 1;
-  for ifile=1:numel(lightfiles)
+  for ifile=1:size(lightfiles)
     
     if isgood(ifile) == 1
       load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
@@ -145,21 +178,24 @@ function nh_dark_analysis_combined_data()
   %semilogx(lightdatem,lighttempm,'ko');
   %errorbar(lightdatem,lighttempm,2.*sqrt(lighterrm.^2+(0.15.*ones(size(lightdatem))).^2),'ko')
   semilogx(darkdate,darktemp,'b.')  
+  hold on
   %errorbar(darkdate,darktemp,0.15.*ones(size(darkdate)),'bo')
   %semilogx(darkdatem,darktempm,'ko');
   %errorbar(darkdatem,darktempm,2.*sqrt(darkerrm.^2 + (0.15.*ones(size(darkdatem))).^2),'ko');
-  xlim([80,4000])
+  %xlim([80,4000])
   xlabel('Days from launch')
   ylabel('CCD Temperature (C)')
 
   x = [darkdate;lightdate];
-  y = [darktemp;lighttemp];untitled
+  y = [darktemp;lighttemp];
   thismean = median(lighttemp);
+  
   z = y - thismean;
   f = fit(x,z,'exp1');
   mydates = [50:4000];  
   myfunc = f.a * exp(f.b .* mydates) + thismean;
   semilogx(mydates,myfunc,'b');
+  hold on;
   ylim([-85,-45]);
 
   cover = data.header.cover_jd - data.header.launch_jd;
@@ -176,13 +212,13 @@ function nh_dark_analysis_combined_data()
   figure(2); clf
   semilogx(lightdate,lightref(:,1),'ro')
   hold on             
-  errorbar(lightdate,lightref(:,1),lightref(:,2)./sqrt(256),'ro')
+%   errorbar(lightdate,lightref(:,1),lightref(:,2)./sqrt(256),'ro')
   semilogx(lightdatem,lightrefm(:,1),'kh');
-  errorbar(lightdatem,lightrefm(:,1),lightrefm(:,2),'kh')
+%   errorbar(lightdatem,lightrefm(:,1),lightrefm(:,2),'kh')
   semilogx(darkdate,darkref(:,1),'bo')  
-  errorbar(darkdate,darkref(:,1),darkref(:,2)./sqrt(256),'bo')
+%   errorbar(darkdate,darkref(:,1),darkref(:,2)./sqrt(256),'bo')
   semilogx(darkdatem,darkrefm(:,1),'kh');
-  errorbar(darkdatem,darkrefm(:,1),darkrefm(:,2),'kh')
+%   errorbar(darkdatem,darkrefm(:,1),darkrefm(:,2),'kh')
   xlim([80,4000])
   xlabel('Days from launch')
   ylabel('Mean of Reference Pixels')
