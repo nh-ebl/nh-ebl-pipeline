@@ -1,6 +1,6 @@
 function paths=get_paths()
-   paths.datadir = '/data/symons/NH_old_data/mat/good/';
-   paths.ddatadir='/data/symons/NY_old_data/mat';
+   paths.datadir = '/data/symons/NH_old_data/mat/';
+   paths.datadirghosts='/data/symons/NH_old_data/mat/good/';
    paths.imagedir = '/data/symons/NH_old_data/NH/regist/selected_data/good/';
    paths.astrodir = '/data/symons/NH_old_data/NH/regist/good/';
    paths.catdir = '/data/symons/NH_old_data/usnob1/mat_files/';
