@@ -55,6 +55,8 @@ function nh_calcref()
   isgood = logical(isgood);
   
   scatter(mycrr(isgood),mysig(isgood),'r');
+    xlabel('mycrr');
+    ylabel('mysig');
   hold on;
   [rho,pval] = corr(mycrr(isgood),mysig(isgood));
   
@@ -67,8 +69,11 @@ function nh_calcref()
   
   scatter(mycrr(isgood),mysig(isgood)-mycorr(isgood),'b');
      title('calcref');   
+     xlabel('mycrr');
+     ylabel('mysig');
   correction.date = mydate;
   correction.corr = mycorr;
+ 
   
   %save('lookup/nh_refcorr.mat','correction');
     

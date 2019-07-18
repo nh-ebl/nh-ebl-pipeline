@@ -37,10 +37,9 @@
   lightexp = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
   lightfield = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
   lightlIl = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
-  %wasn't sure if i needed these, don't think i do but theyre there in case
-  %we do
-%   isgood = zeros(numel(lightfiles),1);
-%   goodfields = [1,5,6,7,8];
+  
+  isgood = zeros(numel(lightfiles),1);
+  goodfields = [1,5,6,7,8];
   
   %For old data files
   for ifile=1:size(darkfiles)
@@ -198,14 +197,14 @@
   figure(1); clf
   semilogx(lightdate,lighttemp,'r.');
   hold on ;                          
-  errorbar(lightdate,lighttemp,0.15.*ones(size(lightdate)),'ro');
+  %errorbar(lightdate,lighttemp,0.15.*ones(size(lightdate)),'ro');
   semilogx(lightdatem,lighttempm,'ko');
-  errorbar(lightdatem,lighttempm,2.*sqrt(lighterrm.^2+(0.15.*ones(size(lightdatem))).^2),'ko');
+  %errorbar(lightdatem,lighttempm,2.*sqrt(lighterrm.^2+(0.15.*ones(size(lightdatem))).^2),'ko');
   semilogx(darkdate,darktemp,'b.') ; 
   hold on;
-  errorbar(darkdate,darktemp,0.15.*ones(size(darkdate)),'bo');
+  %errorbar(darkdate,darktemp,0.15.*ones(size(darkdate)),'bo');
   semilogx(darkdatem,darktempm,'ko');
-  errorbar(darkdatem,darktempm,2.*sqrt(darkerrm.^2 + (0.15.*ones(size(darkdatem))).^2),'ko');
+  %errorbar(darkdatem,darktempm,2.*sqrt(darkerrm.^2 + (0.15.*ones(size(darkdatem))).^2),'ko');
   xlim([80,4000]);
   xlabel('Days from launch');
   ylabel('CCD Temperature (C)');
@@ -225,6 +224,7 @@
   cover = data.header.cover_jd - data.header.launch_jd;
   cover = [cover,cover];
   plot(cover,ylim,'k:');
+  xline(3463,'k:');
   
   lighttemp = lighttemp + 273.15;
   darktemp = darktemp + 273.15;
@@ -236,20 +236,22 @@
   figure(2); clf
   semilogx(lightdate,lightref(:,1),'ro')
   hold on   ;          
-%   errorbar(lightdate,lightref(:,1),lightref(:,2)./sqrt(256),'ro')
+   %errorbar(lightdate,lightref(:,1),lightref(:,2)./sqrt(256),'ro')
   semilogx(lightdatem,lightrefm(:,1),'kh');
-%   errorbar(lightdatem,lightrefm(:,1),lightrefm(:,2),'kh')
+   %errorbar(lightdatem,lightrefm(:,1),lightrefm(:,2),'kh')
   semilogx(darkdate,darkref(:,1),'bo') ; 
-%   errorbar(darkdate,darkref(:,1),darkref(:,2)./sqrt(256),'bo')
+   %errorbar(darkdate,darkref(:,1),darkref(:,2)./sqrt(256),'bo')
   semilogx(darkdatem,darkrefm(:,1),'kh');
-%   errorbar(darkdatem,darkrefm(:,1),darkrefm(:,2),'kh')
+   %errorbar(darkdatem,darkrefm(:,1),darkrefm(:,2),'kh')
   xlim([80,4000])
+  ylim([520,560]);
   xlabel('Days from launch');
   ylabel('Mean of Reference Pixels');
   
   cover = data.header.cover_jd - data.header.launch_jd;
   cover = [cover,cover];
   plot(cover,ylim,'k:');
+  xline(3463,'k:');
   
   meanvref = sum(lightrefm(:,1)./lightrefm(:,2).^2)./sum(1./lightrefm(:,2).^2);
   sigvref = std(lightref(:,1))./2;
@@ -288,30 +290,30 @@
       darkref(:,2)');
   
   tccd = [-54.5:0.1:-52.0];
-  plot(tccd,b_york.*tccd+a_york,'b');
+  %plot(tccd,b_york.*tccd+a_york,'b');
   plot(darktempm,darkrefm(:,1),'kh');
-  errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'kh');
+  %errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'kh');
   for ifield=1:4
     plot([darktempm(ifield)-0.15,darktempm(ifield)+0.15],...
 	[darkrefm(ifield,1),darkrefm(ifield,1)],'k');
   end
     
-  xlabel('CCD Temperature');
+  xlabel('CCD Temperature (K)');
   ylabel('Mean of Reference Pixels, Cover On');
   
   figure;
-  figure(5); clf
+  figure(5); clfd
   tccd = [-85:1:-50];
   plot(tccd,b_york.*tccd+a_york,'b');
   hold on
   plot(darktempm,darkrefm(:,1),'bh');
-  errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'bh');
+  %errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'bh');
   for ifield=1:4
     plot([darktempm(ifield)-0.15,darktempm(ifield)+0.15],...
 	[darkrefm(ifield,1),darkrefm(ifield,1)],'b');
   end
   plot(lighttempm,lightrefm(:,1),'rh')
-  errorbar(lighttempm,lightrefm(:,1),lightrefm(:,2),'rh')
+  %errorbar(lighttempm,lightrefm(:,1),lightrefm(:,2),'rh')
   for ifield=1:numel(lighttempm)
     plot([lighttempm(ifield)-0.15,lighttempm(ifield)+0.15],...
 	[lightrefm(ifield,1),lightrefm(ifield,1)],'r');
@@ -320,7 +322,7 @@
   plot(xlim,[meanvref+sigvref,meanvref+sigvref],'r:');
   plot(xlim,[meanvref-sigvref,meanvref-sigvref],'r:');
 
-  xlabel('CCD Temperature');
+  xlabel('CCD Temperature (C)');
   ylabel('Mean of Reference Pixels');
   
   figure;
@@ -335,7 +337,7 @@
   darkcurrenth = 2.545.*10.*(1./22).*1e4.*122.*(tccd+273).^3.*exp(-6400./(tccd+273));
   plot(tccd,darkcurrenth+meanvref,'k:');
   modeltwo = darkcurrenth+meanvref;
-  errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'bh');
+  %errorbar(darktempm,darkrefm(:,1),darkrefm(:,2),'bh');
   for ifield=1:4
     plot([darktempm(ifield)-0.15,darktempm(ifield)+0.15],...
 	[darkrefm(ifield,1),darkrefm(ifield,1)],'b');
@@ -351,7 +353,7 @@
   plot(xlim,[meanvref+sigvref,meanvref+sigvref],'r:');
   plot(xlim,[meanvref-sigvref,meanvref-sigvref],'r:');
 
-  xlabel('CCD Temperature');
+  xlabel('CCD Temperature (C)');
   ylabel('Mean of Reference Pixels');
   ylim([537,548]);
 
@@ -368,8 +370,8 @@
   figure;    
   figure(7); clf
   plot(lightrefm(:,1),lightlIlm(:,1),'ro');
+  %errorbar(lightrefm(:,1),lightlIlm(:,1),lightlIlm(:,2),'ro');
   hold on;
-  errorbar(lightrefm(:,1),lightlIlm(:,1),lightlIlm(:,2),'ro');
   for ifield=1:numel(lighttempm)
     plot([lightrefm(ifield,1)-lightrefm(ifield,2),...
 	  lightrefm(ifield,1)+lightrefm(ifield,2)],...
@@ -390,7 +392,7 @@
   mydates = [80:4000];  
   myfunc = f.a * exp(f.b .* mydates) + thismean;
   semilogx(mydates,myfunc,'b');
-  ylim([-85,-45]);
+  ylim([-85,570]);
 
   cover = data.header.cover_jd - data.header.launch_jd;
   cover = [cover,cover];
