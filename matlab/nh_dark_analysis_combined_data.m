@@ -1,4 +1,6 @@
 % nh_dark_analysis_combined_data()
+%shaina thayer July 2019
+%anna dignan July 2019
 
   %Clear temporary variables
   clearvars idx;
@@ -35,6 +37,8 @@
   lightexp = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
   lightfield = zeros((size(lightfiles,1)+size(nlightfiles,1)),1);
   lightlIl = zeros((size(lightfiles,2)+size(nlightfiles,2)),2);
+  %wasn't sure if i needed these, don't think i do but theyre there in case
+  %we do
 %   isgood = zeros(numel(lightfiles),1);
 %   goodfields = [1,5,6,7,8];
   
