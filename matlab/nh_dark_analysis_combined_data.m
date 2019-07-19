@@ -13,26 +13,30 @@ fprintf('Parsing dark files.\n');
 
 %Load all data directories
 
-%dark data sourced from new directory
+%dark data sourced from new data directory
 ndarkfiles = dir(sprintf('%s*.mat',npaths.darkdir));
-%old light
+%old light data
 lightfiles = dir(sprintf('%s*.mat',paths.datadir));
-%new light
+%new light data
 nlightfiles = dir(sprintf('%s*.mat',npaths.datadir));
 
 %Preallocate space for variables dark
 darktemp = zeros(size(ndarkfiles,1),1);
 darkdate = zeros(size(ndarkfiles,1),1);
-darksig = zeros(size(ndarkfiles,2),2);
-darkref = zeros(size(ndarkfiles,2),2);
+darksig = zeros(size(ndarkfiles,1),2);
+darkref = zeros(size(ndarkfiles,1),2);
 darkexp = zeros(size(ndarkfiles,1),1);
 darkfield = zeros(size(ndarkfiles,1),1);
 
+%Determine which light files correspond to 'good' fields
 isgoodold = zeros(numel(lightfiles),1);
 isgoodnew = zeros(numel(nlightfiles),1);
+%These field numbers were previously determined by going through all the
+%files
 oldgoodfields = [3,5,6,7];
 newgoodfields = [1,5,6,7,8];
 
+%Check for old light files
 for ifile=1:numel(lightfiles)
     load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
     if sum(data.header.fieldnum == oldgoodfields)
@@ -40,6 +44,7 @@ for ifile=1:numel(lightfiles)
     end
 end
 
+%Check for new light files
 for ifile=1:numel(nlightfiles)
     load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
     if sum(data.header.fieldnum == newgoodfields)
@@ -47,6 +52,7 @@ for ifile=1:numel(nlightfiles)
     end
 end
 
+%Number of old and new light files corresponding to good fields
 numoldlightfiles = sum(isgoodold);
 numnewlightfiles = sum(isgoodnew);
 
@@ -59,12 +65,9 @@ lightexp = zeros((numoldlightfiles+numnewlightfiles),1);
 lightfield = zeros((numoldlightfiles+numnewlightfiles),1);
 lightlIl = zeros((numoldlightfiles+numnewlightfiles),2);
 
-
-
-
 %For dark data files
 for ifile=1:size(ndarkfiles)
-    
+    %Load data and save values
     load(sprintf('%s%s',npaths.darkdir,ndarkfiles(ifile).name));
     
     darktemp(ifile,1) = data.header.ccdtemp;
@@ -74,6 +77,7 @@ for ifile=1:size(ndarkfiles)
     darkref(ifile,1) = mean(data.ref.line);
     darkref(ifile,2) = std(data.ref.line);
     darkexp(ifile,1) = data.header.exptime;
+    %If date in certain range, assign field number
     if darkdate(ifile,1) < 94
         darkfield(ifile,1) = 1;
     end
@@ -92,49 +96,59 @@ end
 fprintf('Parsing light files.\n');
 
 %For old data files
-for ifile=1:numoldlightfiles
+jfile = 1;
+for ifile=1:numel(lightfiles)
+    %If file is for a good field, load and save values
     if isgoodold(ifile) == 1
         load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
     
-        lighttemp(ifile,1) = data.header.ccdtemp;
-        lightdate(ifile,1) = data.header.date_jd - data.header.launch_jd;
-        lightsig(ifile,1) = data.ref.engmean;
-        lightsig(ifile,2) = sqrt(data.ref.engmean);
-        lightref(ifile,1) = mean(data.ref.line);
-        lightref(ifile,2) = std(data.ref.line);
-        lightexp(ifile,1) = data.header.exptime;
-        lightfield(ifile,1) = data.header.fieldnum;
-        lightlIl(ifile,1) = data.stats.maskmean./data.header.exptime;
-        lightlIl(ifile,2) = data.stats.maskstd;
+        lighttemp(jfile,1) = data.header.ccdtemp;
+        lightdate(jfile,1) = data.header.date_jd - data.header.launch_jd;
+        lightsig(jfile,1) = data.ref.engmean;
+        lightsig(jfile,2) = sqrt(data.ref.engmean);
+        lightref(jfile,1) = mean(data.ref.line);
+        lightref(jfile,2) = std(data.ref.line);
+        lightexp(jfile,1) = data.header.exptime;
+        lightfield(jfile,1) = data.header.fieldnum;
+        lightlIl(jfile,1) = data.stats.maskmean./data.header.exptime;
+        lightlIl(jfile,2) = data.stats.maskstd;
+        
+        jfile = jfile + 1;
     end
     
 end
 
 %For new data files
-for ifile=1:numnewlightfiles
+jfile = 1;
+for ifile=1:numel(nlightfiles)
+    %If file is for a good field, load and save values
     if isgoodnew(ifile) == 1
         load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
 
-        lighttemp(ifile+numoldlightfiles,1) = data.header.ccdtemp;
-        lightdate(ifile+numoldlightfiles,1) = data.header.date_jd - data.header.launch_jd;
-        lightsig(ifile+numoldlightfiles,1) = data.ref.engmean;
-        lightsig(ifile+numoldlightfiles,2) = sqrt(data.ref.engmean);
-        lightref(ifile+numoldlightfiles,1) = mean(data.ref.line);
-        lightref(ifile+numoldlightfiles,2) = std(data.ref.line);
-        lightexp(ifile+numoldlightfiles,1) = data.header.exptime;
-        lightfield(ifile+numoldlightfiles,1) = data.header.fieldnum;
-        lightlIl(ifile+numoldlightfiles,1) = data.stats.maskmean./data.header.exptime;
-        lightlIl(ifile+numoldlightfiles,2) = data.stats.maskstd;
+        lighttemp(jfile+numoldlightfiles,1) = data.header.ccdtemp;
+        lightdate(jfile+numoldlightfiles,1) = data.header.date_jd - data.header.launch_jd;
+        lightsig(jfile+numoldlightfiles,1) = data.ref.engmean;
+        lightsig(jfile+numoldlightfiles,2) = sqrt(data.ref.engmean);
+        lightref(jfile+numoldlightfiles,1) = mean(data.ref.line);
+        lightref(jfile+numoldlightfiles,2) = std(data.ref.line);
+        lightexp(jfile+numoldlightfiles,1) = data.header.exptime;
+        lightfield(jfile+numoldlightfiles,1) = data.header.fieldnum;
+        lightlIl(jfile+numoldlightfiles,1) = data.stats.maskmean./data.header.exptime;
+        lightlIl(jfile+numoldlightfiles,2) = data.stats.maskstd;
+        
+        jfile = jfile + 1;
     end
 end
 
-nfieldsdark = 4;
+%Prepare to save mean values for like fields
+nfieldsdark = 4; %Dark data previously divided into 4 fields by date
 darktempm = zeros(nfieldsdark,1);
 darkerrm = zeros(nfieldsdark,1);
 darkdatem = zeros(nfieldsdark,1);
 darkrefm = zeros(nfieldsdark,2);
 
-
+%For each field number, check if dark field matches that number and take
+%mean of data values for only that field
 for jfield=1:nfieldsdark
     whpl = darkfield == jfield;
     darktempm(jfield) = mean(darktemp(whpl));
@@ -145,15 +159,18 @@ for jfield=1:nfieldsdark
     darkrefm(jfield,2) = sqrt(1./256+std(darkref(whpl,1)).^2);%sqrt(1./sum(1./darkref(whpl,2).^2));
 end
 
-nfieldslight = 9;
-lighttempm = zeros(nfields,1);
-lighterrm = zeros(nfields,1);
-lightdatem = zeros(nfields,1);
-lightrefm = zeros(nfields,2);
-lightlIlm = zeros(nfields,2);
+%Prepare to save mean values for like fields
+nfieldslight = 9; %Light data currently comes from 9 different fields
+lighttempm = zeros(nfieldslight,1);
+lighterrm = zeros(nfieldslight,1);
+lightdatem = zeros(nfieldslight,1);
+lightrefm = zeros(nfieldslight,2);
+lightlIlm = zeros(nfieldslight,2);
 
+%For each old field number, check if light field matches that number and
+%take mean of data values for only that field
 for jfield=1:numel(oldgoodfields)
-    whpl = lightfield == jfield;
+    whpl = lightfield(1:numoldlightfiles) == oldgoodfields(jfield);
     lighttempm(jfield) = mean(lighttemp(whpl));
     lighterrm(jfield) = std(lighttemp(whpl));
     lightdatem(jfield) = mean(lightdate(whpl));
@@ -165,19 +182,26 @@ for jfield=1:numel(oldgoodfields)
     lightlIlm(jfield,2) = std(lightlIl(whpl,1));
 end
 
+%Create logical vector of zeros to pad for the length of the number of
+%good, old light fields
+extra = logical(zeros(numoldlightfiles,1));
+%For each new field number, take mean of only values corresponding to that
+%field 
 for jfield=1:numel(newgoodfields)
-    whpl = lightfield == jfield;
-    lighttempm(jfield) = mean(lighttemp(whpl));
-    lighterrm(jfield) = std(lighttemp(whpl));
-    lightdatem(jfield) = mean(lightdate(whpl));
-    lightrefm(jfield,1) = sum(lightref(whpl,1) ./ lightref(whpl,2).^2) ./ ...
+    whpl = lightfield(numoldlightfiles+1:numnewlightfiles) == newgoodfields(jfield);
+    whpl = vertcat(extra,whpl);
+    lighttempm(jfield+numel(oldgoodfields)) = mean(lighttemp(whpl));
+    lighterrm(jfield+numel(oldgoodfields)) = std(lighttemp(whpl));
+    lightdatem(jfield+numel(oldgoodfields)) = mean(lightdate(whpl));
+    lightrefm(jfield+numel(oldgoodfields),1) = sum(lightref(whpl,1) ./ lightref(whpl,2).^2) ./ ...
         sum(1./lightref(whpl,2).^2);
-    lightrefm(jfield,2) = sqrt(1./256 + std(lightref(whpl,1)).^2);%sqrt(1./sum(1./lightref(whpl,2).^2));
-    lightlIlm(jfield,1) = sum(lightlIl(whpl,1) ./ lightlIl(whpl,2).^2) ./ ...
+    lightrefm(jfield+numel(oldgoodfields),2) = sqrt(1./256 + std(lightref(whpl,1)).^2);%sqrt(1./sum(1./lightref(whpl,2).^2));
+    lightlIlm(jfield+numel(oldgoodfields),1) = sum(lightlIl(whpl,1) ./ lightlIl(whpl,2).^2) ./ ...
         sum(1./lightlIl(whpl,2).^2);
-    lightlIlm(jfield,2) = std(lightlIl(whpl,1));
+    lightlIlm(jfield+numel(oldgoodfields),2) = std(lightlIl(whpl,1));
 end
 
+%Ignore any data that are nan
 whpl = ~isnan(lighttempm);
 lighttempm = lighttempm(whpl);
 lighterrm = lighterrm(whpl);
@@ -189,6 +213,7 @@ lightlIlmp = lightlIlm(whpl,1);
 lightlIlmq = lightlIlm(whpl,2);
 lightlIlm = [lightlIlmp,lightlIlmq];
 
+%Time to make some plots
 fprintf('Making plots.\n')
 
 figure(1); clf
@@ -211,7 +236,7 @@ y = [darktemp;lighttemp];
 thismean = median(lighttemp);
 
 z = y - thismean;
-f = fit(x,z,'exp1');
+f = fit(x,z,'exp1','StartPoint',[-54,0.000109]);
 mydates = [50:4000];
 myfunc = f.a * exp(f.b .* mydates) + thismean;
 semilogx(mydates,myfunc,'b');
@@ -385,7 +410,7 @@ fitx = [darkdate;lightdate];
 fity = [darktemp;lighttemp];
 thismean = median(lighttemp);
 fity = fity - thismean;
-f = fit(fitx,fity,'exp1');
+f = fit(fitx,fity,'exp1','StartPoint',[219,-0.000036]);
 mydates = [80:4000];
 myfunc = f.a * exp(f.b .* mydates) + thismean;
 semilogx(mydates,myfunc,'b');
