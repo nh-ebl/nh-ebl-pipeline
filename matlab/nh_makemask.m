@@ -261,16 +261,16 @@ data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 % caxis([-5,100])
 % caxis(ax1.CLim)
 % 
-h = figure(1);
-% clf;
-imagesc(data.data.*~data.mask.onemask)
-set(h,'visible','on');
+% h = figure(1);
+% % clf;
+% imagesc(data.data.*~data.mask.onemask)
+% % set(h,'visible','on');
 % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-colorbar; 
-caxis([-10,10]);
-title(sprintf('%s',data.header.rawfile));
-grid minor;
-ext = '.png';
+% colorbar; 
+% caxis([-10,10]);
+% title(sprintf('%s',data.header.rawfile));
+% grid minor;
+% ext = '.png';
 % imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
@@ -299,15 +299,15 @@ ext = '.png';
 % print(h,imagename, '-dpng');
 
 
-h = figure(3);
-% clf;
-imagesc(data.data.*~data.mask.manmask)
-set(h,'visible','on');
+% h = figure(3);
+% % clf;
+% imagesc(data.data.*~data.mask.manmask)
+% % set(h,'visible','on');
 % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-colorbar; 
-caxis([-10,10]);
-title(sprintf('%s',data.header.rawfile));
-grid minor;
-ext = '.png';
+% colorbar; 
+% caxis([-10,10]);
+% title(sprintf('%s',data.header.rawfile));
+% grid minor;
+% ext = '.png';
 
 end
