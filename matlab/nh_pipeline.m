@@ -14,7 +14,7 @@ close all
 
 procstepflag = 1.5;
 
-paths = get_paths();
+paths = get_paths_new();
 
 datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
@@ -33,10 +33,15 @@ for ifile=1:size(datafiles,1)
     
     if procstepflag > 1
         
-%         data = nh_findghost(data);
-        data = nh_makemask(data);
+        if strcmp(data.header.timestamp, '2457583.7727459') ==1
+            fprintf('cosmic cray')
+        end
+    
+%         data = nh_findghoststar(data,paths);
+%         data = nh_make_manmask(data,paths);
+        data = nh_makemask(data,paths);
         
-        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+%        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         
     end
     
@@ -44,7 +49,7 @@ for ifile=1:size(datafiles,1)
         
         data = nh_add_meta(data);
         
-        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+%        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         
     end
     
@@ -52,7 +57,7 @@ for ifile=1:size(datafiles,1)
         
         data = nh_calibrate(data);
         
-        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+       % save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         
     end
     
@@ -60,7 +65,7 @@ for ifile=1:size(datafiles,1)
         
         data = nh_calcisl(data);
         
-        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+        %save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         
     end
     
@@ -68,7 +73,7 @@ for ifile=1:size(datafiles,1)
         
         data = nh_calcdgl(data);
         
-        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+%         save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         
     end
     
