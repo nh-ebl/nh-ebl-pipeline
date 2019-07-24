@@ -9,11 +9,12 @@ close all
 
 %==================User Settings==================
 %Linux Path
-path = '/data/symons/nh_data/'
-phase = 'pluto'
+% path = '/data/symons/nh_data/'
+% phase = 'pluto'
 
 %Windows Path
-%phase = ''; %make it empty to keep it simple
+path = 'C:\\nh\\NH_old_data\\NH\\regist\\';
+phase = ''; %make it empty to keep it simple
 
 %-----text file-----
 %fitsDataFileName = '0FITsDataSummary.txt'; %set the file name for the dataArray of the FITs file keywords (0 makes it at the top!)
