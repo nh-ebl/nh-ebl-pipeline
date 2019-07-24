@@ -43,7 +43,7 @@ npaths=get_paths_new();
 
 % Load both data directories
 %old
-datafiles = dir(sprintf('%s*.mat',paths.datadir));
+datafiles = dir(sprintf('%s*.mat',paths.datadirghosts));
 %new
 ndatafiles= dir(sprintf('%s*.mat',npaths.datadir));
 
@@ -165,7 +165,7 @@ for ifile=1:size(datafiles,1)
     fprintf('On file %d of %d.\n',ifile,size(datafiles,1));
     
     % Load data
-    load(sprintf('%s%s',paths.datadir,datafiles(ifile).name));
+    load(sprintf('%s%s',paths.datadirghosts,datafiles(ifile).name));
     
     % Append ghost x and y position, radius, total position, and if partial
     %these come from the excel files where the locations were predetermined
