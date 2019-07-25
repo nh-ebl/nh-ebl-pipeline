@@ -261,32 +261,37 @@ data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 % caxis([-5,100])
 % caxis(ax1.CLim)
 % 
-h = figure(1);
-% clf;
-imagesc(data.data.*~data.mask.onemask)
-set(h,'visible','on');
+% h = figure(1);
+% % clf;
+% imagesc(data.data.*~data.mask.onemask)
+% % set(h,'visible','on');
 % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-colorbar; 
-caxis([-10,10]);
-title(sprintf('%s',data.header.rawfile));
-grid minor;
-ext = '.png';
+% colorbar; 
+% caxis([-10,10]);
+% title(sprintf('%s',data.header.rawfile));
+% grid minor;
+% ext = '.png';
 % imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
 
 % Plot histogram of masked image
-% maskim = data.data.*~data.mask.onemask;
-% idx = maskim > 0;
-% h = figure(1);
+maskim = data.data.*~data.mask.onemask;
+idx = maskim > 0;
+h = figure(1);
 % clf;
-% set(h,'visible','off');
-% g = histogram(maskim(idx),30);
-% set(gca,'YScale','log')
-% title(sprintf('%s',data.header.rawfile));
+set(h,'visible','on');
+g = histogram(maskim(idx),30);
+set(gca,'YScale','log')
+title(sprintf('%s',data.header.rawfile));
 % ext = '.png';
 % imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
+
+
+figure(2);
+lambda= poissfit(maskim(idx));
+% plot(lambda,maskim(idx));
 
 %Plot actual histogram of all masks
 % h = figure(2);
@@ -299,15 +304,15 @@ ext = '.png';
 % print(h,imagename, '-dpng');
 
 
-h = figure(3);
-% clf;
-imagesc(data.data.*~data.mask.manmask)
-set(h,'visible','on');
+% h = figure(3);
+% % clf;
+% imagesc(data.data.*~data.mask.manmask)
+% % set(h,'visible','on');
 % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-colorbar; 
-caxis([-10,10]);
-title(sprintf('%s',data.header.rawfile));
-grid minor;
-ext = '.png';
+% colorbar; 
+% caxis([-10,10]);
+% title(sprintf('%s',data.header.rawfile));
+% grid minor;
+% ext = '.png';
 
 end
