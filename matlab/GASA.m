@@ -843,39 +843,39 @@ end
 %     text(5,13.5,'y=1.1473x + 8.1212');
 %     legend([mg1,mg2,mg3,mg4],{'Mag 3.9555','Mag 5.7967','Mag 6.1574','Mag 6.3535',});
 % 
-% Dot graph! Inside the box is the ghost location, outside is star location
-% but is color coded by the star magnitude
-figure(3);
-    x1=-128;
-    x2=128;
-    y1=-128;
-    y2=128;
-    xbox = [x1, x2, x2, x1, x1];
-    ybox = [y1, y1, y2, y2, y1];
-    plot(xbox, ybox, 'k-', 'LineWidth', 3);
-    xlim([-327,327]);
-    ylim([-327,327]);
-    pbaspect([1 1 1]);
-    hold on;
-    g1= scatter(ghostxo1(ghostxo1~=0),ghostyo1(ghostyo1~=0),'r','filled');
-    hold on;
-    scatter(starxo1(starxo1~=0),staryo1(staryo1~=0),'r','filled');
-    g2= scatter(ghostxo2(ghostxo2~=0),ghostyo2(ghostyo2~=0),'m','filled');
-    hold on;
-    scatter(starxo2(starxo2~=0),staryo2(staryo2~=0),'m','filled');
-    g3= scatter(ghostxo3(ghostxo3~=0),ghostyo3(ghostyo3~=0),'c','filled');
-    hold on;
-    scatter(starxo3(starxo3~=0),staryo3(staryo3~=0),'c','filled');
-    g4= scatter(ghostxo4(ghostxo4~=0),ghostyo4(ghostyo4~=0),'b','filled');
-    hold on;
-    scatter(starxo4(starxo4~=0),staryo4(staryo4~=0),'b','filled');
-    
-th = 0:pi/50:2*pi;
-xunit = 268*cos(th)+0;
-yunit = 268*sin(th)+0;
-figure(3);
-plot(xunit,yunit, 'k--'); 
-legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+% % Dot graph! Inside the box is the ghost location, outside is star location
+% % but is color coded by the star magnitude
+% figure(3);
+%     x1=-128;
+%     x2=128;
+%     y1=-128;
+%     y2=128;
+%     xbox = [x1, x2, x2, x1, x1];
+%     ybox = [y1, y1, y2, y2, y1];
+%     plot(xbox, ybox, 'k-', 'LineWidth', 3);
+%     xlim([-327,327]);
+%     ylim([-327,327]);
+%     pbaspect([1 1 1]);
+%     hold on;
+%     g1= scatter(ghostxo1(ghostxo1~=0),ghostyo1(ghostyo1~=0),'r','filled');
+%     hold on;
+%     scatter(starxo1(starxo1~=0),staryo1(staryo1~=0),'r','filled');
+%     g2= scatter(ghostxo2(ghostxo2~=0),ghostyo2(ghostyo2~=0),'m','filled');
+%     hold on;
+%     scatter(starxo2(starxo2~=0),staryo2(staryo2~=0),'m','filled');
+%     g3= scatter(ghostxo3(ghostxo3~=0),ghostyo3(ghostyo3~=0),'c','filled');
+%     hold on;
+%     scatter(starxo3(starxo3~=0),staryo3(staryo3~=0),'c','filled');
+%     g4= scatter(ghostxo4(ghostxo4~=0),ghostyo4(ghostyo4~=0),'b','filled');
+%     hold on;
+%     scatter(starxo4(starxo4~=0),staryo4(staryo4~=0),'b','filled');
+%     
+% th = 0:pi/50:2*pi;
+% xunit = 268*cos(th)+0;
+% yunit = 268*sin(th)+0;
+% figure(3);
+% plot(xunit,yunit, 'k--'); 
+% legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 % 
 % % ghost radius vs ghost magnitude
 % figure(4);
@@ -909,7 +909,7 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %     scatter(starcentdistall4(starcentdistall4~=0),ghostcentdistall4(ghostcentdistall4~=0),'b','filled');
 %     xlabel('Distance from center to star');
 %     ylabel('Distance from center to ghost');
-
+% 
 % % Plot ghost total position vs star total position
 % figure(7);
 %     hold on;
@@ -964,7 +964,7 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 % ghostt3= rad2deg(ghostt3);
 % [ghostt4,ghostr4]=cart2pol(ghostxo4, ghostyo4);
 % ghostt4= rad2deg(ghostt4);
-% 
+
 % % star rho vs ghost radius
 % figure(9);
 % hold on;
@@ -977,7 +977,7 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %     xlabel('Star Rho');
 %     ylabel('Ghost radius');
 % 
-% Plot star rho position vs ghost rho position
+% % Plot star rho position vs ghost rho position
 % figure(10);
 %     hold on;
 %     g1= scatter(starr1(starr1~=0), ghostr1(ghostr1~=0),'r','filled');
@@ -991,7 +991,7 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %     xlabel('Star rho position');
 %     ylabel('Ghost rho position');
 %     text(215,30,'y= -0.1855x + 64.8986');
-% %     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+%     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 % 
 % % Plot star theta position vs ghost theta position
 % figure(11);
@@ -1007,7 +1007,7 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %     ghosttfit= (fitt(1).*startfit + fitt(2));
 %     plot(startfit,ghosttfit);
 %     text(-50,100,'y=0.8885x - 4.9179');
-% %     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+%     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 % 
 % %starx vs ghostx
 % figure(12);
@@ -1027,7 +1027,7 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %     xoeq=fitxo(1)*starxcent+fitxo(2);
 %     plot(starxcent,xoeq);
 %     text(50,-5,'y=0.1200x +8.0592');
-% %     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+%     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 % 
 % %stary vs ghosty
 % figure(13);
@@ -1047,8 +1047,8 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %     yoeq= fityo(1)*starycent+fityo(2);
 %     plot(starycent, yoeq);
 %     text(100,-5,'y=0.1240x +1.9207');
-% %     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
-% 
+%     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+
 % %ghost location x test
 % figure(14);
 %     hold on;
@@ -1061,7 +1061,7 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %     plot(guesslinex(guesslinex~=0),guessguessx(guessguessx~=0));
 %     xlabel('Expected X');
 %     ylabel('Guess X');
-% %     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+%     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 % 
 % %ghost location y test
 % figure(15);
@@ -1075,7 +1075,7 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %     plot(guessliney(guessliney~=0),guessguessy(guessguessy~=0));
 %     xlabel('Expected Y');
 %     ylabel('Guess Y');
-% %     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+%     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 % 
 % 
 % %actual X - guess vs actual
@@ -1092,7 +1092,7 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %     g2= scatter(ghostxo2(ghostxo2~=0),amgx2(amgx2~=0), 'm','filled');
 %     g3= scatter(ghostxo3(ghostxo3~=0),amgx3(amgx3~=0), 'c','filled');
 %     g4= scatter(ghostxo4(ghostxo4~=0),amgx4(amgx4~=0), 'b','filled');
-% %     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+%     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 % 
 % %actual Y - guess vs actual
 % figure(17);
@@ -1108,4 +1108,4 @@ legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %     g2= scatter(ghostyo2(ghostyo2~=0) ,amgy2(amgy2~=0), 'm','filled');
 %     g3= scatter(ghostyo3(ghostyo3~=0) ,amgy3(amgy3~=0), 'c','filled');
 %     g4= scatter(ghostyo4(ghostyo4~=0) ,amgy4(amgy4~=0), 'b','filled');
-% %     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+%     legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});

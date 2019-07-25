@@ -44,7 +44,7 @@ aparea = pi*rad.^2;
 %compute background summed value scaled for difference in areas
 bkgsum = skysum/skymaskarea*aparea;
 %compute the background subtracted aperture sum
-skysub_apsum = apsum - bkgsum;
+% skysub_apsum = apsum - bkgsum;
 % flux = skysub_apsum/data.astrom.exptime;
 % mag = -2.5*log10(flux)+20;
 % info = '';
