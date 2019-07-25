@@ -150,6 +150,15 @@ for ifile=1:numel(nlightfiles)
         
         jfile = jfile + 1;
     end
+if (lightdate((ifile),1) > 624.2848 && (lightdate((ifile),1)<1000.219))
+    lightdatered((ifile),1) = (lightdate((ifile),1));  
+end
+if ((lightdate((ifile),1) == 1615.5001))
+    lightdateblue((ifile),1) = (lightdate((ifile),1)); 
+end
+if (lightdate((ifile),1) > 3573.24 && (lightdate((ifile),1)<3828.3072))
+    lightdategreen((ifile),1) = (lightdate((ifile),1));
+end
 end
 
 %Prepare to save mean values for like fields
@@ -228,26 +237,26 @@ lightlIlm = [lightlIlmp,lightlIlmq];
 %Calculate dark current for temperatures we already have
 darkcurr = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
 %Load and save dark current
-% for ifile=1:numoldlightfiles
-%     load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
-%     data.ref.darkcurr=darkcurr(ifile);
+for ifile=1:numoldlightfiles
+    load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
+    data.ref.darkcurr=darkcurr(ifile);
 %     save(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
-% end
-% for ifile=1:numnewlightfiles
-%     %load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
-%     data.ref.darkcurr=darkcurr(ifile+numoldlightfiles);
-%     %save(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
-% end
+end
+for ifile=1:numnewlightfiles
+    load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
+    data.ref.darkcurr=darkcurr(ifile+numoldlightfiles);
+    %save(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
+end
 
 %Time to make some plots
 fprintf('Making plots.\n')
 
 figure(1); clf
-plot(lightdatered((ifile),1),darkcurr,'r');
+plot(lightdatered,darkcurr,'r');
 hold on;
-plot(lightdateblue((ifile),1),darkcurr,'b');
+plot(lightdateblue,darkcurr,'b');
 hold on;
-plot(lightdategreen((ifile),1),darkcurr,'g');
+plot(lightdategreen,darkcurr,'g');
 xlim([80,4000]);
 ylim;([.02,.05]);
 xlabel('Days from launch');
