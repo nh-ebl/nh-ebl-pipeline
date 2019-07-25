@@ -64,6 +64,10 @@ lightref = zeros((numoldlightfiles+numnewlightfiles),2);
 lightexp = zeros((numoldlightfiles+numnewlightfiles),1);
 lightfield = zeros((numoldlightfiles+numnewlightfiles),1);
 lightlIl = zeros((numoldlightfiles+numnewlightfiles),2);
+%Preallocate space for variables light colorcoded
+lightdatered = zeros((numoldlightfiles+numnewlightfiles),1);
+lightdateblue = zeros((numoldlightfiles+numnewlightfiles),1);
+lightdategreen = zeros((numoldlightfiles+numnewlightfiles),1);
 
 %For dark data files
 for ifile=1:size(ndarkfiles)
@@ -115,7 +119,15 @@ for ifile=1:numel(lightfiles)
         
         jfile = jfile + 1;
     end
-    
+if (lightdate((ifile),1) > 624.2848 && (lightdate((ifile),1)<1000.219))
+    lightdatered((ifile),1) = (lightdate((ifile),1));  
+end
+if ((lightdate((ifile),1) == 1615.5001))
+    lightdateblue((ifile),1) = (lightdate((ifile),1)); 
+end
+if (lightdate((ifile),1) > 3573.24 && (lightdate((ifile),1)<3828.3072))
+    lightdategreen((ifile),1) = (lightdate((ifile),1));
+end
 end
 
 %For new data files
@@ -213,10 +225,40 @@ lightlIlmp = lightlIlm(whpl,1);
 lightlIlmq = lightlIlm(whpl,2);
 lightlIlm = [lightlIlmp,lightlIlmq];
 
+%Calculate dark current for temperatures we already have
+darkcurr = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+%Load and save dark current
+% for ifile=1:numoldlightfiles
+%     load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
+%     data.ref.darkcurr=darkcurr(ifile);
+%     save(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
+% end
+% for ifile=1:numnewlightfiles
+%     %load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
+%     data.ref.darkcurr=darkcurr(ifile+numoldlightfiles);
+%     %save(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
+% end
+
 %Time to make some plots
 fprintf('Making plots.\n')
 
 figure(1); clf
+plot(lightdatered((ifile),1),darkcurr,'r');
+hold on;
+plot(lightdateblue((ifile),1),darkcurr,'b');
+hold on;
+plot(lightdategreen((ifile),1),darkcurr,'g');
+xlim([80,4000]);
+ylim;([.02,.05]);
+xlabel('Days from launch');
+ylabel('Dark current');
+
+figure(2); clf
+plot(lighttemp,darkcurr,'b.');
+xlabel('CCD Temperature (C)');
+ylabel('Dark current');
+
+figure(3); clf
 semilogx(lightdate,lighttemp,'r.');
 hold on ;
 %errorbar(lightdate,lighttemp,0.15.*ones(size(lightdate)),'ro');
@@ -255,7 +297,7 @@ myfunc = myfunc + 273.15;
 %   save('../scratch/nh_dark_analysis_fig1.mat','lightdate','lighttemp',...
 %       'darkdate','darktemp','mydates','myfunc','cover');
 
-figure(2); clf
+figure(4); clf
 semilogx(lightdate,lightref(:,1),'ro')
 hold on   ;
 %errorbar(lightdate,lightref(:,1),lightref(:,2)./sqrt(256),'ro')
@@ -279,7 +321,7 @@ meanvref = sum(lightrefm(:,1)./lightrefm(:,2).^2)./sum(1./lightrefm(:,2).^2);
 sigvref = std(lightref(:,1))./2;
 
 figure;
-figure(3); clf
+figure(5); clf
 hold on;
 xlabel('ref')
 ylabel('sig')
@@ -303,7 +345,7 @@ xlabel('Mean of Reference Pixels');
 ylabel('Mean of Light Pixels') ;
 
 figure;
-figure(4); clf
+figure(6); clf
 plot(darktemp,darkref(:,1),'bo');
 hold on
 
@@ -324,7 +366,7 @@ xlabel('CCD Temperature (K)');
 ylabel('Mean of Reference Pixels, Cover On');
 
 figure;
-figure(5); clf
+figure(7); clf
 tccd = [-85:1:-50];
 plot(tccd,b_york.*tccd+a_york,'b');
 hold on
@@ -348,7 +390,7 @@ xlabel('CCD Temperature (C)');
 ylabel('Mean of Reference Pixels');
 
 figure;
-figure(6); clf
+figure(8); clf
 tccd = [-85:1:-45];
 darkcurrent = 10.*(1./22).*1e4.*122.*(tccd+273).^3.*exp(-6400./(tccd+273));
 plot(tccd,darkcurrent+meanvref,'k');
@@ -375,7 +417,7 @@ plot(xlim,[meanvref,meanvref],'r--');
 plot(xlim,[meanvref+sigvref,meanvref+sigvref],'r:');
 plot(xlim,[meanvref-sigvref,meanvref-sigvref],'r:');
 
-xlabel('CCD Temperature (C)');
+xlabel('CCD Temperature (K)');
 ylabel('Mean of Reference Pixels');
 ylim([537,548]);
 
@@ -390,7 +432,7 @@ darktempm = darktempm + 273.15;
 
 
 figure;
-figure(7); clf
+figure(9); clf
 plot(lightrefm(:,1),lightlIlm(:,1),'ro');
 %errorbar(lightrefm(:,1),lightlIlm(:,1),lightlIlm(:,2),'ro');
 hold on;

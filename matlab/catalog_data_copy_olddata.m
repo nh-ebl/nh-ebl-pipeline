@@ -1,6 +1,6 @@
 function catalog_data_copy()
 
-n = 11; %number of fields to look at (stored as folders name 1 to n
+n = 4; %number of fields to look at (stored as folders name 1 to n
 
 %column numbers for ra, dec, and mag values in USNOB-1 ascii files
 % there s/g values are + 3 colunmns from each mag val.
@@ -22,7 +22,7 @@ for i=1:n
     fprintf('Current field: %i\n', field); 
 	
 	%get all catalog files from that field
-	data = dir(sprintf('C:\\nh_data\\usnob1\\catalog_files\\%d\\*field*',i));
+	data = dir(sprintf('C:\\nh\\NH_old_data\\usnob1\\catalog_files\\%d\\*field*',i));
 	ndata = numel(data);
     fprintf('Number of subfields: %i\n', ndata); 
 	
@@ -45,7 +45,7 @@ for i=1:n
         fprintf('Current subfield: %i\n', j); 
 		%open each file
 		filename = data(j).name;
-		fileID = fopen(sprintf('C:\\nh_data\\usnob1\\catalog_files\\%d\\%s', i, filename));
+		fileID = fopen(sprintf('C:\\nh\\NH_old_data\\usnob1\\catalog_files\\%d\\%s', i, filename));
 		
 		%read first line
 		tline = fgets(fileID);
@@ -85,13 +85,13 @@ for i=1:n
 		fclose(fileID);		
     end	
 	%save data from field as matlab matrices
-	save(sprintf('C:\\nh_data\\usnob1\\mat_files\\field_%d_data', i), 'RA', 'DEC', ...
+	save(sprintf('C:\\nh\\NH_old_data\\usnob1\\mat_files\\field_%d_data', i), 'RA', 'DEC', ...
         'B1mag', 'B2mag', 'R1mag', 'R2mag', 'I2mag', ...
         'B1sg', 'B2sg', 'R1sg', 'R2sg', 'I2sg');
 	%[RA' DEC' B1mag' B2mag' R1mag' R2mag'];
     field_number=[field_number i];
 end
-field_DEC=[field_DEC -9.36002165 4.792341167 -22.82961047 25.90105487 4.828636396 -22.80892287 25.9444605 12.26639126 6.735450267 43.2828838 6.793556222];
-field_RA=[field_RA 258.746143 220.7927148 191.3474659 259.7907857 220.7621693 191.3286772 259.8207519 235.187082 136.1413223 157.6944323 136.1518358];
-save(sprintf('C:\\nh_data\\usnob1\\mat_files\\cataloginfo'), 'field_number','field_RA','field_DEC');
+field_DEC=[field_DEC 23.94 23.95 -33.81 -33.81];
+field_RA=[field_RA 196.04 196.02 237.55 237.58];
+save(sprintf('C:\\nh\\NH_old_data\\usnob1\\mat_files\\cataloginfo'), 'field_number','field_RA','field_DEC');
 	
