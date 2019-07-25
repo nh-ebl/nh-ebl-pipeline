@@ -67,7 +67,9 @@ lightlIl = zeros((numoldlightfiles+numnewlightfiles),2);
 %Preallocate space for variables light colorcoded
 lightdatered = zeros((numoldlightfiles+numnewlightfiles),1);
 lightdateblue = zeros((numoldlightfiles+numnewlightfiles),1);
-lightdategreen = zeros((numoldlightfiles+numnewlightfiles),1);
+%Preallocate space for variables light colorcoded dark current
+darkcurrred = zeros((numoldlightfiles+numnewlightfiles),1);
+darkcurrblue = zeros((numoldlightfiles+numnewlightfiles),1);
 
 %For dark data files
 for ifile=1:size(ndarkfiles)
@@ -119,15 +121,16 @@ for ifile=1:numel(lightfiles)
         
         jfile = jfile + 1;
     end
-if (lightdate((ifile),1) > 624.2848 && (lightdate((ifile),1)<1000.219))
-    lightdatered((ifile),1) = (lightdate((ifile),1));  
-end
-if ((lightdate((ifile),1) == 1615.5001))
-    lightdateblue((ifile),1) = (lightdate((ifile),1)); 
-end
-if (lightdate((ifile),1) > 3573.24 && (lightdate((ifile),1)<3828.3072))
-    lightdategreen((ifile),1) = (lightdate((ifile),1));
-end
+    
+darkcurr = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+
+% if (numoldlightfiles((ifile),1)) > 26
+%     lightdatered((ifile),1) = (lightdate((ifile),1));
+%     darkcurrred((ifile),1) = (darkcurr((ifile),1));
+% elseif (numoldlightfiles((ifile),1)) > 26
+%     lightdateblue((ifile),1) = (lightdate((ifile),1));
+%     darkcurrblue((ifile),1) = (darkcurr((ifile),1));
+% end
 end
 
 %For new data files
@@ -150,14 +153,13 @@ for ifile=1:numel(nlightfiles)
         
         jfile = jfile + 1;
     end
-if (lightdate((ifile),1) > 624.2848 && (lightdate((ifile),1)<1000.219))
-    lightdatered((ifile),1) = (lightdate((ifile),1));  
-end
-if ((lightdate((ifile),1) == 1615.5001))
-    lightdateblue((ifile),1) = (lightdate((ifile),1)); 
-end
-if (lightdate((ifile),1) > 3573.24 && (lightdate((ifile),1)<3828.3072))
-    lightdategreen((ifile),1) = (lightdate((ifile),1));
+darkcurr = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+if ifile > 26
+    lightdatered((ifile),1) = (lightdate((ifile),1));
+    darkcurrred((ifile),1) = (darkcurr((ifile),1));
+elseif (lightdate((ifile),1))
+    lightdateblue((ifile),1) = (lightdate((ifile),1));
+    darkcurrblue((ifile),1) = (darkcurr((ifile),1));
 end
 end
 
@@ -251,21 +253,35 @@ end
 %Time to make some plots
 fprintf('Making plots.\n')
 
-figure(1); clf
-plot(lightdatered,darkcurr,'r');
-hold on;
-plot(lightdateblue,darkcurr,'b');
-hold on;
-plot(lightdategreen,darkcurr,'g');
-xlim([80,4000]);
-ylim;([.02,.05]);
+%Remove zeros in lightdate colorcoded
+lightdatered(lightdatered==0)=[];
+darkcurrred(darkcurrred==0)=[];
+lightdateblue(lightdateblue==0)=[];
+darkcurrblue(darkcurrblue==0)=[];
+
+lightdatered=lightdatered~=0;
+darkcurrred=darkcurrred~=0;
+lightdateblue=lightdateblue~=0;
+darkcurrblue=darkcurrblue~=0;
+
+figure(12345); clf
+semilogx(lightdate,darkcurr,'m.');
 xlabel('Days from launch');
 ylabel('Dark current');
 
-figure(2); clf
-plot(lighttemp,darkcurr,'b.');
-xlabel('CCD Temperature (C)');
+figure(1); clf
+semilogx((lightdatered),(darkcurrred),'r');
+hold on;
+semilogx((lightdateblue),(darkcurrblue),'b');
+hold on;
+xlim([80,4000]);
+xlabel('Days from launch');
 ylabel('Dark current');
+
+% figure(2); clf
+% plot(lighttemp,darkcurr,'b.');
+% xlabel('CCD Temperature (C)');
+% ylabel('Dark current');
 
 figure(3); clf
 semilogx(lightdate,lighttemp,'r.');
