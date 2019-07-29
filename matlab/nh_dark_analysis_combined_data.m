@@ -2,6 +2,8 @@
 %shaina thayer July 2019
 %anna dignan July 2019
 
+close all;
+
 %Clear temporary variables
 clearvars idx;
 
@@ -124,13 +126,6 @@ for ifile=1:numel(lightfiles)
     
 darkcurr = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
 
-% if (numoldlightfiles((ifile),1)) > 26
-%     lightdatered((ifile),1) = (lightdate((ifile),1));
-%     darkcurrred((ifile),1) = (darkcurr((ifile),1));
-% elseif (numoldlightfiles((ifile),1)) > 26
-%     lightdateblue((ifile),1) = (lightdate((ifile),1));
-%     darkcurrblue((ifile),1) = (darkcurr((ifile),1));
-% end
 end
 
 %For new data files
@@ -154,13 +149,8 @@ for ifile=1:numel(nlightfiles)
         jfile = jfile + 1;
     end
 darkcurr = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
-if ifile > 26
-    lightdatered((ifile),1) = (lightdate((ifile),1));
-    darkcurrred((ifile),1) = (darkcurr((ifile),1));
-elseif (lightdate((ifile),1))
-    lightdateblue((ifile),1) = (lightdate((ifile),1));
-    darkcurrblue((ifile),1) = (darkcurr((ifile),1));
-end
+
+% end
 end
 
 %Prepare to save mean values for like fields
@@ -237,7 +227,7 @@ lightlIlmq = lightlIlm(whpl,2);
 lightlIlm = [lightlIlmp,lightlIlmq];
 
 %Calculate dark current for temperatures we already have
-darkcurr = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+darkcurr = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
 %Load and save dark current
 for ifile=1:numoldlightfiles
     load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
@@ -250,33 +240,30 @@ for ifile=1:numnewlightfiles
     %save(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
 end
 
-%Time to make some plots
-fprintf('Making plots.\n')
-
-%Remove zeros in lightdate colorcoded
-lightdatered(lightdatered==0)=[];
-darkcurrred(darkcurrred==0)=[];
-lightdateblue(lightdateblue==0)=[];
-darkcurrblue(darkcurrblue==0)=[];
-
-lightdatered=lightdatered~=0;
-darkcurrred=darkcurrred~=0;
-lightdateblue=lightdateblue~=0;
-darkcurrblue=darkcurrblue~=0;
-
-figure(12345); clf
-semilogx(lightdate,darkcurr,'m.');
-xlabel('Days from launch');
-ylabel('Dark current');
+%Colorcoding dark current for plotting purposes
+for ifile=1:numoldlightfiles+numnewlightfiles
+    if ifile > numoldlightfiles
+       lightdatered(ifile,1)=lightdate(ifile,1);
+    elseif ifile <= numoldlightfiles
+       lightdateblue(ifile,1)=lightdate(ifile,1);
+    end
+end
+for ifile=1:numoldlightfiles+numnewlightfiles
+    if ifile > numoldlightfiles
+       darkcurrred(ifile,1)=darkcurr(ifile,1);
+    elseif ifile <= numoldlightfiles
+       darkcurrblue(ifile,1)=darkcurr(ifile,1);
+    end
+end
 
 figure(1); clf
-semilogx((lightdatered),(darkcurrred),'r');
+p1 = scatter(lightdatered(lightdatered~=0),darkcurrred(darkcurrred~=0),'b','filled');
 hold on;
-semilogx((lightdateblue),(darkcurrblue),'b');
+p2 = scatter(lightdateblue(lightdateblue~=0),darkcurrblue(darkcurrblue~=0),'r','filled');
 hold on;
-xlim([80,4000]);
 xlabel('Days from launch');
-ylabel('Dark current');
+ylabel('Dark current (e^-/sec/pixel)');
+legend([p1 p2],{'Pluto encounter and beyond','Pre-Pluto encounter'});
 
 % figure(2); clf
 % plot(lighttemp,darkcurr,'b.');
