@@ -276,21 +276,21 @@ data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 
 
 % Plot histogram of masked image
-maskim = data.data.*~data.mask.onemask;
-idx = maskim > 0;
-h = figure(1);
-% clf;
-set(h,'visible','on');
-g = histogram(maskim(idx),30);
-set(gca,'YScale','log')
-title(sprintf('%s',data.header.rawfile));
+% maskim = data.data.*~data.mask.onemask;
+% idx = maskim > 0;
+% h = figure(1);
+% % clf;
+% set(h,'visible','on');
+% g = histogram(maskim(idx),30);
+% set(gca,'YScale','log')
+% title(sprintf('%s',data.header.rawfile));
 % ext = '.png';
 % imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
 
-figure(2);
-lambda= poissfit(maskim(idx));
+% figure(2);
+% lambda= poissfit(maskim(idx));
 % plot(lambda,maskim(idx));
 
 %Plot actual histogram of all masks
@@ -314,5 +314,20 @@ lambda= poissfit(maskim(idx));
 % title(sprintf('%s',data.header.rawfile));
 % grid minor;
 % ext = '.png';
+
+figure(18);
+imagesc(data.data.*~data.mask.onemask)
+% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+colorbar; 
+caxis([-10,10]);
+title(sprintf('%s',data.header.rawfile));
+grid minor;
+figure(19);
+imagesc(data.data)
+% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+colorbar; 
+caxis([-10,10]);
+title(sprintf('%s',data.header.rawfile));
+grid minor;
 
 end

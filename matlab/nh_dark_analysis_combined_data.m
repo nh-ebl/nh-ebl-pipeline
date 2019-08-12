@@ -276,15 +276,8 @@ hold on;
 xline(3463,'k:');
 xlabel('Days from launch');
 ylabel('Dark current (e^-/sec/pixel)');
-
-
-yyaxis right
-r1 = scatter(lightdatenew(lightdatenew~=0),lighttempnew(lighttempnew~=0),'MarkerEdgeColor','none');
-r2 = scatter(lightdateold(lightdateold~=0),lighttempold(lighttempold~=0),'MarkerEdgeColor','none');
-r3 = scatter(darkdate, darktemp+273.15, 'MarkerEdgeColor','none');
-ylabel('CCD Temperature (K)');
-
 legend([p2 p1],{'Pre-Pluto encounter','Pluto encounter and beyond'});
+
 % figure(2); clf
 % plot(lighttemp,darkcurr,'b.');
 % xlabel('CCD Temperature (C)');
@@ -292,7 +285,7 @@ legend([p2 p1],{'Pre-Pluto encounter','Pluto encounter and beyond'});
 
 figure(3); clf
 semilogx(lightdate,lighttemp,'r.');
-hold on ;
+hold on;
 %errorbar(lightdate,lighttemp,0.15.*ones(size(lightdate)),'ro');
 semilogx(lightdatem,lighttempm,'ko');
 %errorbar(lightdatem,lighttempm,2.*sqrt(lighterrm.^2+(0.15.*ones(size(lightdatem))).^2),'ko');
@@ -303,7 +296,7 @@ semilogx(darkdatem,darktempm,'ko');
 %errorbar(darkdatem,darktempm,2.*sqrt(darkerrm.^2 + (0.15.*ones(size(darkdatem))).^2),'ko');
 xlim([80,4000]);
 xlabel('Days from launch');
-ylabel('CCD Temperature (C)');
+ylabel('CCD Temperature (°C)');
 
 x = [darkdate;lightdate];
 y = [darktemp;lighttemp];
@@ -418,7 +411,7 @@ plot(xlim,[meanvref,meanvref],'r--');
 plot(xlim,[meanvref+sigvref,meanvref+sigvref],'r:');
 plot(xlim,[meanvref-sigvref,meanvref-sigvref],'r:');
 
-xlabel('CCD Temperature (C)');
+xlabel('CCD Temperature (°C)');
 ylabel('Mean of Reference Pixels');
 
 figure;
@@ -449,7 +442,7 @@ plot(xlim,[meanvref,meanvref],'r--');
 plot(xlim,[meanvref+sigvref,meanvref+sigvref],'r:');
 plot(xlim,[meanvref-sigvref,meanvref-sigvref],'r:');
 
-xlabel('CCD Temperature (K)');
+xlabel('CCD Temperature (°C)');
 ylabel('Mean of Reference Pixels');
 ylim([537,548]);
 
@@ -498,3 +491,4 @@ plot(cover,ylim,'k:');
 
 
 %end
+
