@@ -276,6 +276,11 @@ hold on;
 xline(3463,'k:');
 xlabel('Days from launch');
 ylabel('Dark current (e^-/sec/pixel)');
+yyaxis right
+r1 = scatter(lightdatenew(lightdatenew~=0),lighttempnew(lighttempnew~=0),'MarkerEdgeColor','none');
+r2 = scatter(lightdateold(lightdateold~=0),lighttempold(lighttempold~=0),'MarkerEdgeColor','none');
+r3 = scatter(darkdate, darktemp+273.15, 'MarkerEdgeColor','none');
+ylabel('CCD Temperature (K)');
 legend([p2 p1],{'Pre-Pluto encounter','Pluto encounter and beyond'});
 
 % figure(2); clf
