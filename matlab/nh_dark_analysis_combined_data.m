@@ -67,11 +67,13 @@ lightexp = zeros((numoldlightfiles+numnewlightfiles),1);
 lightfield = zeros((numoldlightfiles+numnewlightfiles),1);
 lightlIl = zeros((numoldlightfiles+numnewlightfiles),2);
 %Preallocate space for variables light colorcoded
-lightdatered = zeros((numoldlightfiles+numnewlightfiles),1);
-lightdateblue = zeros((numoldlightfiles+numnewlightfiles),1);
+lightdatenew = zeros((numoldlightfiles+numnewlightfiles),1);
+lightdateold = zeros((numoldlightfiles+numnewlightfiles),1);
+lighttempnew = zeros((numoldlightfiles+numnewlightfiles),1);
+lighttempold = zeros((numoldlightfiles+numnewlightfiles),1);
 %Preallocate space for variables light colorcoded dark current
-darkcurrred = zeros((numoldlightfiles+numnewlightfiles),1);
-darkcurrblue = zeros((numoldlightfiles+numnewlightfiles),1);
+darkcurrnew = zeros((numoldlightfiles+numnewlightfiles),1);
+darkcurrold = zeros((numoldlightfiles+numnewlightfiles),1);
 
 %For dark data files
 for ifile=1:size(ndarkfiles)
@@ -124,7 +126,7 @@ for ifile=1:numel(lightfiles)
         jfile = jfile + 1;
     end
     
-darkcurr = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
 
 end
 
@@ -148,7 +150,7 @@ for ifile=1:numel(nlightfiles)
         
         jfile = jfile + 1;
     end
-darkcurr = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
 
 % end
 end
@@ -227,44 +229,62 @@ lightlIlmq = lightlIlm(whpl,2);
 lightlIlm = [lightlIlmp,lightlIlmq];
 
 %Calculate dark current for temperatures we already have
-darkcurr = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+darkcurrlight = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273.15).^3.*exp(-6400./(lighttemp+273.15));
+darkcurrdark = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(darktemp+273.15).^3.*exp(-6400./(darktemp+273.15));
 %Load and save dark current
 for ifile=1:numoldlightfiles
     load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
-    data.ref.darkcurr=darkcurr(ifile);
+    data.ref.darkcurr=darkcurrlight(ifile);
 %     save(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
 end
 for ifile=1:numnewlightfiles
     load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
-    data.ref.darkcurr=darkcurr(ifile+numoldlightfiles);
+    data.ref.darkcurr=darkcurrlight(ifile+numoldlightfiles);
     %save(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
 end
 
 %Colorcoding dark current for plotting purposes
 for ifile=1:numoldlightfiles+numnewlightfiles
     if ifile > numoldlightfiles
-       lightdatered(ifile,1)=lightdate(ifile,1);
+       lightdatenew(ifile,1)=lightdate(ifile,1);
+       lighttempnew(ifile,1)=lighttemp(ifile,1)+273.15;
+
     elseif ifile <= numoldlightfiles
-       lightdateblue(ifile,1)=lightdate(ifile,1);
+       lightdateold(ifile,1)=lightdate(ifile,1);
+       lighttempold(ifile,1)=lighttemp(ifile,1)+273.15;
+
     end
 end
 for ifile=1:numoldlightfiles+numnewlightfiles
     if ifile > numoldlightfiles
-       darkcurrred(ifile,1)=darkcurr(ifile,1);
+       darkcurrnew(ifile,1)=darkcurrlight(ifile,1);
     elseif ifile <= numoldlightfiles
-       darkcurrblue(ifile,1)=darkcurr(ifile,1);
+       darkcurrold(ifile,1)=darkcurrlight(ifile,1);
     end
 end
 
-figure(1); clf
-p1 = scatter(lightdatered(lightdatered~=0),darkcurrred(darkcurrred~=0),'b','filled');
+fig = figure(1); clf
+left_color = [0 0 0];
+right_color = [0 0 0];
+set(fig, 'defaultAxesColorOrder',[left_color;right_color]);
+yyaxis left
+p1 = semilogy(lightdatenew(lightdatenew~=0),darkcurrnew(darkcurrnew~=0),'b.', 'MarkerSize',15);
 hold on;
-p2 = scatter(lightdateblue(lightdateblue~=0),darkcurrblue(darkcurrblue~=0),'r','filled');
+dd = semilogy(darkdate, darkcurrdark, 'r.', 'MarkerSize',15);
+p2 = semilogy(lightdateold(lightdateold~=0),darkcurrold(darkcurrold~=0),'r.', 'MarkerSize',15);
 hold on;
+xline(3463,'k:');
 xlabel('Days from launch');
 ylabel('Dark current (e^-/sec/pixel)');
-legend([p1 p2],{'Pluto encounter and beyond','Pre-Pluto encounter'});
 
+
+yyaxis right
+r1 = scatter(lightdatenew(lightdatenew~=0),lighttempnew(lighttempnew~=0),'MarkerEdgeColor','none');
+r2 = scatter(lightdateold(lightdateold~=0),lighttempold(lighttempold~=0),'MarkerEdgeColor','none');
+r3 = scatter(darkdate, darktemp+273.15, 'MarkerEdgeColor','none');
+ylabel('CCD Temperature (K)');
+
+legend([p2 p1],{'Pre-Pluto encounter','Pluto encounter and beyond'});
 % figure(2); clf
 % plot(lighttemp,darkcurr,'b.');
 % xlabel('CCD Temperature (C)');
