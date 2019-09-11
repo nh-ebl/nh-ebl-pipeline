@@ -66,6 +66,10 @@ lightref = zeros((numoldlightfiles+numnewlightfiles),2);
 lightexp = zeros((numoldlightfiles+numnewlightfiles),1);
 lightfield = zeros((numoldlightfiles+numnewlightfiles),1);
 lightlIl = zeros((numoldlightfiles+numnewlightfiles),2);
+photcurr = zeros((numoldlightfiles+numnewlightfiles),1);
+gall = zeros((numoldlightfiles+numnewlightfiles),1);
+galb = zeros((numoldlightfiles+numnewlightfiles),1);
+helidist = zeros((numoldlightfiles+numnewlightfiles),1);
 %Preallocate space for variables light colorcoded
 lightdatenew = zeros((numoldlightfiles+numnewlightfiles),1);
 lightdateold = zeros((numoldlightfiles+numnewlightfiles),1);
@@ -123,6 +127,15 @@ for ifile=1:numel(lightfiles)
         lightlIl(jfile,1) = data.stats.maskmean./data.header.exptime;
         lightlIl(jfile,2) = data.stats.maskstd;
         
+        maskim = data.image.calimage.*~data.mask.onemask;
+        maskim(maskim==0) = NaN;
+        photcurr(jfile,1) = nanmean(nanmean(maskim));
+        [l,b]=RA_Dec_to_Gal(data.astrom.spcbrra,data.astrom.spcbrdec);
+        gall(jfile,1) = l;
+        galb(jfile,1) = b;
+        helidist(jfile+numoldlightfiles,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
+
+        
         jfile = jfile + 1;
     end
     
@@ -147,6 +160,14 @@ for ifile=1:numel(nlightfiles)
         lightfield(jfile+numoldlightfiles,1) = data.header.fieldnum;
         lightlIl(jfile+numoldlightfiles,1) = data.stats.maskmean./data.header.exptime;
         lightlIl(jfile+numoldlightfiles,2) = data.stats.maskstd;
+        
+        maskim = data.image.calimage.*~data.mask.onemask;
+        maskim(maskim==0) = NaN;
+        photcurr(jfile+numoldlightfiles,1) = nanmean(nanmean(maskim));
+        [l,b]=RA_Dec_to_Gal(data.astrom.spcbrra,data.astrom.spcbrdec);
+        gall(jfile+numoldlightfiles,1) = l;
+        galb(jfile+numoldlightfiles,1) = b;
+        helidist(jfile+numoldlightfiles,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
         
         jfile = jfile + 1;
     end
@@ -263,25 +284,52 @@ for ifile=1:numoldlightfiles+numnewlightfiles
     end
 end
 
-fig = figure(1); clf
-left_color = [0 0 0];
-right_color = [0 0 0];
-set(fig, 'defaultAxesColorOrder',[left_color;right_color]);
-yyaxis left
-p1 = semilogy(lightdatenew(lightdatenew~=0),darkcurrnew(darkcurrnew~=0),'b.', 'MarkerSize',15);
-hold on;
-dd = semilogy(darkdate, darkcurrdark, 'r.', 'MarkerSize',15);
-p2 = semilogy(lightdateold(lightdateold~=0),darkcurrold(darkcurrold~=0),'r.', 'MarkerSize',15);
-hold on;
-xline(3463,'k:');
-xlabel('Days from launch');
-ylabel('Dark current (e^-/sec/pixel)');
-yyaxis right
-r1 = scatter(lightdatenew(lightdatenew~=0),lighttempnew(lighttempnew~=0),'MarkerEdgeColor','none');
-r2 = scatter(lightdateold(lightdateold~=0),lighttempold(lighttempold~=0),'MarkerEdgeColor','none');
-r3 = scatter(darkdate, darktemp+273.15, 'MarkerEdgeColor','none');
-ylabel('CCD Temperature (K)');
-legend([p2 p1],{'Pre-Pluto encounter','Pluto encounter and beyond'});
+%Plot photocurrent over mission time for all light data, color coded by new
+%vs. old data
+% figure;
+% k = lightdate < 2500;
+% scatter(lightdate(k),photcurr(k),80,'MarkerFaceColor',[235,110,52]/255,'MarkerEdgeColor',[235,110,52]/255);
+% hold on;
+% scatter(lightdate(~k),photcurr(~k),80,'MarkerFaceColor',[0, 0.4470, 0.7410],'MarkerEdgeColor',[0, 0.4470, 0.7410]);
+% xlabel('Days from launch','FontSize',20);
+% ylabel('Mean Photocurrent (nW m^-^2 sr^-^1)','FontSize',20);
+
+%Plot photocurrent over mission time for all light data, color coded by
+%galactic latitude
+% figure;
+% scatter(lightdate,photcurr,80,abs(galb));
+% colorbar;
+% xlabel('Days from launch','FontSize',20);
+% ylabel('Mean Photocurrent (nW m^-^2 sr^-^1)','FontSize',20);
+
+%Plot photocurrent over mission time for all light data, color coded by
+%heliocentric distance
+figure;
+scatter(lightdate,photcurr,80,abs(helidist));
+colorbar;
+xlabel('Days from launch','FontSize',20);
+ylabel('Mean Photocurrent (nW m^-^2 sr^-^1)','FontSize',20);
+
+%Plot dark current and CCD temp over time, color coded by new vs. old data
+% fig = figure(1); clf
+% left_color = [0 0 0];
+% right_color = [0 0 0];
+% set(fig, 'defaultAxesColorOrder',[left_color;right_color]);
+% yyaxis left
+% p1 = semilogy(lightdatenew(lightdatenew~=0),darkcurrnew(darkcurrnew~=0),'b.', 'MarkerSize',15);
+% hold on;
+% dd = semilogy(darkdate, darkcurrdark, 'r.', 'MarkerSize',15);
+% p2 = semilogy(lightdateold(lightdateold~=0),darkcurrold(darkcurrold~=0),'r.', 'MarkerSize',15);
+% hold on;
+% xline(3463,'k:');
+% xlabel('Days from launch');
+% ylabel('Dark current (e^-/sec/pixel)');
+% yyaxis right
+% r1 = scatter(lightdatenew(lightdatenew~=0),lighttempnew(lighttempnew~=0),'MarkerEdgeColor','none');
+% r2 = scatter(lightdateold(lightdateold~=0),lighttempold(lighttempold~=0),'MarkerEdgeColor','none');
+% r3 = scatter(darkdate, darktemp+273.15, 'MarkerEdgeColor','none');
+% ylabel('CCD Temperature (K)');
+% legend([p2 p1],{'Pre-Pluto encounter','Pluto encounter and beyond'});
 
 % figure(2); clf
 % plot(lighttemp,darkcurr,'b.');

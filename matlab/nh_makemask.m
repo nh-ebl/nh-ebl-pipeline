@@ -6,7 +6,7 @@
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function data = nh_makemask(data,paths)
+function [data,mu] = nh_makemask(data,paths,nsig)
 
 % load up the corresponding catalog file
 load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
@@ -200,8 +200,11 @@ datmean = mean(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostma
 datstd = std(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
 
 % now find all unmasked pixels > 3 sigma away from the mean
-whpl = (abs(data.data) > datmean + 3.*datstd) & ...
+whpl = (abs(data.data) > datmean + nsig.*datstd) & ...
     ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+
+% whpl = (abs(data.data) > 10) & ...
+%     ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
 % and set the mask bit
 clipmask(whpl) = 1;
 
@@ -249,85 +252,121 @@ data.stats.maskmean = datmean;
 data.stats.maskstd = datstd;
 data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 
+%Plot masked data and non-masked data on same plot
 % ax1 = subplot(1,2,1);
 % imagesc(data.data.*~data.mask.onemask)
 % colorbar
 % caxis([-5,100])
 % caxis('auto')
-% 
+
 % ax2 = subplot(1,2,2);
 % imagesc(data.data)
 % colorbar
 % caxis([-5,100])
 % caxis(ax1.CLim)
-% 
+
+%Plot masked data with optional mouse movement returns value
 % h = figure(1);
-% % clf;
+% clf;
 % imagesc(data.data.*~data.mask.onemask)
-% % set(h,'visible','on');
-% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+% set(h,'visible','off');
+% % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
 % colorbar; 
 % caxis([-10,10]);
 % title(sprintf('%s',data.header.rawfile));
-% grid minor;
+% % grid minor;
 % ext = '.png';
 % imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
+% Plot histogram of masked image using hist fit and overplotting mean +/-
+% sigma
+maskim = data.data.*~data.mask.onemask;
+maskim(maskim==0) = NaN;
+bins = 40;
 
-% Plot histogram of masked image
-% maskim = data.data.*~data.mask.onemask;
-% idx = maskim > 0;
 % h = figure(1);
-% % clf;
+% clf;
 % set(h,'visible','on');
-% g = histogram(maskim(idx),30);
-% set(gca,'YScale','log')
+% histfitCustom(maskim(:),bins,'normal');
 % title(sprintf('%s',data.header.rawfile));
+% ylimMax = ylim; %get the ylims (min and max)
+% ylimMax = ylimMax(2); %get the actual max
+% ylim( [0.5, ylimMax] ); %force 0
+% set(gca,'YScale','log');
+% hold on
+% plot( repmat(nanmean(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
+% plot( repmat(nanmean(maskim(:))+nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
+% plot( repmat(nanmean(maskim(:))-nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
+% hold off
+% ext = '.png';
+% imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
+% print(h,imagename, '-dpng');
+
+%Calculate fit to data
+pd = fitdist(maskim(:),'normal');
+mu = pd.mu;
+% Calculate the theoretical PDF from the fit parameters
+% x_range = linspace(floor(nanmin(nanmin(maskim))),ceil(nanmax(nanmax(maskim))),100);
+% probability_predicted = pdf(pd,x_range);
+
+% Plot histogram with calculated fit over the top
+% figure
+% % histogram(maskim(:),60,'Normalization','probability')
+% g = histogram(maskim(:),bins);
+% hold on
+% h = plot(x_range,probability_predicted*max(g.Values)/max(probability_predicted),'.-','LineWidth',3);
+% set(gca,'YScale','log');
+% ylimMax = ylim; %get the ylims (min and max)
+% ylimMax = ylimMax(2); %get the actual max
+% ylim( [0.5, ylimMax] ); %force 0
+% xlim([-25,25]);
+
+%Plot histfit and calculated fit together
+% h = figure;
+% clf;
+% set(h,'visible','off');
+% % histfit(maskim(:),bins,'normal');
+% g = histfitCustom(maskim(:),bins,'normal');
+% hold on
+% plot(x_range,probability_predicted*max(g(1).YData)/max(probability_predicted),'.-','LineWidth',3);
+% set(gca,'YScale','log');
+% title(sprintf('%s',data.header.rawfile));
+% ylim( [0.5, 100000] ); %force 0
+% xlim([-50,50]);
 % ext = '.png';
 % imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
 
-% figure(2);
-% lambda= poissfit(maskim(idx));
-% plot(lambda,maskim(idx));
+%inspired by https://www.mathworks.com/matlabcentral/answers/313862-how-to-plot-a-normal-distribution-graph-to-fit-a-bar-graph
+% mu = nanmean(maskim(:));
+% sd = nanstd(maskim(:));
+% fun_dist_norm = @(mu,sd,x) exp(-(x-mu).^2 ./ (2*sd^2)) /(sd*sqrt(2*pi)); % Function for Standard Normal Distribution
+% 
+% [counts,edges] = histcounts(maskim(:), bins);  % Histogram
+% 
+% centers = edges(1:length(edges)-1) + mean(diff(edges))/2; % Calculate centers
+% 
+% centers_xVect = linspace(min(centers), max(centers),500); % x-vector for plotting
+% 
+% norm_dist = fun_dist_norm(mu,sd,centers_xVect); % Calculate Standard Normal Distribution
+% 
+% h = figure;
+% bar(centers, counts,1); % Plot Histogram
+% hold on
+% plot(centers_xVect, norm_dist*max(counts)/max(norm_dist), '.-', 'LineWidth',2); % Plot Scaled Standard Normal Distribution
+% hold off
+% set(gca,'YScale','log');
+% ylimMax = ylim; %get the ylims (min and max)
+% ylimMax = ylimMax(2); %get the actual max
+% ylim( [0.5, ylimMax] );
+% xlim([-25,25]);
+% grid
+%see
+%https://www.mathworks.com/matlabcentral/answers/175958-function-pdf-doesn-t-return-pdf-values
+%as to why norm_dist (or histfit for that matter) don't return perfectly
+%scaled results
 
-%Plot actual histogram of all masks
-% h = figure(2);
-% % clf;
-% set(h,'visible','on');
-% g = histogram(data.data.*~data.mask.onemask,15);
-% title(sprintf('%s',data.header.rawfile));
-% ext = '.png';
-% imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
-% print(h,imagename, '-dpng');
-
-
-% h = figure(3);
-% % clf;
-% imagesc(data.data.*~data.mask.manmask)
-% % set(h,'visible','on');
-% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-% colorbar; 
-% caxis([-10,10]);
-% title(sprintf('%s',data.header.rawfile));
-% grid minor;
-% ext = '.png';
-
-figure(18);
-imagesc(data.data.*~data.mask.onemask)
-% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-colorbar; 
-caxis([-10,10]);
-title(sprintf('%s',data.header.rawfile));
-grid minor;
-figure(19);
-imagesc(data.data)
-% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-colorbar; 
-caxis([-10,10]);
-title(sprintf('%s',data.header.rawfile));
-grid minor;
 
 end

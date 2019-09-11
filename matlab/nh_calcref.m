@@ -75,6 +75,6 @@ function nh_calcref()
   correction.corr = mycorr;
  
   
-  %save('lookup/nh_refcorr.mat','correction');
+  save('lookup/nh_refcorr.mat','correction');
     
-%end
+end

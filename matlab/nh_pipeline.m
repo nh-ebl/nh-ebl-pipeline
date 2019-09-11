@@ -12,7 +12,7 @@ function nh_pipeline()
 clear all
 close all
 
-procstepflag = 1.5;
+procstepflag = 1;
 
 paths = get_paths_new();
 
@@ -25,27 +25,31 @@ myref = zeros(size(datafiles));
 myeng = zeros(size(datafiles));
 myisl = zeros(size(datafiles));
 
+photcurr = zeros(size(datafiles));
+checkmax = zeros(size(datafiles));
+checkmin = zeros(size(datafiles));
+
 for ifile=1:size(datafiles,1)
     
     disp(sprintf('On file %d of %d.',ifile,size(datafiles,1)));
     
     load(sprintf('%s%s',paths.datadir,datafiles(ifile).name));
     
-    if procstepflag > 1
-        
-        if strcmp(data.header.timestamp, '2457583.7727459') ==1
-            fprintf('cosmic cray')
-        end
+    if procstepflag == 1
     
 %         data = nh_findghoststar(data,paths);
 %         data = nh_make_manmask(data,paths);
-        data = nh_makemask(data,paths);
+        data = nh_makemask(data,paths,3);
+%         maskim = data.data.*~data.mask.onemask;
+%         maskim(maskim==0) = NaN;
+%         checkmax(ifile) = nanmax(nanmax(maskim));
+%         checkmin(ifile) = nanmin(nanmin(maskim));
         
 %        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         
     end
     
-    if procstepflag > 2
+    if procstepflag == 2
         
         data = nh_add_meta(data);
         
@@ -53,15 +57,15 @@ for ifile=1:size(datafiles,1)
         
     end
     
-    if procstepflag > 3
+    if procstepflag == 3
         
         data = nh_calibrate(data);
         
-       % save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
-        
+%        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+
     end
     
-    if procstepflag > 4
+    if procstepflag == 4
         
         data = nh_calcisl(data);
         
@@ -69,7 +73,7 @@ for ifile=1:size(datafiles,1)
         
     end
     
-    if procstepflag > 5
+    if procstepflag == 5
         
         data = nh_calcdgl(data);
         
@@ -131,12 +135,10 @@ for ifile=1:size(datafiles,1)
     
 end
 
+
+
 %figure(4);
 %plot(mydate - data.header.launch_jd,mytemp,'o');
-
-dbstop
-
-
 
 
 end
