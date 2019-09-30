@@ -11,6 +11,7 @@ from astropy.io import fits
 import numpy as np
 from astropy.wcs.utils import pixel_to_skycoord, skycoord_to_pixel
 from astropy.wcs import WCS as wcs
+from astropy.coordinates import SkyCoord
 
 def mosaic(header, band=None, catname=None, dir=None):
     '''
@@ -21,7 +22,12 @@ def mosaic(header, band=None, catname=None, dir=None):
              dir    - directory where iris maps are (default is !IRISDATA which is some config file)
     Outputs:
     '''
-    #w = wcs(header) # there are issues with this for some reason.
+    if header['CDELT3'] == 0 and header['NAXIS3'] == 1:
+        del(header['CDELT3']) #having a value of zero for CDELT3 messes with the convserion
+        del(header['NAXIS3']) #if the sizde of the 3rd axis is 1 what is the point of including it.
+        #it just messes up the coordinate conversions
+        print('Depreciated CDELT3 and NAXIS3 values found, removing.')
+    w = wcs(header)
     try:
         equinox = header['EQUINOX'] #get equinox variable from a fits header #doesn't seem to be an equinox in the fits files?????
     except KeyError:
@@ -32,10 +38,19 @@ def mosaic(header, band=None, catname=None, dir=None):
     xmap = np.arange(0, x_size)
     ymap = np.arange(0, y_size)
 
-    #ra, dec = pixel_to_skycoord(x_size, y_size, w, origin=0) #origin is either 1 or 0 can't remember which corresponds to what
+    c = pixel_to_skycoord(xmap, ymap, w, origin=1, equinox=equinox) #origin is either 1 or 0 can't remember which corresponds to what
+    #this is converting the coordinates to the regular celestial sky coordinates
+    ra = []
+    dec = []
+    coordinates = c.to_string('decimal')
+    for i in range(len(coordinates)):
+        split_coords = coordinates[i].split(' ')
+        ra.append(float(split_coords[0]))
+        dec.append(float(split_coords[1]))
+
     ctype = get_cord_type(header)
     if ctype == 1:
-        fk4 = 1 #what does fk4 mean aside from the obvious coordinate.
+        fk4 = 1 #what does this flag do
 
     if ctype == 2:
         fk4 = 1
@@ -49,11 +64,8 @@ def mosaic(header, band=None, catname=None, dir=None):
     ra = nan2undef(ra)
     dec = nan2undef(dec)
 
-    #there's a better way to do this than defining like 8 variables and setting it equal to this function output but oh well
     inum, ramin, ramax, raavg, decmin, decmax, decavg, medianval, noise_key = np.loadtxt(catname, unpack=True)
-    #nb = n_elements(inum) this means find the number of columns
     numel = inum[-1] #number of entries in the text file
-    print(numel)
     print('Checking for ISSA maps that intersect with the given header')
 
     ind1 = np.where(ra != -32768)
@@ -106,7 +118,7 @@ def mosaic(header, band=None, catname=None, dir=None):
         #if all alpha and delta is doing before this is finding
         #min / max RAs and Decs there is no need to convert the entire
         #array to RA and Dec because that is stupid and would take forever
-        tempo = mbillinear() #this function needs to be written 
+        tempo = mbillinear() #this function needs to be written
 
     indw = np.where(weight > 0)
     if len(indw) > 0:
@@ -116,7 +128,7 @@ def mosaic(header, band=None, catname=None, dir=None):
     badind = []
     for i in range(len(badindw)):
         if indw in badindw:
-
+            pass
         else:
             badind.append(i)
 
@@ -126,8 +138,8 @@ def get_cord_type(header):
     Inputs : Header - header info
     Outputs: ctype - the coordinate type
     '''
-    c1 = header['ctype1']) #functional "x" axis
-    c2 = header['ctype2']) #functional "y" axis
+    c1 = header['ctype1'] #functional "x" axis
+    c2 = header['ctype2'] #functional "y" axis
 
     if 'RA' in c1 and 'DEC' in c2:
         ctype = 1 #sky coordinates
@@ -173,7 +185,7 @@ def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=0):
         hdu = fits.PrimaryHDU(hdul[0].data, hdul[0].header)
         map = fits.HDUList([hdu])
         if verbose:
-            print('Read data file %s' file[0])
+            print('Read data file %s' % file[0])
         return map
     else:
         print('Could not find any files matching that description')
@@ -198,8 +210,8 @@ def nan2undef(data, undef=-32768, indef=False):
     return data
 
 if __name__ == '__main__':
-    file = '../IRISNOHOLES_B4H0//I005B4H0.FIT'
+    file = '../../../IRISNOHOLES_B4H0//I005B4H0.FIT'
     f = fits.open(file)
     for d in f[0].header:
-        print(d)
+        print(d, f[0].header[d])
     mosaic(f[0].header)
