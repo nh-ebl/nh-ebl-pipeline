@@ -12,6 +12,10 @@ import numpy as np
 from astropy.wcs.utils import pixel_to_skycoord, skycoord_to_pixel
 from astropy.wcs import WCS as wcs
 from astropy.coordinates import SkyCoord
+from astropy.coordinates import FK4
+from astropy.coordinates import Galactic
+from astropy.coordinates import BarycentricTrueEcliptic
+import astropy.units as u
 
 def mosaic(header, band=None, catname=None, dir=None):
     '''
@@ -38,51 +42,94 @@ def mosaic(header, band=None, catname=None, dir=None):
     xmap = np.arange(0, x_size)
     ymap = np.arange(0, y_size)
 
-    c = pixel_to_skycoord(xmap, ymap, w, origin=1, equinox=equinox) #origin is either 1 or 0 can't remember which corresponds to what
-    #this is converting the coordinates to the regular celestial sky coordinates
+    result = np.zeros((x_size, y_size))
+    weight = result
+
+    new_c = pixel_to_skycoord(xmap, ymap, w, origin=0) #origin is either 1 or 0 can't remember which corresponds to what
+    #this is converting the pixel coords to right ascension and declination in fk4
     ra = []
     dec = []
-    coordinates = c.to_string('decimal')
+    coordinates = new_c.to_string('decimal')
+
     for i in range(len(coordinates)):
         split_coords = coordinates[i].split(' ')
         ra.append(float(split_coords[0]))
         dec.append(float(split_coords[1]))
 
     ctype = get_cord_type(header)
-    if ctype == 1:
-        fk4 = 1 #what does this flag do
+    print(ctype)
+
+    if equinox == 1950.0:
+        fk4 = 1 #this flag just tells it to output in B1950 might be depreciated
 
     if ctype == 2:
         fk4 = 1
         equinox = 1950 #force the equinox to be 1950 in the case of galactic coordinates
         print('converting from Galactic to Celestial')
-        # do the thing
+        sk = SkyCoord(ra * u.deg, dec * u.deg, frame=Galactic)
+        new_c = sk.transform_to(FK4)
+        ra = []
+        dec = []
+        coordinates = new_c.to_string('decimal')
+
+        for i in range(len(coordinates)):
+            split_coords = coordinates[i].split(' ')
+            ra.append(float(split_coords[0]))
+            dec.append(float(split_coords[1]))
+
     elif ctype == 3:
         print('converting from Ecliptic to Celestial')
-        # do the thing
+        #need to know what ecliptic it is.
+        sk = SkyCoord(ra * u.deg, dec * u.deg, frame=BarycentricTrueEcliptic)
+        new_c = sk.transform_to(FK4)
+
+        ra = []
+        dec = []
+        coordinates = new_c.to_string('decimal')
+
+        for i in range(len(coordinates)):
+            split_coords = coordinates[i].split(' ')
+            ra.append(float(split_coords[0]))
+            dec.append(float(split_coords[1]))
+
+    if equinox == 2000.0:
+        print('precessing coordinates from J2000 to B1950')
+        new_c.transform_to(FK4(equinox='B1950'))
+        ra = []
+        dec = []
+        coordinates = new_c.to_string('decimal')
+
+        for i in range(len(coordinates)):
+            split_coords = coordinates[i].split(' ')
+            ra.append(float(split_coords[0]))
+            dec.append(float(split_coords[1]))
 
     ra = nan2undef(ra)
     dec = nan2undef(dec)
+    ra = np.asarray(ra)
+    dec = np.asarray(dec)
+    #converted these to arrays for easier data manipulation
 
     inum, ramin, ramax, raavg, decmin, decmax, decavg, medianval, noise_key = np.loadtxt(catname, unpack=True)
-    numel = inum[-1] #number of entries in the text file
+    numel = int(inum[-1]) #number of entries in the text file
     print('Checking for ISSA maps that intersect with the given header')
 
-    ind1 = np.where(ra != -32768)
-    ind2 = np.where(dec != -32768)
+    ind1 = np.where(ra != -32768)[0]
+    ind2 = np.where(dec != -32768)[0]
 
     combined_ind = []
+    for i in range(len(ind1)):
+        if ind1[i] in ind2:
+            combined_ind.append(ind1[i])
+
+    combined_ind = np.asarray(combined_ind)
 
     good_inds = np.zeros(numel)
-
-    if ind1 in ind2:
-        combined_ind.append(ind1)
 
     c1min = min(ra[combined_ind])
     c1max = max(ra[combined_ind])
     c2min = min(dec[combined_ind])
     c2max = max(dec[combined_ind])
-
 
     #i feel as if a lot of these checks are redundant, but there is no need to go to deep into figuring out
     #a better way to do this, because we don't really gain anything from that unless we are going to run this
@@ -114,23 +161,33 @@ def mosaic(header, band=None, catname=None, dir=None):
 
     for i in range(nbind):
         mapi = get_iris(inum[i], dir=dir, band=band)
-        #converting alpha and delta back to pixel coords?
-        #if all alpha and delta is doing before this is finding
-        #min / max RAs and Decs there is no need to convert the entire
-        #array to RA and Dec because that is stupid and would take forever
+        x, y = skycoord_to_pixel(new_c, wcs, 1)
         tempo = mbillinear() #this function needs to be written
-
-    indw = np.where(weight > 0)
+        indw = []
+        for j in range(tempo.shape[0]):
+            for k in range(tempo.shape[1]):
+                if tempo[j,k] = -32768:
+                    indw.append([j,k])
+        indw = np.asarray(indw)
+        weight[indw] = weight[indw] + 1
+        result[indw] = result[indw] + tempo[indw]
+    #need to check this for 2d arrays
+    indw = []
+    complement = []
+    for i in range(weight.shape[0]):
+        for j in range(weight.shape[1]):
+            if weight[i,j] > 0:
+                indw.append([i,j])
+            else:
+                complement.append([i,j])
+    complement = np.asarray(complement)
+    indw = np.asarray(indw)
     if len(indw) > 0:
         result[indw] = result[indw] / weight[indw]
 
-    badindwmap = np.arange(0, weight.shape)
-    badind = []
-    for i in range(len(badindw)):
-        if indw in badindw:
-            pass
-        else:
-            badind.append(i)
+    result[complement] = -32768
+    return result
+
 
 def get_cord_type(header):
     '''
@@ -140,6 +197,7 @@ def get_cord_type(header):
     '''
     c1 = header['ctype1'] #functional "x" axis
     c2 = header['ctype2'] #functional "y" axis
+    print(c1, c2)
 
     if 'RA' in c1 and 'DEC' in c2:
         ctype = 1 #sky coordinates
@@ -191,20 +249,67 @@ def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=0):
         print('Could not find any files matching that description')
         return None
 
-def bprecess():
-    # needs to be written
-    # some preliminary documentation on what to look up for this:
-    # https://docs.astropy.org/en/stable/coordinates/index.html#module-astropy.coordinates
-    # https://pythonhosted.org/Astropysics/index.html
-    # https://idlastro.gsfc.nasa.gov/ftp/pro/astro/jprecess.pro
-    # https://www.astrobetter.com/wiki/Python+Switchers+Guide
-    print(' precessing coordinates from J2000 to B1950')
-    pass #docmentation poitns to jprecess we actually want bprecess
+def mbilinear(x, y, array):
+    six = x.shape
+    siy = y.shape
+    sia = array.shape
+
+    #this function has some weird things and it says x and y should be 2D arrays
+    Nax = sia[0]
+    Nay = sia[1]
+    Nx = six[0]
+    Ny = siy[0] #confused on this because in the idl script it says Ny is the second dim of x...
+    #i.e. it would be six[1] but this doesn't make sense to me and the way x and y are generated
+    #in the idl version is that they are 1D arrays...
+    output = np.zeros((Nx, Ny)) #here it says & output(*,*) = missing, I don't know a python equivalent for this
+    #or even what this is really doing (setting every value to missing?)
+    #then it finds indexees where the array isn't missing data I guess this would be
+    #where the array isn't nan?
+    minval = np.min(array)
+
+    ind = []
+    for i in range(Nax):
+        for j in range(Nay):
+            ind.append([i,j])
+    ind = np.asarray(ind)
+    if len(ind) > 0: #i think this is just checking for missing data
+        minval = np.min(array[ind])
+
+    indbadx = np.where(x < 0 or x > Nax-1)[0] #need to double check that having multiple conditions works
+    indbady = np.where(y < 0 or y > Nay-1)[0] #same as above
+    indbad = np.concatenate(indbadx, indbady)
+    indbad = np.unique(indbad) #remove duplicate values for next step
+    inter_percent = 1. * (Nx * Ny - indbad.shape[0]) / (Nx * Ny) * 100
+    print('Images Intersection = %s' % (inter_percent))
+
+    #this line makes no sense when x and y are 1D arrays, I guess this is where the z axis is important :(
+    # FOR j=0L,Ny-1 DO BEGIN
+    #   ind=where(x(*,j) GE 0 AND x(*,j) LE Nax-1 AND $
+    # 	    y(*,j) GE 0 AND y(*,j) LE Nay-1,count)
+    #   IF count NE 0 THEN BEGIN
+    #     xx=fltarr(count,2) & xx(*,0)=x(ind,j)
+    #     yy=fltarr(count,2) & yy(*,0)=y(ind,j)
+    #     truc=bilinear(array,xx,yy)
+    #     output(ind,j)=truc(*,0)
+    #   ENDIF
+    # ENDFOR
+
+    #remove values affected by indef values (for highly < 0 indef and generaly > 0 im)
+    ind = []
+    for i in range(output.shape[0]):
+        for j in range(output.shape[1]):
+            ind.append([i,j])
+    ind = np.asarray(ind)
+    output[ind] = np.nan #i guess nan is the same as missing but not sure
+    return output
+
+
+
 
 def nan2undef(data, undef=-32768, indef=False):
     if indef:
         undef = indef
-    ind = np.where( data != 1)
+    ind = np.where( data != 1)[0]
     if ind > 0:
         data[ind] = undef
     return data
@@ -212,6 +317,5 @@ def nan2undef(data, undef=-32768, indef=False):
 if __name__ == '__main__':
     file = '../../../IRISNOHOLES_B4H0//I005B4H0.FIT'
     f = fits.open(file)
-    for d in f[0].header:
-        print(d, f[0].header[d])
-    mosaic(f[0].header)
+    catfile = 'info_issa_map4.txt'
+    mosaic(f[0].header, catname=catfile)
