@@ -10,14 +10,16 @@
 from astropy.io import fits
 import numpy as np
 from astropy.wcs.utils import pixel_to_skycoord, skycoord_to_pixel
-from astropy.wcs import WCS as wcs
+from astropy.wcs import WCS as world
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import FK4
 from astropy.coordinates import Galactic
 from astropy.coordinates import BarycentricTrueEcliptic
 import astropy.units as u
 import sys
-from mpl_toolkits.basemap import interp
+from math import *
+import os
+# from mpl_toolkits.basemap import interp
 np.set_printoptions(threshold=sys.maxsize)
 def mosaic(header, band=None, catname=None, dir=None):
     '''
@@ -28,12 +30,19 @@ def mosaic(header, band=None, catname=None, dir=None):
              dir    - directory where iris maps are (default is !IRISDATA which is some config file)
     Outputs:
     '''
-    if header['CDELT3'] == 0 and header['NAXIS3'] == 1:
-        del(header['CDELT3']) #having a value of zero for CDELT3 messes with the convserion
-        del(header['NAXIS3']) #if the sizde of the 3rd axis is 1 what is the point of including it.
-        #it just messes up the coordinate conversions
-        print('Depreciated CDELT3 and NAXIS3 values found, removing.')
-    w = wcs(header)
+    # if header['CDELT3'] == 0 and header['NAXIS3'] == 1:
+    #     del(header['CDELT3']) #having a value of zero for CDELT3 messes with the convserion
+    #     del(header['NAXIS3']) #if the sizde of the 3rd axis is 1 what is the point of including it.
+    #     # it just messes up the coordinate conversions
+    #     del(header['CRPIX3'])
+    #     del(header['CRVAL3'])
+    #     del(header['CTYPE3'])
+    #     header.set('NAXIS', 2)
+    #     print('Depreciated CDELT3 and NAXIS3 values found, removing.')
+    #adding in cd values so that astropy can actually do the transformation
+
+    header.set('NAXIS', 2)
+    w = world(header)
     try:
         equinox = header['EQUINOX'] #get equinox variable from a fits header #doesn't seem to be an equinox in the fits files?????
     except KeyError:
@@ -42,30 +51,24 @@ def mosaic(header, band=None, catname=None, dir=None):
     x_size = header['NAXIS1']
     y_size = header['NAXIS2']
     xmap = np.arange(0, x_size) #2D check mosaique IRIS confused on how to do this
-    ymap = np.arange(0, y_size)
-    print(xmap)
-
-    print('there are %s %s in x and y' % (xmap.shape, ymap.shape))
+    ymap = np.arange(0, y_size) #outter product trick in idl i.e. [1 2 3 4]
+                                                                 #[1 2 3 4] etc.
+    # xmap = np.column_stack((x,x))
 
     result = np.zeros((x_size, y_size))
     weight = result
-
-    new_c = pixel_to_skycoord(xmap, ymap, w, origin=0) #origin is either 1 or 0 can't remember which corresponds to what
+    print(w.naxis, '----------------------')
+    new_c = pixel_to_skycoord(xmap, ymap, w, origin=1) #origin is either 1 or 0 can't remember which corresponds to what
     #this is converting the pixel coords to right ascension and declination in fk4
     ra = []
     dec = []
     coordinates = new_c.to_string('decimal')
-    print(coordinates) #have to fix this to work with the new 2D arrays and work on mbilinear
     for i in range(len(coordinates)):
         split_coords = coordinates[i].split(' ')
         ra.append(float(split_coords[0]))
         dec.append(float(split_coords[1]))
 
     ctype = get_cord_type(header)
-    print(ctype)
-
-    if equinox == 1950.0:
-        fk4 = 1 #this flag just tells it to output in B1950 might be depreciated
 
     if ctype == 2:
         fk4 = 1
@@ -128,18 +131,22 @@ def mosaic(header, band=None, catname=None, dir=None):
             combined_ind.append(ind1[i])
 
     combined_ind = np.asarray(combined_ind)
+    combined_ind = np.unique(combined_ind)
 
     good_inds = np.zeros(numel)
 
-    c1min = min(ra[combined_ind])
-    c1max = max(ra[combined_ind])
-    c2min = min(dec[combined_ind])
-    c2max = max(dec[combined_ind])
+    c1min = np.min(ra[combined_ind])
+    ra = bubbleSort(ra)
+    c1max = np.max(ra[combined_ind])
+    c2min = np.min(dec[combined_ind])
+    c2max = np.max(dec[combined_ind])
+    print(c1min, c1max, c2min, c2max)
 
     #i feel as if a lot of these checks are redundant, but there is no need to go to deep into figuring out
     #a better way to do this, because we don't really gain anything from that unless we are going to run this
     #literally a million times
     for i in range(numel):
+        print(ramin[i])
         if c1min > ramin[i] and c1min < ramax[i] and c2min > decmin[i] and c2min < decmax[i]:
             good_inds[i] = 1
         elif c1min > ramin[i] and c1min < ramax[i] and c2max > decmin[i] and c2max < decmax[i]:
@@ -157,14 +164,14 @@ def mosaic(header, band=None, catname=None, dir=None):
         elif ramax[i] > c1min and ramax[i] < c1max and decmax[i] > c2min and decmax[i] < c2min:
             good_inds[i] = 1
 
-    good_inds = np.where(good_inds > 0)
-    if len(good_inds) > 0:
+    good_inds = np.where(good_inds > 0)[0]
+    if good_inds.shape[0] == 0:
         print('No ISSA map corresponds to the header given')
         exit()
 
-    print('%s ISSA maps will be combined to produce the mosaic' %(nbind))
+    print('%s ISSA maps will be combined to produce the mosaic' %(good_inds.shape[0]))
 
-    for i in range(nbind):
+    for i in range(good_inds.shape[0]):
         mapi = get_iris(inum[i], dir=dir, band=band)
         x, y = skycoord_to_pixel(new_c, wcs, 1)
         tempo = mbillinear() #this function needs to be written
@@ -193,6 +200,21 @@ def mosaic(header, band=None, catname=None, dir=None):
     result[complement] = -32768
     return result
 
+def bubbleSort(arr):
+    n = len(arr)
+
+    # Traverse through all array elements
+    for i in range(n):
+
+        # Last i elements are already in place
+        for j in range(0, n-i-1):
+
+            # traverse the array from 0 to n-i-1
+            # Swap if the element found is greater
+            # than the next element
+            if arr[j] > arr[j+1] :
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+    return arr
 
 def get_cord_type(header):
     '''
@@ -202,7 +224,6 @@ def get_cord_type(header):
     '''
     c1 = header['ctype1'] #functional "x" axis
     c2 = header['ctype2'] #functional "y" axis
-    print(c1, c2)
 
     if 'RA' in c1 and 'DEC' in c2:
         ctype = 1 #sky coordinates
@@ -296,11 +317,11 @@ def mbilinear(x, y, array):
             if ind in indy:
                 mind.append(ind)
         mind = np.asarray(mind)
-        xx = np.zeros((len(mind), 2))l
+        xx = np.zeros((len(mind), 2))
         xx[:,0] = x[ind,j]
         yy = np.zeros((len(mind), 2))
         yy[:,0] = y[ind,j]
-        truc = interp(array, xin=xx[:,0], yin=yy[:,0])
+        # truc = interp(array, xin=xx[:,0], yin=yy[:,0]) #need an interpolation function
         output[ind, j] = truc[:,0] #maybe this needs to be changed.
 
     #remove values affected by indef values (for highly < 0 indef and generaly > 0 im)
@@ -322,8 +343,62 @@ def nan2undef(data, undef=-32768, indef=False):
         data[ind] = undef
     return data
 
+def make_header(pixsize, naxis, ra, dec):
+    cd1_1 = -pixsize
+    cd1_2 = 0
+    cd2_1 = 0
+    cd2_2 = pixsize
+    crpix = naxis / 2 + 1
+    crval1 = ra
+    crval2 = dec
+    header = fits.Header()
+    header.set('NAXIS', int(2))
+    header.set('NAXIS1', naxis)
+    header.set('NAXIS2', naxis)
+    header.set('CD1_1', cd1_1)
+    header.set('CD1_2', cd1_2)
+    header.set('CD2_1', cd2_1)
+    header.set('CD2_2', cd2_2)
+    header.set('CRPIX1', crpix)
+    header.set('CRPIX2', crpix)
+    header.set('CRVAL1', crval1)
+    header.set('CRVAL2', crval2)
+    header.set('EQUINOX', 'unknown')
+    header.set('BITPIX', -64)
+    header.set('CTYPE1', 'RA---TAN')
+    header.set('CTYPE2', 'DEC--TAN')
+
+    return header
+
 if __name__ == '__main__':
-    file = '../../../IRISNOHOLES_B4H0//I005B4H0.FIT'
+    #test code to generate input header from Mike's Script
+    pixsize = 4.1 / 3600.
+    naxis = int(sqrt(2.) * 256)
+    naxis1 = naxis2 = naxis
+    #the repvec function just replicates vectors
+    xvec = np.arange(0, naxis1)
+    yvec = np.arange(0, naxis2)
+    ra = 196.0075
+    dec = 23.9506
+    header = make_header(pixsize, naxis, ra, dec)
+    for item in header:
+        print(item, header[item])
+
+    # #now we convert some arrays to ra/dec
+    # w = wcs(header)
+    # c = pixel_to_skycoord(x, y, w, origin=0)
+    # ra = []
+    # dec = []
+    # coordinates = c.to_string('decimal')
+    # for i in range(len(coordinates)):
+    #     split_coords = coordinates[i].split(' ')
+    #     ra.append(float(split_coords[0]))
+    #     dec.append(float(split_coords[1]))
+
+    file = '../../../IRISNOHOLES_B4H0/I270B4H0.FIT'
     f = fits.open(file)
+    print(f[0].header['CDELT3'])
+    for item in f[0].header:
+        print(item, f[0].header[item])
     catfile = 'info_issa_map4.txt'
-    mosaic(f[0].header, catname=catfile)
+    mosaic(header, catname=catfile)

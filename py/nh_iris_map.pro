@@ -3,7 +3,7 @@ PRO nh_iris_map
   field = 5
 
   ;; path to the input files
-  mappath = '../../../IRISNOHOLES_B4H0/'
+  mappath = '../../../IRISNOHOLES_B4H0'
   catpath = 'info_issa_map4.txt'
 
   ; set up the coordinates
