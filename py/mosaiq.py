@@ -16,7 +16,9 @@ from astropy.coordinates import FK4
 from astropy.coordinates import Galactic
 from astropy.coordinates import BarycentricTrueEcliptic
 import astropy.units as u
-
+import sys
+from mpl_toolkits.basemap import interp
+np.set_printoptions(threshold=sys.maxsize)
 def mosaic(header, band=None, catname=None, dir=None):
     '''
     purpose: create mosaic of images
@@ -39,8 +41,11 @@ def mosaic(header, band=None, catname=None, dir=None):
 
     x_size = header['NAXIS1']
     y_size = header['NAXIS2']
-    xmap = np.arange(0, x_size)
+    xmap = np.arange(0, x_size) #2D check mosaique IRIS confused on how to do this
     ymap = np.arange(0, y_size)
+    print(xmap)
+
+    print('there are %s %s in x and y' % (xmap.shape, ymap.shape))
 
     result = np.zeros((x_size, y_size))
     weight = result
@@ -50,7 +55,7 @@ def mosaic(header, band=None, catname=None, dir=None):
     ra = []
     dec = []
     coordinates = new_c.to_string('decimal')
-
+    print(coordinates) #have to fix this to work with the new 2D arrays and work on mbilinear
     for i in range(len(coordinates)):
         split_coords = coordinates[i].split(' ')
         ra.append(float(split_coords[0]))
@@ -166,7 +171,7 @@ def mosaic(header, band=None, catname=None, dir=None):
         indw = []
         for j in range(tempo.shape[0]):
             for k in range(tempo.shape[1]):
-                if tempo[j,k] = -32768:
+                if tempo[j,k] == -32768:
                     indw.append([j,k])
         indw = np.asarray(indw)
         weight[indw] = weight[indw] + 1
@@ -258,7 +263,7 @@ def mbilinear(x, y, array):
     Nax = sia[0]
     Nay = sia[1]
     Nx = six[0]
-    Ny = siy[0] #confused on this because in the idl script it says Ny is the second dim of x...
+    Ny = six[1] #confused on this because in the idl script it says Ny is the second dim of x...
     #i.e. it would be six[1] but this doesn't make sense to me and the way x and y are generated
     #in the idl version is that they are 1D arrays...
     output = np.zeros((Nx, Ny)) #here it says & output(*,*) = missing, I don't know a python equivalent for this
@@ -283,16 +288,20 @@ def mbilinear(x, y, array):
     print('Images Intersection = %s' % (inter_percent))
 
     #this line makes no sense when x and y are 1D arrays, I guess this is where the z axis is important :(
-    # FOR j=0L,Ny-1 DO BEGIN
-    #   ind=where(x(*,j) GE 0 AND x(*,j) LE Nax-1 AND $
-    # 	    y(*,j) GE 0 AND y(*,j) LE Nay-1,count)
-    #   IF count NE 0 THEN BEGIN
-    #     xx=fltarr(count,2) & xx(*,0)=x(ind,j)
-    #     yy=fltarr(count,2) & yy(*,0)=y(ind,j)
-    #     truc=bilinear(array,xx,yy)
-    #     output(ind,j)=truc(*,0)
-    #   ENDIF
-    # ENDFOR
+    for i in range(Ny):
+        indx = np.where(x[:,i] >= 0 and x[:,j] <= Nax-1)[0]
+        indy = np.where(y[:,i] >= 0 and y[:,j] <= Nay-1)[0]
+        mind = []
+        for ind in indx:
+            if ind in indy:
+                mind.append(ind)
+        mind = np.asarray(mind)
+        xx = np.zeros((len(mind), 2))l
+        xx[:,0] = x[ind,j]
+        yy = np.zeros((len(mind), 2))
+        yy[:,0] = y[ind,j]
+        truc = interp(array, xin=xx[:,0], yin=yy[:,0])
+        output[ind, j] = truc[:,0] #maybe this needs to be changed.
 
     #remove values affected by indef values (for highly < 0 indef and generaly > 0 im)
     ind = []
@@ -302,7 +311,6 @@ def mbilinear(x, y, array):
     ind = np.asarray(ind)
     output[ind] = np.nan #i guess nan is the same as missing but not sure
     return output
-
 
 
 
