@@ -21,7 +21,7 @@ from math import *
 import os
 # from mpl_toolkits.basemap import interp
 np.set_printoptions(threshold=sys.maxsize)
-def mosaic(header, band=None, catname=None, dir=None):
+def mosaic(header, band=4, catname=None, dir=None):
     '''
     purpose: create mosaic of images
     Inputs : Header - header information
@@ -30,16 +30,6 @@ def mosaic(header, band=None, catname=None, dir=None):
              dir    - directory where iris maps are (default is !IRISDATA which is some config file)
     Outputs:
     '''
-    # if header['CDELT3'] == 0 and header['NAXIS3'] == 1:
-    #     del(header['CDELT3']) #having a value of zero for CDELT3 messes with the convserion
-    #     del(header['NAXIS3']) #if the sizde of the 3rd axis is 1 what is the point of including it.
-    #     # it just messes up the coordinate conversions
-    #     del(header['CRPIX3'])
-    #     del(header['CRVAL3'])
-    #     del(header['CTYPE3'])
-    #     header.set('NAXIS', 2)
-    #     print('Depreciated CDELT3 and NAXIS3 values found, removing.')
-    #adding in cd values so that astropy can actually do the transformation
 
     header.set('NAXIS', 2)
     w = world(header)
@@ -50,14 +40,14 @@ def mosaic(header, band=None, catname=None, dir=None):
 
     x_size = header['NAXIS1']
     y_size = header['NAXIS2']
-    xmap = np.arange(0, x_size) #2D check mosaique IRIS confused on how to do this
-    ymap = np.arange(0, y_size) #outter product trick in idl i.e. [1 2 3 4]
-                                                                 #[1 2 3 4] etc.
-    # xmap = np.column_stack((x,x))
+    xmap = np.arange(0, x_size)
+    ymap = np.arange(0, y_size)
+    xlist = np.tile(1, x_size)
+    ylist = np.tile(1, y_size)
+
 
     result = np.zeros((x_size, y_size))
     weight = result
-    print(w.naxis, '----------------------')
     new_c = pixel_to_skycoord(xmap, ymap, w, origin=1) #origin is either 1 or 0 can't remember which corresponds to what
     #this is converting the pixel coords to right ascension and declination in fk4
     ra = []
@@ -136,17 +126,11 @@ def mosaic(header, band=None, catname=None, dir=None):
     good_inds = np.zeros(numel)
 
     c1min = np.min(ra[combined_ind])
-    ra = bubbleSort(ra)
     c1max = np.max(ra[combined_ind])
     c2min = np.min(dec[combined_ind])
     c2max = np.max(dec[combined_ind])
-    print(c1min, c1max, c2min, c2max)
 
-    #i feel as if a lot of these checks are redundant, but there is no need to go to deep into figuring out
-    #a better way to do this, because we don't really gain anything from that unless we are going to run this
-    #literally a million times
     for i in range(numel):
-        print(ramin[i])
         if c1min > ramin[i] and c1min < ramax[i] and c2min > decmin[i] and c2min < decmax[i]:
             good_inds[i] = 1
         elif c1min > ramin[i] and c1min < ramax[i] and c2max > decmin[i] and c2max < decmax[i]:
@@ -164,6 +148,9 @@ def mosaic(header, band=None, catname=None, dir=None):
         elif ramax[i] > c1min and ramax[i] < c1max and decmax[i] > c2min and decmax[i] < c2min:
             good_inds[i] = 1
 
+    #now that we have the maps we want do the outer product trick and give us a 2D array for x and y
+
+
     good_inds = np.where(good_inds > 0)[0]
     if good_inds.shape[0] == 0:
         print('No ISSA map corresponds to the header given')
@@ -172,18 +159,22 @@ def mosaic(header, band=None, catname=None, dir=None):
     print('%s ISSA maps will be combined to produce the mosaic' %(good_inds.shape[0]))
 
     for i in range(good_inds.shape[0]):
-        mapi = get_iris(inum[i], dir=dir, band=band)
-        x, y = skycoord_to_pixel(new_c, wcs, 1)
-        tempo = mbillinear() #this function needs to be written
-        indw = []
-        for j in range(tempo.shape[0]):
-            for k in range(tempo.shape[1]):
-                if tempo[j,k] == -32768:
-                    indw.append([j,k])
-        indw = np.asarray(indw)
-        weight[indw] = weight[indw] + 1
-        result[indw] = result[indw] + tempo[indw]
-    #need to check this for 2d arrays
+        if i == 5:
+            mapi = get_iris(inum[good_inds[i]], dir=dir, band=band)
+            w = world(mapi[0].header)
+            xmap, ymap = skycoord_to_pixel(new_c, w, origin=1)
+            print(xmap, ymap)
+            x = np.outer(xmap, ylist)
+            y = np.outer(xlist, ymap)
+            tempo = mbilinear(x, y, mapi[0].data) #this function needs to be written
+            indw = []
+            for j in range(tempo.shape[0]):
+                for k in range(tempo.shape[1]):
+                    if tempo[j,k] != -32768:
+                        indw.append([j,k])
+            indw = np.asarray(indw)
+            weight[indw] = weight[indw] + 1
+            result[indw] = result[indw] + tempo[indw]
     indw = []
     complement = []
     for i in range(weight.shape[0]):
@@ -200,22 +191,6 @@ def mosaic(header, band=None, catname=None, dir=None):
     result[complement] = -32768
     return result
 
-def bubbleSort(arr):
-    n = len(arr)
-
-    # Traverse through all array elements
-    for i in range(n):
-
-        # Last i elements are already in place
-        for j in range(0, n-i-1):
-
-            # traverse the array from 0 to n-i-1
-            # Swap if the element found is greater
-            # than the next element
-            if arr[j] > arr[j+1] :
-                arr[j], arr[j+1] = arr[j+1], arr[j]
-    return arr
-
 def get_cord_type(header):
     '''
     Purpose : gets the coordinates for an image and tells you what coordinate system
@@ -230,7 +205,8 @@ def get_cord_type(header):
     elif 'GLON' in c1 and 'GLAT' in c2:
         ctype = 2 #galactic coordinates
     elif 'ELON' in c1 and 'ELAT' in c3:
-        ctype = 3 #Ecliptic
+        ctype = 3 #Ecliptic              head - the header for the corresponding map
+
     else:
         print('unknown coordinate system aborint!')
         exit()
@@ -250,7 +226,7 @@ def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=0):
               dir - directory where the IRIS data is stored (default is !IRISDATA in idl)
     Outputs : map - the ISSA map corresponding to number ii
     '''
-    iras_number = str(ii)
+    iras_number = str(int(ii))
     if ii < 10:
         iras_number = '0' + iras_number
     elif ii < 100:
@@ -258,14 +234,32 @@ def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=0):
 
     files = []
     for x in os.listdir(dir):
-        if iras_number in x and bd in x and hcon in x:
-            file.append(x) #this needs to be tested more rigourously, but im sure this is right
+        if iras_number in x and str(band) in x and str(hcon) in x:
+            files.append(dir + '/' + x)
     if len(files) > 0:
-        hdul = fits.open(file[0])
+        hdul = fits.open(files[0])
+
+        #fix the header up a little
         header = hdul[0].header
         header.append(('LONPOLE',180))
-        bad = np.where(hdul[0].data <= -5 or hdul[0].data == 0) #have to verify this method for 2 dimensional arrays
-        hdul[0].data[bad] = -32768
+        if header['CDELT3'] == 0 and header['NAXIS3'] == 1:
+            del(header['CDELT3']) #having a value of zero for CDELT3 messes with the convserion
+            del(header['NAXIS3']) #if the sizde of the 3rd axis is 1 what is the point of including it.
+            # it just messes up the coordinate conversions
+            del(header['CRPIX3'])
+            del(header['CRVAL3'])
+            del(header['CTYPE3'])
+            #all of these values will mess up our conversion at the end
+            header.set('NAXIS', 2)
+            print('Depreciated CDELT3 and NAXIS3 values found, removing.')
+
+        #check data for bad values
+        for i in range(hdul[0].data.shape[0]):
+            for j in range(hdul[0].data.shape[1]):
+                #we have to add this extra zero because for some reason the IRIS maps are
+                #3 Dimensional with a z axis that is 1 element thick.
+                if hdul[0].data[i,j,0] < -5 or hdul[0].data[i,j,0] == 0:
+                    hdul[0].data[i,j] = -32768
         hdu = fits.PrimaryHDU(hdul[0].data, hdul[0].header)
         map = fits.HDUList([hdu])
         if verbose:
@@ -292,37 +286,31 @@ def mbilinear(x, y, array):
     #then it finds indexees where the array isn't missing data I guess this would be
     #where the array isn't nan?
     minval = np.min(array)
+    # if len(ind) > 0: #i think this is just checking for missing data
+    #     minval = np.min(array[ind])
 
-    ind = []
-    for i in range(Nax):
-        for j in range(Nay):
-            ind.append([i,j])
-    ind = np.asarray(ind)
-    if len(ind) > 0: #i think this is just checking for missing data
-        minval = np.min(array[ind])
-
-    indbadx = np.where(x < 0 or x > Nax-1)[0] #need to double check that having multiple conditions works
-    indbady = np.where(y < 0 or y > Nay-1)[0] #same as above
-    indbad = np.concatenate(indbadx, indbady)
-    indbad = np.unique(indbad) #remove duplicate values for next step
-    inter_percent = 1. * (Nx * Ny - indbad.shape[0]) / (Nx * Ny) * 100
-    print('Images Intersection = %s' % (inter_percent))
+    count = 0
+    for i in range(Nx):
+        for j in range(Ny):
+            if x[i,j] < 0 or x[i,j] > Nax-1 or y[i,j] < 0 or y[i,j] > Nay-1:
+                count += 1
+    inter_percent = 1. * (Nx * Ny - count) / (Nx * Ny) * 100
+    print('Images Intersection = %s percent' % (inter_percent))
 
     #this line makes no sense when x and y are 1D arrays, I guess this is where the z axis is important :(
     for i in range(Ny):
-        indx = np.where(x[:,i] >= 0 and x[:,j] <= Nax-1)[0]
-        indy = np.where(y[:,i] >= 0 and y[:,j] <= Nay-1)[0]
         mind = []
-        for ind in indx:
-            if ind in indy:
-                mind.append(ind)
+        for j in range(Nx):
+            if x[j,i] >= 0 and x[j,i] <= Nax-1 and y[j,i] >= 0 and y[j,i] <= Nay-1:
+                mind.append(j)
         mind = np.asarray(mind)
-        xx = np.zeros((len(mind), 2))
-        xx[:,0] = x[ind,j]
-        yy = np.zeros((len(mind), 2))
-        yy[:,0] = y[ind,j]
-        # truc = interp(array, xin=xx[:,0], yin=yy[:,0]) #need an interpolation function
-        output[ind, j] = truc[:,0] #maybe this needs to be changed.
+        if len(mind) != 0:
+            xx = np.zeros((len(mind), 2))
+            xx[:,0] = x[mind,i]
+            yy = np.zeros((len(mind), 2))
+            yy[:,0] = y[mind,i]
+            # truc = interp(array, xin=xx[:,0], yin=yy[:,0]) #need an interpolation function
+            output[ind, i] = truc[:,0] #maybe this needs to be changed.
 
     #remove values affected by indef values (for highly < 0 indef and generaly > 0 im)
     ind = []
@@ -381,8 +369,6 @@ if __name__ == '__main__':
     ra = 196.0075
     dec = 23.9506
     header = make_header(pixsize, naxis, ra, dec)
-    for item in header:
-        print(item, header[item])
 
     # #now we convert some arrays to ra/dec
     # w = wcs(header)
@@ -395,10 +381,6 @@ if __name__ == '__main__':
     #     ra.append(float(split_coords[0]))
     #     dec.append(float(split_coords[1]))
 
-    file = '../../../IRISNOHOLES_B4H0/I270B4H0.FIT'
-    f = fits.open(file)
-    print(f[0].header['CDELT3'])
-    for item in f[0].header:
-        print(item, f[0].header[item])
     catfile = 'info_issa_map4.txt'
-    mosaic(header, catname=catfile)
+    dir = '../../../IRISNOHOLES_B4H0'
+    mosaic(header, catname=catfile, dir=dir)
