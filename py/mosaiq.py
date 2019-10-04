@@ -38,25 +38,23 @@ def mosaic(header, band=4, catname=None, dir=None):
     except KeyError:
         equinox = header['EPOCH'] #this is what they did in NASA's idl extast function
 
+
     x_size = header['NAXIS1']
     y_size = header['NAXIS2']
-    xmap = np.arange(0, x_size)
-    ymap = np.arange(0, y_size)
+    print('Handling %s elements' % (x_size * y_size))
+    x = np.arange(0, x_size)
+    y = np.arange(0, y_size)
     xlist = np.tile(1, x_size)
     ylist = np.tile(1, y_size)
-
+    xmap = np.outer(x, ylist)
+    ymap = np.outer(xlist, y)
 
     result = np.zeros((x_size, y_size))
     weight = result
     new_c = pixel_to_skycoord(xmap, ymap, w, origin=1) #origin is either 1 or 0 can't remember which corresponds to what
     #this is converting the pixel coords to right ascension and declination in fk4
-    ra = []
-    dec = []
-    coordinates = new_c.to_string('decimal')
-    for i in range(len(coordinates)):
-        split_coords = coordinates[i].split(' ')
-        ra.append(float(split_coords[0]))
-        dec.append(float(split_coords[1]))
+    ra = np.asarray(new_c.ra.signed_dms)
+    dec = np.asarray(new_c.dec.signed_dms)
 
     ctype = get_cord_type(header)
 
@@ -66,14 +64,8 @@ def mosaic(header, band=4, catname=None, dir=None):
         print('converting from Galactic to Celestial')
         sk = SkyCoord(ra * u.deg, dec * u.deg, frame=Galactic)
         new_c = sk.transform_to(FK4)
-        ra = []
-        dec = []
-        coordinates = new_c.to_string('decimal')
-
-        for i in range(len(coordinates)):
-            split_coords = coordinates[i].split(' ')
-            ra.append(float(split_coords[0]))
-            dec.append(float(split_coords[1]))
+        ra = new_c.ra.signed_dms
+        dec = new_c.dec.signed_dms
 
     elif ctype == 3:
         print('converting from Ecliptic to Celestial')
@@ -84,23 +76,14 @@ def mosaic(header, band=4, catname=None, dir=None):
         ra = []
         dec = []
         coordinates = new_c.to_string('decimal')
-
-        for i in range(len(coordinates)):
-            split_coords = coordinates[i].split(' ')
-            ra.append(float(split_coords[0]))
-            dec.append(float(split_coords[1]))
+        ra = new_c.ra.signed_dms
+        dec = new_c.dec.signed_dms
 
     if equinox == 2000.0:
         print('precessing coordinates from J2000 to B1950')
         new_c.transform_to(FK4(equinox='B1950'))
-        ra = []
-        dec = []
-        coordinates = new_c.to_string('decimal')
-
-        for i in range(len(coordinates)):
-            split_coords = coordinates[i].split(' ')
-            ra.append(float(split_coords[0]))
-            dec.append(float(split_coords[1]))
+        ra = new_c.ra.signed_dms
+        dec = new_c.dec.signed_dms
 
     ra = nan2undef(ra)
     dec = nan2undef(dec)
@@ -115,20 +98,18 @@ def mosaic(header, band=4, catname=None, dir=None):
     ind1 = np.where(ra != -32768)[0]
     ind2 = np.where(dec != -32768)[0]
 
-    combined_ind = []
-    for i in range(len(ind1)):
-        if ind1[i] in ind2:
-            combined_ind.append(ind1[i])
-
-    combined_ind = np.asarray(combined_ind)
-    combined_ind = np.unique(combined_ind)
-
+    ind = []
+    for i in range(ra.shape[0]):
+        for j in range(ra.shape[1]):
+            if ra[i,j] != -32768 and dec[i,j] != -32768:
+                ind.append([i,j])
+    ind = np.asarray(ind)
     good_inds = np.zeros(numel)
 
-    c1min = np.min(ra[combined_ind])
-    c1max = np.max(ra[combined_ind])
-    c2min = np.min(dec[combined_ind])
-    c2max = np.max(dec[combined_ind])
+    c1min = np.min(ra[ind])
+    c1max = np.max(ra[ind])
+    c2min = np.min(dec[ind])
+    c2max = np.max(dec[ind])
 
     for i in range(numel):
         if c1min > ramin[i] and c1min < ramax[i] and c2min > decmin[i] and c2min < decmax[i]:
@@ -162,10 +143,9 @@ def mosaic(header, band=4, catname=None, dir=None):
         if i == 5:
             mapi = get_iris(inum[good_inds[i]], dir=dir, band=band)
             w = world(mapi[0].header)
-            xmap, ymap = skycoord_to_pixel(new_c, w, origin=1)
-            print(xmap, ymap)
-            x = np.outer(xmap, ylist)
-            y = np.outer(xlist, ymap)
+            x, y = skycoord_to_pixel(new_c, w, origin=1)
+            print(x)
+            print(y)
             tempo = mbilinear(x, y, mapi[0].data) #this function needs to be written
             indw = []
             for j in range(tempo.shape[0]):
@@ -326,9 +306,10 @@ def mbilinear(x, y, array):
 def nan2undef(data, undef=-32768, indef=False):
     if indef:
         undef = indef
-    ind = np.where( data != 1)[0]
-    if ind > 0:
-        data[ind] = undef
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            if np.isfinite(data[i,j]) != True:
+                data[i,j] = undef
     return data
 
 def make_header(pixsize, naxis, ra, dec):
