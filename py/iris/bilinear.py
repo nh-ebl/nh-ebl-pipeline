@@ -8,13 +8,13 @@
 #
 ################################################################################
 import numpy as np
-
+from scipy.interpolate import RegularGridInterpolator as interp
 def mbilinear(x, y, array):
     six = x.shape
     siy = y.shape
     sia = array.shape
-    Nax = sia[0]
-    Nay = sia[1]
+    Nax = sia[1]
+    Nay = sia[2]
     Nx = six[0]
     Ny = six[1]
     output = np.zeros((Nx, Ny))
@@ -25,6 +25,12 @@ def mbilinear(x, y, array):
         for j in range(Ny):
             if x[i,j] < 0 or x[i,j] > Nax-1 or y[i,j] < 0 or y[i,j] > Nay-1:
                 count += 1
+    print(np.max(x), np.min(x))
+    print(np.max(y), np.min(y))
+
+    print(Nx, Ny, count)
+    print(Nax, Nay)
+
     inter_percent = 1. * (Nx * Ny - count) / (Nx * Ny) * 100
     print('Images Intersection = %s percent' % (inter_percent))
 
@@ -39,8 +45,8 @@ def mbilinear(x, y, array):
             xx[:,0] = x[mind,i]
             yy = np.zeros((len(mind), 2))
             yy[:,0] = y[mind,i]
-            # truc = interp(array, xin=xx[:,0], yin=yy[:,0]) #need an interpolation function
-            output[ind, i] = truc[:,0] #maybe this needs to be changed.
+            # truc = interp((xx, yy), array) #need an interpolation function
+            # output[ind, i] = truc[:,0] #maybe this needs to be changed.
 
     #remove values affected by indef values (for highly < 0 indef and generaly > 0 im)
     ind = []
@@ -49,4 +55,5 @@ def mbilinear(x, y, array):
             ind.append([i,j])
     ind = np.asarray(ind)
     output[ind] = np.nan #i guess nan is the same as missing but not sure
-    return output
+    # return output
+    return False
