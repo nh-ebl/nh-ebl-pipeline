@@ -7,7 +7,7 @@
 #Additional Info
 #
 ################################################################################
-
+import numpy as np
 
 def mbilinear(x, y, array):
     six = x.shape
@@ -49,4 +49,4 @@ def mbilinear(x, y, array):
             ind.append([i,j])
     ind = np.asarray(ind)
     output[ind] = np.nan #i guess nan is the same as missing but not sure
-return output
+    return output

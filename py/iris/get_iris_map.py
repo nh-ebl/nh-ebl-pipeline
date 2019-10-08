@@ -7,6 +7,9 @@
 #Additional Info
 #
 ################################################################################
+import os
+from astropy.io import fits
+
 def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=0):
     '''
     Purpose : returns the correlated IRIS map for an input ISSA number
@@ -36,6 +39,12 @@ def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=0):
 
         #fix the header up a little
         header = hdul[0].header
+
+        #force lonpole to be 180
+        try:
+            del(header['LONPOLE'])
+        except KeyError:
+            pass
         header.append(('LONPOLE',180))
         if header['CDELT3'] == 0 and header['NAXIS3'] == 1:
             del(header['CDELT3']) #having a value of zero for CDELT3 messes with the convserion
@@ -45,7 +54,9 @@ def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=0):
             del(header['CRVAL3'])
             del(header['CTYPE3'])
             #all of these values will mess up our conversion at the end
-            header.set('NAXIS', 2)
+            # del(header['NAXIS'])
+            # header.set('NAXIS', 2)
+            header['NAXIS'] = 2
             print('Depreciated CDELT3 and NAXIS3 values found, removing.')
 
         #check data for bad values
@@ -55,7 +66,7 @@ def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=0):
                 #3 Dimensional with a z axis that is 1 element thick.
                 if hdul[0].data[i,j,0] < -5 or hdul[0].data[i,j,0] == 0:
                     hdul[0].data[i,j] = -32768
-        hdu = fits.PrimaryHDU(hdul[0].data, hdul[0].header)
+        hdu = fits.PrimaryHDU(hdul[0].data, header)
         map = fits.HDUList([hdu])
         if verbose:
             print('Read data file %s' % file[0])

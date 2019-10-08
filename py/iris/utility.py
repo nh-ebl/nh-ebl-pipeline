@@ -6,8 +6,8 @@
 #Additional Info
 #
 ################################################################################
-
-
+from astropy.io import fits
+import numpy as np
 
 def make_header(pixsize, naxis, ra, dec):
     '''
