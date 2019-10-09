@@ -23,6 +23,7 @@ import os
 from bilinear import mbilinear
 from utility import *
 from get_iris_map import get_iris
+import matplotlib.pyplot as plt
 
 def mosaic(header, band=4, catname=None, dir=None):
     '''
@@ -144,28 +145,29 @@ def mosaic(header, band=4, catname=None, dir=None):
     print('%s ISSA maps will be combined to produce the mosaic' %(good_inds.shape[0]))
 
     for i in range(good_inds.shape[0]):
-        mapi = get_iris(inum[good_inds[i]], dir=dir, band=band)
+        if i == 2:
+            mapi = get_iris(inum[good_inds[i]], dir=dir, band=band)
 
-        #forcing it to be 2D rather than 3D
-        mapi[0].header['NAXIS'] = 2
-        mapi[0].header['EPOCH'] = 2000.0
-        try:
-            del(mapi[0].header['NAXIS3'])
-        except KeyError:
-            pass
+            #forcing it to be 2D rather than 3D
+            mapi[0].header['NAXIS'] = 2
+            mapi[0].header['EPOCH'] = 2000.0
+            try:
+                del(mapi[0].header['NAXIS3'])
+            except KeyError:
+                pass
 
-        #do the transform back to pixel coords
-        w = world(mapi[0].header)
-        x, y = skycoord_to_pixel(new_c, w, origin=0)
-        tempo = mbilinear(x, y, mapi[0].data)
-        indw = []
-        # for j in range(tempo.shape[0]):
-        #     for k in range(tempo.shape[1]):
-        #         if tempo[j,k] != -32768:
-        #             indw.append([j,k])
-        # indw = np.asarray(indw)
-        # weight[indw] = weight[indw] + 1
-        # result[indw] = result[indw] + tempo[indw]
+            #do the transform back to pixel coords
+            w = world(mapi[0].header)
+            x, y = skycoord_to_pixel(new_c, w, origin=0)
+            tempo = mbilinear(x, y, mapi[0].data)
+            indw = []
+            for j in range(tempo.shape[0]):
+                for k in range(tempo.shape[1]):
+                    if tempo[j,k] != -32768:
+                        indw.append([j,k])
+            indw = np.asarray(indw)
+            weight[indw] = weight[indw] + 1
+            result[indw] = result[indw] + tempo[indw]
     indw = []
     complement = []
     for i in range(weight.shape[0]):
@@ -180,6 +182,9 @@ def mosaic(header, band=4, catname=None, dir=None):
         result[indw] = result[indw] / weight[indw]
 
     result[complement] = -32768
+
+    plt.imshow(result, origin='lower')
+    plt.show()
     return result
 
 
@@ -189,6 +194,7 @@ if __name__ == '__main__':
     f = fits.open('../../../../IRISNOHOLES_B4H0/I088B4H0.FIT')
     pixsize = 4.1 / 3600.
     naxis = int(sqrt(2.) * 256)
+    # naxis = 500
     naxis1 = naxis2 = naxis
     #the repvec function just replicates vectors
     xvec = np.arange(0, naxis1)

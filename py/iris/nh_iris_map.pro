@@ -98,8 +98,8 @@ PRO nh_iris_map
 
   ;; and write out the output
   ; commented out this part while I do test things
-  ; WRITEFITS,'/data/zemcov/NH/IRIS/iris_'+STRING(field,FORMAT="(I02)")+'_fx.fits',$
-  ;           map,header
+  ; WRITEFITS,'/home/vaughan/New_Horizons/'+STRING(field,FORMAT="(I02)")+'_fx.fits',$
+            ; map,header
   ; WRITEFITS,'/data/zemcov/NH/IRIS/iris_'+STRING(field,FORMAT="(I02)")+'_ra.fits',$
   ;           lonvec,header
   ; WRITEFITS,'/data/zemcov/NH/IRIS/iris_'+STRING(field,FORMAT="(I02)")+'_dc.fits',$
