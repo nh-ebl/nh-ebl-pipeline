@@ -55,7 +55,7 @@ def mosaic(header, band=4, catname=None, dir=None):
     ymap = np.outer(xlist, y)
 
     result = np.zeros((x_size, y_size))
-    weight = result
+    weight = np.zeros((x_size, y_size))
     new_c = pixel_to_skycoord(xmap, ymap, w, origin=0)
     #this is converting the pixel coords to right ascension and declination in fk4
     ra = np.asarray(new_c.ra.to_string(decimal=True), dtype=float)
@@ -145,27 +145,28 @@ def mosaic(header, band=4, catname=None, dir=None):
     print('%s ISSA maps will be combined to produce the mosaic' %(good_inds.shape[0]))
 
     for i in range(good_inds.shape[0]):
-        if i == 2:
-            mapi = get_iris(inum[good_inds[i]], dir=dir, band=band)
+        # if i == 2:
+        mapi = get_iris(inum[good_inds[i]], dir=dir, band=band)
 
-            #forcing it to be 2D rather than 3D
-            mapi[0].header['NAXIS'] = 2
-            mapi[0].header['EPOCH'] = 2000.0
-            try:
-                del(mapi[0].header['NAXIS3'])
-            except KeyError:
-                pass
+        #forcing it to be 2D rather than 3D
+        mapi[0].header['NAXIS'] = 2
+        mapi[0].header['EPOCH'] = 2000.0
+        try:
+            del(mapi[0].header['NAXIS3'])
+        except KeyError:
+            pass
 
-            #do the transform back to pixel coords
-            w = world(mapi[0].header)
-            x, y = skycoord_to_pixel(new_c, w, origin=0)
-            tempo = mbilinear(x, y, mapi[0].data)
-            indw = []
-            for j in range(tempo.shape[0]):
-                for k in range(tempo.shape[1]):
-                    if tempo[j,k] != -32768:
-                        indw.append([j,k])
-            indw = np.asarray(indw)
+        #do the transform back to pixel coords
+        w = world(mapi[0].header)
+        x, y = skycoord_to_pixel(new_c, w, origin=0)
+        tempo = mbilinear(x, y, mapi[0].data)
+        indw = []
+        for j in range(tempo.shape[0]):
+            for k in range(tempo.shape[1]):
+                if tempo[j,k] != -32768:
+                    indw.append([j,k])
+        indw = np.asarray(indw)
+        if len(indw) > 0:
             weight[indw] = weight[indw] + 1
             result[indw] = result[indw] + tempo[indw]
     indw = []
@@ -181,15 +182,23 @@ def mosaic(header, band=4, catname=None, dir=None):
     if len(indw) > 0:
         result[indw] = result[indw] / weight[indw]
 
-    result[complement] = -32768
+    if len(complement) > 0:
+        result[complement] = -32768
 
-    plt.imshow(result, origin='lower')
+    #because of the way the image gets made it is rotated and flipped along its x-axis
+    #this is a correction to get it to line up with the idl version and does not have any
+    #real effect on its astrometry
+    result = np.rot90(result, k=3)
+    result = np.fliplr(result)
+
+    plt.imshow(result)
     plt.show()
     return result
 
 
 
 if __name__ == '__main__':
+
     #test code to generate input header from Mike's Script
     f = fits.open('../../../../IRISNOHOLES_B4H0/I088B4H0.FIT')
     pixsize = 4.1 / 3600.
@@ -204,4 +213,4 @@ if __name__ == '__main__':
     header = make_header(pixsize, naxis, ra, dec)
     catfile = 'info_issa_map4.txt'
     dir = '../../../../IRISNOHOLES_B4H0'
-    mosaic(header, catname=catfile, dir=dir)
+    map = mosaic(header, catname=catfile, dir=dir)

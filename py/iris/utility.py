@@ -8,6 +8,8 @@
 ################################################################################
 from astropy.io import fits
 import numpy as np
+from scipy.interpolate import griddata
+from math import *
 
 def make_header(pixsize, naxis, ra, dec):
     '''
@@ -78,3 +80,48 @@ def get_cord_type(header):
         print('unknown coordinate system aborint!')
         exit()
     return ctype
+
+
+def get_array_value(x, y, array):
+    """Returns the value of the array at position x,y."""
+    return array[y, x]
+
+def interpolate(first_value, second_value, ratio):
+    """Interpolate with a linear weighted sum."""
+    return first_value * (1 - ratio) + second_value * ratio
+
+def bilinear_interpolation(x, y, img):
+    """Returns the bilinear interpolation of a pixel in the image.
+    :param x: x-position to interpolate
+    :param y: y-position to interpolate
+    :param img: image, where the pixel should be interpolated
+    :returns: value of the interpolated pixel
+    """
+    # if x < 0 or y < 0:
+    #     raise ValueError('x and y pixel position have to be positive!')
+    # if img.shape[1]-1 < x or img.shape[0]-1 < y:
+    #     raise ValueError('x and y pixel position have to be smaller than image'
+    #                      'dimensions.')
+
+    listy = []
+    for i in range(len(x)):
+        x_rounded_up = int(ceil(x[i]))
+        x_rounded_down = int(floor(x[i]))
+        y_rounded_up = int(ceil(y[i]))
+        y_rounded_down = int(floor(y[i]))
+
+        ratio_x = x[i] - x_rounded_down
+        ratio_y = y[i] - y_rounded_down
+
+        interpolate_x1 = interpolate(img[y_rounded_down, x_rounded_down],
+                                     img[y_rounded_down, x_rounded_up],
+                                     ratio_x)
+        interpolate_x2 = interpolate(img[y_rounded_up, x_rounded_down],
+                                     img[y_rounded_up, x_rounded_up],
+                                     ratio_x)
+        interpolate_y = interpolate(interpolate_x1, interpolate_x2, ratio_y)
+        listy.append(interpolate_y)
+
+    listy = np.asarray(listy)
+
+    return listy

@@ -8,8 +8,9 @@
 #
 ################################################################################
 import numpy as np
-from scipy.interpolate import griddata as interp
+from scipy.interpolate import interpn as interp
 import matplotlib.pyplot as plt
+from utility import bilinear_interpolation
 
 def mbilinear(x, y, array):
     array = np.squeeze(array)
@@ -25,8 +26,6 @@ def mbilinear(x, y, array):
 
     arr = np.array([[1, 3, 4],
                     [2, 5, 6]])
-
-    print(arr[:,0])
 
     count = 0
     for i in range(Nx):
@@ -47,18 +46,17 @@ def mbilinear(x, y, array):
                 mind.append(j)
         mind = np.asarray(mind)
         if len(mind) != 0:
-            xx = np.squeeze(x[mind, i])
-            yy = np.squeeze(y[mind, i])
-            t = interp((pixx, pixy),array, (xx, yy))
-            print(t)
-            # print(trucx[0])
-            output[mind, i] = truc #maybe this needs to be changed.
-
+            xx = x[mind, i]
+            yy = y[mind, i]
+            trunc = bilinear_interpolation(xx, yy, array)
+            output[mind, i] = trunc[:]
     #remove values affected by indef values (for highly < 0 indef and generaly > 0 im)
     ind = []
     for i in range(output.shape[0]):
         for j in range(output.shape[1]):
-            ind.append([i,j])
-    ind = np.asarray(ind)
-    output[ind] = np.nan #i guess nan is the same as missing but not sure
+            if output[i,j] < minval:
+                ind.append([i,j])
+    if len(ind) > 0:
+        ind = np.asarray(ind)
+    output[ind] = -32768 #i guess nan is the same as missing but not sure
     return output
