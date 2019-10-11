@@ -24,8 +24,9 @@ from bilinear import mbilinear
 from utility import *
 from get_iris_map import get_iris
 import matplotlib.pyplot as plt
+import config
 
-def mosaic(header, band=4, catname=None, dir=None):
+def mosaic(header, band=4, catname=config.IrisLookupFile, dir=config.IrisDir):
     '''
     purpose: create mosaic of images
     Inputs : Header - header information
@@ -176,7 +177,7 @@ def mosaic(header, band=4, catname=None, dir=None):
             if weight[i,j] > 0:
                 indw.append([i,j])
             else:
-                complement.append([i,j])
+                complement.append(k[i,j])
     complement = np.asarray(complement)
     indw = np.asarray(indw)
     if len(indw) > 0:
@@ -200,7 +201,6 @@ def mosaic(header, band=4, catname=None, dir=None):
 if __name__ == '__main__':
 
     #test code to generate input header from Mike's Script
-    f = fits.open('../../../../IRISNOHOLES_B4H0/I088B4H0.FIT')
     pixsize = 4.1 / 3600.
     naxis = int(sqrt(2.) * 256)
     # naxis = 500
