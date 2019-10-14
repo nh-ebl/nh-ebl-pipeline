@@ -146,7 +146,6 @@ def mosaic(header, band=4, catname=config.IrisLookupFile, dir=config.IrisDir):
     print('%s ISSA maps will be combined to produce the mosaic' %(good_inds.shape[0]))
 
     for i in range(good_inds.shape[0]):
-        # if i == 2:
         mapi = get_iris(inum[good_inds[i]], dir=dir, band=band)
 
         #forcing it to be 2D rather than 3D
@@ -161,44 +160,39 @@ def mosaic(header, band=4, catname=config.IrisLookupFile, dir=config.IrisDir):
         w = world(mapi[0].header)
         x, y = skycoord_to_pixel(new_c, w, origin=0)
         tempo = mbilinear(x, y, mapi[0].data)
-        indw = []
         for j in range(tempo.shape[0]):
             for k in range(tempo.shape[1]):
                 if tempo[j,k] != -32768:
-                    indw.append([j,k])
-        indw = np.asarray(indw)
-        if len(indw) > 0:
-            weight[indw] = weight[indw] + 1
-            result[indw] = result[indw] + tempo[indw]
+                    weight[j,k] = weight[j,k] + 1
+                    result[j,k] = result[j,k] + tempo[j,k]
     indw = []
     complement = []
     for i in range(weight.shape[0]):
         for j in range(weight.shape[1]):
             if weight[i,j] > 0:
-                indw.append([i,j])
+                result[i,j] = result[i,j] / weight[i,j]
             else:
-                complement.append(k[i,j])
-    complement = np.asarray(complement)
-    indw = np.asarray(indw)
-    if len(indw) > 0:
-        result[indw] = result[indw] / weight[indw]
-
-    if len(complement) > 0:
-        result[complement] = -32768
-
+                result[i,j] = -32768
     #because of the way the image gets made it is rotated and flipped along its x-axis
     #this is a correction to get it to line up with the idl version and does not have any
     #real effect on its astrometry
     result = np.rot90(result, k=3)
     result = np.fliplr(result)
 
-    plt.imshow(result)
-    plt.show()
     return result
 
 
 
 if __name__ == '__main__':
+    # f = fits.open('idl_result.fits')
+    # idl_data = f[0].data
+    # f = fits.open('python_result.fits')
+    # py_data  = f[0].data
+    # test = idl_data - py_data
+    # hdu = fits.PrimaryHDU(test)
+    # hdul = fits.HDUList([hdu])
+    # hdul.writeto('idl-py_test.fits')
+
 
     #test code to generate input header from Mike's Script
     pixsize = 4.1 / 3600.

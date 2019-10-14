@@ -86,42 +86,47 @@ def get_array_value(x, y, array):
     """Returns the value of the array at position x,y."""
     return array[y, x]
 
-def interpolate(first_value, second_value, ratio):
-    """Interpolate with a linear weighted sum."""
-    return first_value * (1 - ratio) + second_value * ratio
+def linterp(x, y, ratio):
+    '''
+    The purpose of this function is to honestly make the code look neat. It does
+    a linear interpolation across one axis.
+    Inputs : x - the x position
+             y - the y position
+             ratio - an interpolation ratio calculated from the interpolant
+                     coordinates
+    Returns: interpolant
+    '''
+
+    return x * (1 - ratio) + y * ratio
 
 def bilinear_interpolation(x, y, img):
-    """Returns the bilinear interpolation of a pixel in the image.
-    :param x: x-position to interpolate
-    :param y: y-position to interpolate
-    :param img: image, where the pixel should be interpolated
-    :returns: value of the interpolated pixel
-    """
-    # if x < 0 or y < 0:
-    #     raise ValueError('x and y pixel position have to be positive!')
-    # if img.shape[1]-1 < x or img.shape[0]-1 < y:
-    #     raise ValueError('x and y pixel position have to be smaller than image'
-    #                      'dimensions.')
+    '''
+    This function is meant to perform a bilinear interpolation of an image
+    Inputs : x - an array of where you want array to be interpolated at
+             y - an array of where you want array to be interpolated at
+             array - array to be interpolated
+    Returns: result - interpolant
+    '''
 
-    listy = []
+    result = []
     for i in range(len(x)):
-        x_rounded_up = int(ceil(x[i]))
-        x_rounded_down = int(floor(x[i]))
-        y_rounded_up = int(ceil(y[i]))
-        y_rounded_down = int(floor(y[i]))
+        x2 = int(ceil(x[i]))
+        x1 = int(floor(x[i]))
+        y2 = int(ceil(y[i]))
+        y1 = int(floor(y[i]))
 
-        ratio_x = x[i] - x_rounded_down
-        ratio_y = y[i] - y_rounded_down
+        ratio_x = x[i] - x1
+        ratio_y = y[i] - y1
 
-        interpolate_x1 = interpolate(img[y_rounded_down, x_rounded_down],
-                                     img[y_rounded_down, x_rounded_up],
+        interpolate_x1 = linterp(img[y1, x1],
+                                     img[y1, x2],
                                      ratio_x)
-        interpolate_x2 = interpolate(img[y_rounded_up, x_rounded_down],
-                                     img[y_rounded_up, x_rounded_up],
+        interpolate_x2 = linterp(img[y2, x1],
+                                     img[y2, x2],
                                      ratio_x)
-        interpolate_y = interpolate(interpolate_x1, interpolate_x2, ratio_y)
-        listy.append(interpolate_y)
+        interpolate_y = linterp(interpolate_x1, interpolate_x2, ratio_y)
+        result.append(interpolate_y)
 
-    listy = np.asarray(listy)
+    result = np.asarray(result)
 
-    return listy
+    return result

@@ -24,8 +24,6 @@ def mbilinear(x, y, array):
     output = np.zeros((Nx, Ny))
     minval = np.min(array)
 
-    arr = np.array([[1, 3, 4],
-                    [2, 5, 6]])
 
     count = 0
     for i in range(Nx):
@@ -50,13 +48,11 @@ def mbilinear(x, y, array):
             yy = y[mind, i]
             trunc = bilinear_interpolation(xx, yy, array)
             output[mind, i] = trunc[:]
-    #remove values affected by indef values (for highly < 0 indef and generaly > 0 im)
+
     ind = []
     for i in range(output.shape[0]):
         for j in range(output.shape[1]):
-            if output[i,j] < minval:
-                ind.append([i,j])
-    if len(ind) > 0:
-        ind = np.asarray(ind)
-    output[ind] = -32768 #i guess nan is the same as missing but not sure
+            if minval > output[i,j]:
+                output[i,j] = -32768
+
     return output

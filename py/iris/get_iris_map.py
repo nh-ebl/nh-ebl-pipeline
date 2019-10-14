@@ -10,7 +10,7 @@
 import os
 from astropy.io import fits
 
-def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=0):
+def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=1):
     '''
     Purpose : returns the correlated IRIS map for an input ISSA number
     Inputs  : ii - the ISSA map number
@@ -54,22 +54,20 @@ def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=0):
             del(header['CRVAL3'])
             del(header['CTYPE3'])
             #all of these values will mess up our conversion at the end
-            # del(header['NAXIS'])
-            # header.set('NAXIS', 2)
+
             header['NAXIS'] = 2
-            print('Depreciated CDELT3 and NAXIS3 values found, removing.')
 
         #check data for bad values
         for i in range(hdul[0].data.shape[0]):
             for j in range(hdul[0].data.shape[1]):
-                #we have to add this extra zero because for some reason the IRIS maps are
+                #we have to add this extra zero because the IRIS maps are
                 #3 Dimensional with a z axis that is 1 element thick.
                 if hdul[0].data[i,j,0] < -5 or hdul[0].data[i,j,0] == 0:
                     hdul[0].data[i,j] = -32768
         hdu = fits.PrimaryHDU(hdul[0].data, header)
         map = fits.HDUList([hdu])
         if verbose:
-            print('Read data file %s' % file[0])
+            print('Read data file %s' % files[0])
         return map
     else:
         print('Could not find any files matching that description')

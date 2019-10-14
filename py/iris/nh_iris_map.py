@@ -10,11 +10,14 @@
 #Additional Info
 #
 ################################################################################
-from mosaiq.py import mosaic
+from mosaiq import mosaic
 import numpy as np
+import config
 from astropy.io import fits
 from utility import *
 from astropy.wcs import WCS as world
+from astropy.wcs.utils import pixel_to_skycoord, skycoord_to_pixel
+
 
 #choose the field that you want
 field = config.fields[4]
@@ -28,7 +31,7 @@ pixsize = 4.1 / 3600 #pixel size in arcseconds / pixel
 naxis = int(sqrt(2.) * 256)
 
 #square patch of sky, this can be changed if desired.
-naxis1 = naxis2 = naxsis
+naxis1 = naxis2 = naxis
 
 #holder for the x, y pixel coordinates that we want.
 xvec = np.arange(0, naxis1)
@@ -43,4 +46,16 @@ ra = np.asarray(c.ra.to_string(decimal=True), dtype=float)
 dec = np.asarray(c.dec.to_string(decimal=True), dtype=float)
 
 #get information from the IRAS astrometry positions
-map = mosaic(header, band=4)
+map = mosaic(head, band=4)
+
+hdu = fits.PrimaryHDU(map, head)
+hdul = fits.HDUList([hdu])
+hdul.writeto(config.DataDir + str(field) + '_fx.fits')
+
+hdu = fits.PrimaryHDU(ra, head)
+hdul = fits.HDUList([hdu])
+hdul.writeto(config.DataDir + str(field) + '_ra.fits')
+
+hdu = fits.PrimaryHDU(dec, head)
+hdul = fits.HDUList([hdu])
+hdul.writeto(config.DataDir + str(field) + '_dc.fits')
