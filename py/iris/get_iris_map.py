@@ -28,7 +28,7 @@ def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=1):
     if ii < 10:
         iras_number = '0' + iras_number
     elif ii < 100:
-        iras_number = '0' + iras_number # um maybe there's a difference in idl but this if statement makes no sense
+        iras_number = '0' + iras_number
 
     files = []
     for x in os.listdir(dir):
@@ -37,7 +37,6 @@ def get_iris(ii, dir='!ISRISDATA', band=4, hcon=0, verbose=1):
     if len(files) > 0:
         hdul = fits.open(files[0])
 
-        #fix the header up a little
         header = hdul[0].header
 
         #force lonpole to be 180

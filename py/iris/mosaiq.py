@@ -40,9 +40,9 @@ def mosaic(header, band=4, catname=config.IrisLookupFile, dir=config.IrisDir):
     header.set('NAXIS', 2)
     w = world(header)
     try:
-        equinox = header['EQUINOX'] #get equinox variable from a fits header #doesn't seem to be an equinox in the fits files?????
+        equinox = header['EQUINOX']
     except KeyError:
-        equinox = header['EPOCH'] #this is what they did in NASA's idl extast function
+        equinox = header['EPOCH']
 
 
     x_size = header['NAXIS1']
@@ -134,9 +134,6 @@ def mosaic(header, band=4, catname=config.IrisLookupFile, dir=config.IrisDir):
             good_inds[i] = 1
         elif ramax[i] > c1min and ramax[i] < c1max and decmax[i] > c2min and decmax[i] < c2min:
             good_inds[i] = 1
-
-    #now that we have the maps we want do the outer product trick and give us a 2D array for x and y
-
 
     good_inds = np.where(good_inds > 0)[0]
     if good_inds.shape[0] == 0:
