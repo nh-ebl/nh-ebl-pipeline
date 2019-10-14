@@ -29,10 +29,14 @@ import config
 def mosaic(header, band=4, catname=config.IrisLookupFile, dir=config.IrisDir):
     '''
     purpose: create mosaic of images
-    Inputs : Header - header information
-             band   - band (defaults to 4 in idl)
-             catname- filename of the catalog (defaults to !IRISPRO which is some config file)
-             dir    - directory where iris maps are (default is !IRISDATA which is some config file)
+    Inputs : Header - header information -should contain some astrometry information
+             band   - the band you wish to look at
+                - 1 : 12 micron
+                - 2 : 25 micron
+                - 3 : 60 micron
+                - 4 : 100 micron (default)
+             catname- filename of the catalog
+             dir    - directory where iris maps are
     Outputs:
     '''
 
