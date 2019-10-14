@@ -17,10 +17,12 @@ from astropy.io import fits
 from utility import *
 from astropy.wcs import WCS as world
 from astropy.wcs.utils import pixel_to_skycoord, skycoord_to_pixel
+import matplotlib.pyplot as plt
 
 
 #choose the field that you want
-field = config.fields[4]
+field = config.fields[:,4] # : selects both RA and Dec, the 4 denotes the number
+# i.e. position in the txt file, 4 means the fourth from the top
 ra = field[0]
 dec = field[1]
 
@@ -47,6 +49,10 @@ dec = np.asarray(c.dec.to_string(decimal=True), dtype=float)
 
 #get information from the IRAS astrometry positions
 map = mosaic(head, band=4)
+
+#for debugging
+plt.imshow(map, origin='lower')
+plt.show()
 
 hdu = fits.PrimaryHDU(map, head)
 hdul = fits.HDUList([hdu])

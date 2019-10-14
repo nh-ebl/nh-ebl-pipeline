@@ -16,20 +16,12 @@ IrisDir =  '../../../../IRISNOHOLES_B4H0' #please point this
 # to the directory where you are keeping all of your IRIS fits files.
 DataDir = '/home/vaughan/New_Horizons/' #please point this to where you want
 # your saved data files to be stored
-fields = np.array([[177.4586, 32.6273],
-                   [196.0334, 23.9452],
-                   [161.8978, -26.7821],
-                   [177.5121, 32.6308],
-                   [196.0075, 23.9506],
-                   [346.1128, -7.166],
-                   [1.8064, -1.2497],
-                   [270.6523, -14.6237],
-                   [237.5430, -33.8045],
-                   [268.4866, -34.7916],
-                   [269.6507, -15.4847],
-                   [231.3464, -17.9611],
-                   [269.7189, -15.4893],
-                   [237.3581, -33.7934]])
+FieldsFile = 'fields.txt' #please point this to the filepath that contains your
+# txt file with the fields you want to look at.
+# format for txt file should be:
+# RA DEC
+# where space is your delimeter
+fields = np.loadtxt(FieldsFile, unpack=True)
 # these are the potential fields to look at, at some point it may be worthwile
 # to have these written in a txtfile or something of that nature and then just
 # read them into the config file with a call to a function such as np.loadtxt()
