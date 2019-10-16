@@ -79,7 +79,6 @@ def mosaic(header, band=4, catname=config.IrisLookupFile, dir=config.IrisDir):
 
     elif ctype == 3:
         print('converting from Ecliptic to Celestial')
-        #need to know what ecliptic it is.
         sk = SkyCoord(ra * u.deg, dec * u.deg, frame=BarycentricTrueEcliptic)
         new_c = sk.transform_to(FK4)
 
@@ -149,9 +148,8 @@ def mosaic(header, band=4, catname=config.IrisLookupFile, dir=config.IrisDir):
     for i in range(good_inds.shape[0]):
         mapi = get_iris(inum[good_inds[i]], dir=dir, band=band)
 
-        #forcing it to be 2D rather than 3D
-        mapi[0].header['NAXIS'] = 2
-        mapi[0].header['EPOCH'] = 2000.0
+
+        mapi[0].header['EQUINOX'] = 2000.0
         try:
             del(mapi[0].header['NAXIS3'])
         except KeyError:
@@ -180,6 +178,8 @@ def mosaic(header, band=4, catname=config.IrisLookupFile, dir=config.IrisDir):
     result = np.rot90(result, k=3)
     result = np.fliplr(result)
 
+    plt.imshow(result, origin='lower')
+    plt.show()
     return result
 
 

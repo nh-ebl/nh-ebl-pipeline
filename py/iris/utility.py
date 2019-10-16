@@ -44,7 +44,7 @@ def make_header(pixsize, naxis, ra, dec):
     header.set('BITPIX', -64)
     header.set('CTYPE1', 'RA---TAN')
     header.set('CTYPE2', 'DEC--TAN')
-
+    header.set('EQUINOX', 2000)
     return header
 
 def nan2undef(data, undef=-32768):
