@@ -178,8 +178,9 @@ def mosaic(header, band=4, catname=config.IrisLookupFile, dir=config.IrisDir):
     result = np.rot90(result, k=3)
     result = np.fliplr(result)
 
-    plt.imshow(result, origin='lower')
-    plt.show()
+    #for testing
+    # plt.imshow(result, origin='lower')
+    # plt.show()
     return result
 
 
