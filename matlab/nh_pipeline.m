@@ -12,9 +12,9 @@ function nh_pipeline()
 clear all
 close all
 
-procstepflag = 1;
+procstepflag = 4;
 
-paths = get_paths_new();
+paths = get_paths();
 
 datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
@@ -69,7 +69,7 @@ for ifile=1:size(datafiles,1)
         
         data = nh_calcisl(data);
         
-        %save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         
     end
     
