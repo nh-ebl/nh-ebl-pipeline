@@ -12,9 +12,9 @@ import numpy as np
 IrisLookupFile = 'info_issa_map4.txt' #please point to this textfile
 # this means setting the path if it is in a different direct than the python
 # scripts
-IrisDir =  '../../../../IRISNOHOLES_B4H0' #please point this
+IrisDir =  'IRISNOHOLES_B4' #please point this
 # to the directory where you are keeping all of your IRIS fits files.
-DataDir = '/home/vaughan/New_Horizons/' #please point this to where you want
+DataDir = '/data/symons/nh_data/IRIS/' #please point this to where you want
 # your saved data files to be stored
 FieldsFile = 'fields.txt' #please point this to the filepath that contains your
 # txt file with the fields you want to look at.

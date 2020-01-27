@@ -12,9 +12,9 @@ function nh_pipeline()
 clear all
 close all
 
-procstepflag = 4;
+procstepflag = 5;
 
-paths = get_paths();
+paths = get_paths_new();
 
 datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
@@ -40,6 +40,7 @@ for ifile=1:size(datafiles,1)
 %         data = nh_findghoststar(data,paths);
 %         data = nh_make_manmask(data,paths);
         data = nh_makemask(data,paths,3);
+        
 %         maskim = data.data.*~data.mask.onemask;
 %         maskim(maskim==0) = NaN;
 %         checkmax(ifile) = nanmax(nanmax(maskim));
@@ -77,7 +78,7 @@ for ifile=1:size(datafiles,1)
         
         data = nh_calcdgl(data);
         
-%         save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         
     end
     
