@@ -21,8 +21,11 @@ import matplotlib.pyplot as plt
 
 
 #choose the field that you want
-field = config.fields[:,4] # : selects both RA and Dec, the 4 denotes the number
-# i.e. position in the txt file, 4 means the fourth from the top
+#fieldnum is the label of the field, corresponding to how fields are labeled in the matlab code, only used to save file name
+fieldnum = 8
+#num corresponds to the field number in the fields.txt list and not related to the matlab label, used to index fields.txt
+field = config.fields[:,4] # : selects both RA and Dec
+
 ra = field[0]
 dec = field[1]
 
@@ -56,12 +59,12 @@ plt.show()
 
 hdu = fits.PrimaryHDU(map, head)
 hdul = fits.HDUList([hdu])
-hdul.writeto(config.DataDir + str(field) + '_fx.fits')
+hdul.writeto(config.DataDir + 'iris_0' + str(fieldnum) + '_fx.fits')
 
 hdu = fits.PrimaryHDU(ra, head)
 hdul = fits.HDUList([hdu])
-hdul.writeto(config.DataDir + str(field) + '_ra.fits')
+hdul.writeto(config.DataDir + 'iris_0' + str(fieldnum) + '_ra.fits')
 
 hdu = fits.PrimaryHDU(dec, head)
 hdul = fits.HDUList([hdu])
-hdul.writeto(config.DataDir + str(field) + '_dc.fits')
+hdul.writeto(config.DataDir + 'iris_0' + str(fieldnum) + '_dc.fits')
