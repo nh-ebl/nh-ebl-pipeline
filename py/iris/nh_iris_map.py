@@ -20,7 +20,7 @@ from astropy.wcs.utils import pixel_to_skycoord, skycoord_to_pixel
 import matplotlib.pyplot as plt
 
 #choose the field that you want
-field = config.fields[:,4] # : selects both RA and Dec, the 4 denotes the number
+field = config.fields[:,0] # : selects both RA and Dec, the 4 denotes the number
 # i.e. position in the txt file, 4 means the fourth from the top
 ra = field[0]
 dec = field[1]
@@ -35,10 +35,10 @@ naxis = int(sqrt(2.) * 256)
 naxis1 = naxis2 = naxis
 
 #holder for the x, y pixel coordinates that we want.
-x = np.arange(0, naxis1)
-y = np.arange(0, naxis2)
-xvec = np.repeat(x[:, np.newaxis], naxis2, axis=1)
-yvec = np.repeat(y[np.newaxis, :], naxis1, axis=0)
+y = np.arange(0, naxis1)
+x = np.arange(0, naxis2)
+yvec = np.repeat(x[:, np.newaxis], naxis2, axis=1)
+xvec = np.repeat(y[np.newaxis, :], naxis1, axis=0)
 head = make_header(pixsize, naxis, ra, dec) #this function assumes a square.
 
 w = world(head)
