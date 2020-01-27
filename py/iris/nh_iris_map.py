@@ -19,7 +19,6 @@ from astropy.wcs import WCS as world
 from astropy.wcs.utils import pixel_to_skycoord, skycoord_to_pixel
 import matplotlib.pyplot as plt
 
-
 #choose the field that you want
 #fieldnum is the label of the field, corresponding to how fields are labeled in the matlab code, only used to save file name
 fieldnum = 8
@@ -39,9 +38,10 @@ naxis = int(sqrt(2.) * 256)
 naxis1 = naxis2 = naxis
 
 #holder for the x, y pixel coordinates that we want.
-xvec = np.arange(0, naxis1)
-yvec = np.arange(0, naxis2)
-
+x = np.arange(0, naxis1)
+y = np.arange(0, naxis2)
+xvec = np.repeat(x[:, np.newaxis], naxis2, axis=1)
+yvec = np.repeat(y[np.newaxis, :], naxis1, axis=0)
 head = make_header(pixsize, naxis, ra, dec) #this function assumes a square.
 
 w = world(head)
@@ -54,17 +54,19 @@ dec = np.asarray(c.dec.to_string(decimal=True), dtype=float)
 map = mosaic(head, band=4)
 
 #for debugging
-plt.imshow(map, origin='lower')
-plt.show()
+# plt.imshow(map, origin='lower')
+# plt.show()
 
 hdu = fits.PrimaryHDU(map, head)
 hdul = fits.HDUList([hdu])
 hdul.writeto(config.DataDir + 'iris_0' + str(fieldnum) + '_fx.fits')
 
+#ra
 hdu = fits.PrimaryHDU(ra, head)
 hdul = fits.HDUList([hdu])
 hdul.writeto(config.DataDir + 'iris_0' + str(fieldnum) + '_ra.fits')
 
+#dec
 hdu = fits.PrimaryHDU(dec, head)
 hdul = fits.HDUList([hdu])
 hdul.writeto(config.DataDir + 'iris_0' + str(fieldnum) + '_dc.fits')
