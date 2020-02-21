@@ -1,6 +1,4 @@
-function triout=nh_add_trilegalisl(data)
-
-  paths = get_paths();
+function triout=nh_add_trilegalisl(data, paths)
   
   filein = sprintf('%sisl/%s.mat',paths.tridir,data.header.timestamp);
 
@@ -22,4 +20,4 @@ function triout=nh_add_trilegalisl(data)
   end
     
     
-% end
+end

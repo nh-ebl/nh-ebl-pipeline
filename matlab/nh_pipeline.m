@@ -12,7 +12,7 @@ function nh_pipeline()
 clear all
 close all
 
-procstepflag = 5;
+procstepflag = 4;
 
 paths = get_paths_new();
 
@@ -34,6 +34,8 @@ for ifile=1:size(datafiles,1)
     disp(sprintf('On file %d of %d.',ifile,size(datafiles,1)));
     
     load(sprintf('%s%s',paths.datadir,datafiles(ifile).name));
+    
+    disp(data.header.fieldnum)
     
     if procstepflag == 1
     
@@ -67,16 +69,16 @@ for ifile=1:size(datafiles,1)
     end
     
     if procstepflag == 4
+    
+%         data = nh_calcisl(data, paths);
         
-        data = nh_calcisl(data);
-        
-        save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
+%         save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         
     end
     
     if procstepflag == 5
         
-        data = nh_calcdgl(data);
+        data = nh_calcdgl(data, paths);
         
         save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         

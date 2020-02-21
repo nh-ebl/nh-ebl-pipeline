@@ -12,9 +12,9 @@ function npaths=get_paths_new()
    npaths.engdir = '/data/symons/nh_data/eng_data/';
    npaths.engdirold = '/data/symons/nh_data/eng_data_old/';
    npaths.sigdir = '/data/symons/nh_data/sig/';
-   %npaths.tridir = '/data/zemcov/NH/trilegal/';
+   npaths.tridir = '/data/symons/nh_data/trilegal/';
    npaths.mandir = '/data/symons/nh_data/manmask/';
    %npaths.gscdir = '/data/zemcov/NH/GSCII/';
-   %npaths.irisdir = '/data/zemcov/NH/IRIS/';
+   npaths.irisdir = '/data/symons/nh_data/IRIS/';
    
 end

@@ -1,8 +1,6 @@
-function usnoisl = nh_usnoisl(data)
+function usnoisl = nh_usnoisl(data, paths)
 
   resize = 10;
-
-  paths = get_paths();
    
   datafiles = dir(sprintf('%s*.mat',paths.datadir));
   
@@ -66,11 +64,11 @@ function usnoisl = nh_usnoisl(data)
   usnoisl.wingimage = wingimage_cal;
   usnoisl.islfaint = usnoisl.isltot - usnoisl.islwing;
   
-  figure(4); clf
-  imagesc(wingimage_cal.*~data.mask.onemask)
-  title(sprintf('%8.3f',usnoisl.islwing));
-  colorbar
-  caxis([0,10])
-  drawnow
+%   figure(4); clf
+%   imagesc(wingimage_cal.*~data.mask.onemask)
+%   title(sprintf('%8.3f',usnoisl.islwing));
+%   colorbar
+%   caxis([0,10])
+%   drawnow
     
-% end
+end

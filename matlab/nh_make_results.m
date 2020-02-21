@@ -1,10 +1,10 @@
 function nh_make_results()
 
-  paths = get_paths();
+  paths = get_paths_new();
 
   datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
-  nfiles = 100;%size(datafiles,1);
+  nfiles = size(datafiles,1);
   
   isgood = zeros(nfiles,1);
   mydate = zeros(nfiles,1);
@@ -24,12 +24,12 @@ function nh_make_results()
   myerr = zeros(nfiles,1);
   mycrr = zeros(nfiles,1);
   
-  goodfiles = [3,5,6,7];%,9,14];
+  goodfiles = [1,5,6,7,8];
   thissum = 0;
   
   for ifile=1:nfiles
 
-    %disp(sprintf('On file %d of %d.',ifile,size(datafiles,1)));
+    disp(sprintf('On file %d of %d.',ifile,size(datafiles,1)));
     
     load(sprintf('%s%s',paths.datadir,datafiles(ifile).name));
     

@@ -1,9 +1,9 @@
 function make_trilegalcats()
 
-  paths = get_paths();
+  paths = get_paths_new();
 
-  smallfields = [3,5,6,7,9];
-  nfields = 14;
+  smallfields = [1,5,6,7,8];
+  nfields = 5;
     
   %% need to account for B and R bands to improve 
   %% magnitude accuracy.
@@ -15,7 +15,7 @@ function make_trilegalcats()
   % convert from column to row vector
   filt_trans = filt_trans'./max(filt_trans);
   
-  for ifield=3:3%nfields
+  for ifield=1:1%nfields
 
     disp(sprintf('On field %d of %d.',ifield,nfields));
     
