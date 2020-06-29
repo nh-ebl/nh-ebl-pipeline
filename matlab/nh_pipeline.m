@@ -12,7 +12,7 @@ function nh_pipeline()
 clear all
 close all
 
-procstepflag = 4;
+procstepflag = 1;
 
 paths = get_paths_new();
 
@@ -35,7 +35,7 @@ for ifile=1:size(datafiles,1)
     
     load(sprintf('%s%s',paths.datadir,datafiles(ifile).name));
     
-    disp(data.header.fieldnum)
+%     disp(data.header.fieldnum)
     
     if procstepflag == 1
     

@@ -176,6 +176,6 @@ function nh_stack_psf()
   psf.pixelwidths = [4.3,0.43,4.3,4.3./4.04,0.43,4.3./40.4];
   psf.centerpix = [4,31,4,13,31,125];
 
-  save('lookup/nh_lorri_psf.mat','psf');
+  %save('lookup/nh_lorri_psf.mat','psf');
 
 % end
