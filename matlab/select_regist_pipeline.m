@@ -14,7 +14,7 @@ for i=1:1
     
 %     %construct duration data
 %     sprintf('Collecting exposure time data...')
-%     duration_cust(phase,path);
+    duration_cust(phase,path);
 %     texp_vs_t_ext(phase,path);
 %     texp_vs_t(phase,path);
 %     sprintf('Duration task completed.')
@@ -36,7 +36,7 @@ for i=1:1
 %     png_img_cust(phase,-5,50,path);
 %     sprintf('PNG construction task completed.')
     %retrieve header info and create png images with info annotated
-    add_info(phase, path)
+%     add_info(phase, path)
 %     
 %     % extract distance information
 %     sprintf('Extracting trajectory information...')

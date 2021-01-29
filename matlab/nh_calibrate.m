@@ -27,7 +27,7 @@ function data = nh_calibrate(data)
   data.cal.Jyperbit = data.cal.vzero .* data.cal.szero; % Jy/bit
 
   % some astrometric quantities we'll need that are fixed values from elsewhere
-  data.cal.pixsize = 1.05.*4.*4.96e-6; % radians
+  data.cal.pixsize = 4.*4.96e-6; % radians, used to be * 1.05 ''/pix -> wrong
   data.cal.pixsize_arcsec = data.cal.pixsize .* 180 .* 3600 ./ pi; % arcsec
   data.cal.omega = data.cal.pixperbeam .* data.cal.pixsize.^2;
   data.cal.omega_pix = (data.cal.pixsize_arcsec./3600.).^2 * (pi./180.).^2;

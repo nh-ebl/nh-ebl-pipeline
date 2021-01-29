@@ -24,7 +24,7 @@ function nh_make_results()
   myerr = zeros(nfiles,1);
   mycrr = zeros(nfiles,1);
   
-  goodfiles = [1,5,6,7,8];
+  goodfiles = [5,6,7,8];
   thissum = 0;
   
   for ifile=1:nfiles
@@ -57,7 +57,7 @@ function nh_make_results()
     
     mysig(ifile) = data.stats.corrmean;
     
-    myisl(ifile) = data.isl.trimean + data.isl.usnowing;
+    myisl(ifile) = data.isl.trimean  + data.isl.usnowing;
 
     mydgl(ifile) = data.dgl.dglmean;
     
@@ -103,6 +103,8 @@ function nh_make_results()
   
   figure(1); clf
   plot(mysun(isgood),mysig(isgood)-myisl(isgood)-mydgl(isgood),'o')
+  xlabel('Solar Distance')
+  ylabel('EBL')
   
   mydist = zeros(numel(goodfiles),1);
   mysubmen = zeros(numel(goodfiles),1);
@@ -131,13 +133,18 @@ function nh_make_results()
   plot(mydist,mysubmen,'o')
   hold on
   errorbar(mydist,mysubmen,mysuberr,'o');
+  xlabel('Solar Distance')
+  ylabel('Error-Weighted Image Mean')
   
   mysubmen
   
   figure(3); clf
-  plot(mydist,mymean,'o');
-  hold on
-  errorbar(mydist,mymean,myunc,'o');
+  %plot(mydist,mymean,'.','MarkerSize',0);
+  %hold on
+  errorbar(mydist,mymean,myunc,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]);
+  hold on;
+  xlabel('Solar Distance')
+  ylabel('Error-Weighted EBL')
     
   supermean = sum(mymean./myunc.^2)./sum(1./myunc.^2)
   superunc = 1./sqrt(sum(1./myunc.^2))
@@ -146,13 +153,13 @@ function nh_make_results()
   
   supersub = sum(mysubmen./myunc.^2)./sum(1./myunc.^2)
   
-  plot(xlim,[supermean,supermean],'b')
-  plot(xlim,[supermean+superunc,supermean+superunc],'b:')
-  plot(xlim,[supermean-superunc,supermean-superunc],'b:')
+  plot(xlim,[supermean,supermean],'Color',[0, 0.4470, 0.7410])
+  plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
+  plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
   plot(xlim,[0,0],'k:')
   xlabel('Heliocentric Distance (AU)')
   ylabel('Optical EBL (nW/m^2/sr)')
-  title('Zemcov et al, Preliminary w/ Stat. Errors')
+%   title('Zemcov et al, Preliminary w/ Stat. Errors')
   
   distance = mydist;
   rawmean = mysubmen;

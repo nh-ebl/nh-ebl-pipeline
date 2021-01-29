@@ -45,7 +45,7 @@ function data=nh_add_meta(data)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
   data.cal.nommagoff = data.astrometry.id_photzpt;
-  data.cal.magoff = 18.53;
+  data.cal.magoff = 18.88; %18.88 from 2020 calibration paper, old 18.53 from fig S5 of nature paper
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   

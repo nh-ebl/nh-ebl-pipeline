@@ -7,13 +7,20 @@
 % Thayer, June 2019
 %added the RA and DEC variables and recorded their values
 
-function data = nh_findghoststar(data, paths)
+function [data, ghostcount] = nh_findghoststar(data, paths, use_gaia)
 
 % load up the corresponding catalog file
-load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
+if use_gaia == 1
+    load(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum));
 
-% figure out the length of the catalog
-[~,ncat] = size(RA);
+    % figure out the length of the catalog
+    [ncat,~] = size(RA);
+elseif use_gaia == 0
+    load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
+
+    % figure out the length of the catalog
+    [~,ncat] = size(RA);
+end
 
 % figure out the size the mask arrays need to be
 xdim = data.astrom.imagew;
@@ -45,75 +52,131 @@ decc=zeros(ncat,1);
 % loop over each catalog entry;
 for row = 1:ncat
     
-    % retrieve magnitudes and star/galaxy classification
-    mags = [B1mag(row),B2mag(row),R1mag(row),R2mag(row),I2mag(row)];
-    sg = [B1sg(row),B2sg(row),R1sg(row),R2sg(row),I2sg(row)];
-    raa=RA(row);
-    decc=DEC(row);
-    % using all magnitudes, calculate average magnitude
-    lambda_mag = [425,462.5,645,650,810];
-    whpl = (mags < 20) & (mags > 1);
-    if sum(whpl) > 1
-        thismag = ...
-            nh_synthetic_photometry(lambda_mag(whpl),mags(whpl),'LORRI');%+...
-        %randn(1) .* 0.25;
-    else
-        thismag = NaN;
-        rangeexclude = rangeexclude+1;
-    end
-    thissg = nanmean(sg);
-    % if all star/galaxy classifications are nan (signifying bright star),
-    % assign sg of 1 so bright stars not excluded
-    if isnan(B1sg(row)) && isnan(B2sg(row)) && isnan(R1sg(row)) && isnan(R2sg(row)) && isnan(I2sg(row))
-        nansgcnt = nansgcnt + 1;
-        thissg = 1;
-    end
+    %if using USNOB1 catalog
+    if use_gaia == 0
     
-    %find x/y coordinate of the object
-    [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
-   
-    % check if the object is in the target zone
-    check = 0;
-    % quad 1
-    if xpix >= 1-199 && xpix <= 1 && ypix >= 1-199 && ypix <= ydim+199
-        quad1 = quad1 + 1;
-        check = 1;
-    end
-    % quad 2
-    if xpix >= xdim && xpix <= xdim + 199 && ypix >= 1-199 && ypix <= ydim+199
-        quad2 = quad2 + 1;
-        check = 1;
-    end
-    % quad 3
-    if xpix >= 1 && xpix <= xdim && ypix >= ydim && ypix <= ydim+199
-        quad3 = quad3 + 1;
-        check = 1;
-    end
-    % quad 4
-    if xpix >= 1 && xpix <= xdim && ypix >= 1-199 && ypix <= 1
-        quad4 = quad4 + 1;
-        check = 1;
-    end
-        
-    if check == 1
-        % require that the magnitude is within sensible bounds
-        if thismag < 8 && ~isnan(thismag) && thissg > 0
-            numinbnds = numinbnds + 1;
-            
-            % save x/y location of star and magnitude
-            quadxpix(row) = xpix;
-            quadypix(row) = ypix;
-            quadmag(row) = thismag;
-        
-        % checks to see how many stars excluded for which criteria
-        elseif thismag >= 8
-            checkmag(row) = thismag;
-            nummagmax = nummagmax + 1;
-        elseif isnan(thismag)
-            nummagnan = nummagnan + 1;
-        elseif thissg <= 0
-            checksg(row) = thissg;
-            numsgover = numsgover + 1;
+        % retrieve magnitudes and star/galaxy classification
+        mags = [B1mag(row),B2mag(row),R1mag(row),R2mag(row),I2mag(row)];
+        sg = [B1sg(row),B2sg(row),R1sg(row),R2sg(row),I2sg(row)];
+        raa=RA(row);
+        decc=DEC(row);
+        % using all magnitudes, calculate average magnitude
+        lambda_mag = [425,462.5,645,650,810];
+        whpl = (mags < 20) & (mags > 1);
+        if sum(whpl) > 1
+            thismag = ...
+                nh_synthetic_photometry(lambda_mag(whpl),mags(whpl),'LORRI');%+...
+            %randn(1) .* 0.25;
+        else
+            thismag = NaN;
+            rangeexclude = rangeexclude+1;
+        end
+        thissg = nanmean(sg);
+        % if all star/galaxy classifications are nan (signifying bright star),
+        % assign sg of 1 so bright stars not excluded
+        if isnan(B1sg(row)) && isnan(B2sg(row)) && isnan(R1sg(row)) && isnan(R2sg(row)) && isnan(I2sg(row))
+            nansgcnt = nansgcnt + 1;
+            thissg = 1;
+        end
+
+        %find x/y coordinate of the object
+        [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
+
+        % check if the object is in the target zone
+        check = 0;
+        % quad 1
+        if xpix >= 1-199 && xpix <= 1 && ypix >= 1-199 && ypix <= ydim+199
+            quad1 = quad1 + 1;
+            check = 1;
+        end
+        % quad 2
+        if xpix >= xdim && xpix <= xdim + 199 && ypix >= 1-199 && ypix <= ydim+199
+            quad2 = quad2 + 1;
+            check = 1;
+        end
+        % quad 3
+        if xpix >= 1 && xpix <= xdim && ypix >= ydim && ypix <= ydim+199
+            quad3 = quad3 + 1;
+            check = 1;
+        end
+        % quad 4
+        if xpix >= 1 && xpix <= xdim && ypix >= 1-199 && ypix <= 1
+            quad4 = quad4 + 1;
+            check = 1;
+        end
+
+        if check == 1
+            % require that the magnitude is within sensible bounds
+            if thismag < 8 && ~isnan(thismag) && thissg > 0
+                numinbnds = numinbnds + 1;
+
+                % save x/y location of star and magnitude
+                quadxpix(row) = xpix;
+                quadypix(row) = ypix;
+                quadmag(row) = thismag;
+
+            % checks to see how many stars excluded for which criteria
+            elseif thismag >= 8
+                checkmag(row) = thismag;
+                nummagmax = nummagmax + 1;
+            elseif isnan(thismag)
+                nummagnan = nummagnan + 1;
+            elseif thissg <= 0
+                checksg(row) = thissg;
+                numsgover = numsgover + 1;
+            end
+        end
+    
+    elseif use_gaia == 1
+        %mags don't seem to have any wild values, so we'll use all of
+        %them without restriction
+        thismag = Gmag(row); %+ randn(1) .* 0.25; %need to know what is possible gaia mag error to change this value
+        raa=RA(row);
+        decc=DEC(row);
+
+        %find x/y coordinate of the object
+        [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
+
+        % check if the object is in the target zone
+        check = 0;
+        % quad 1
+        if xpix >= 1-199 && xpix <= 1 && ypix >= 1-199 && ypix <= ydim+199
+            quad1 = quad1 + 1;
+            check = 1;
+        end
+        % quad 2
+        if xpix >= xdim && xpix <= xdim + 199 && ypix >= 1-199 && ypix <= ydim+199
+            quad2 = quad2 + 1;
+            check = 1;
+        end
+        % quad 3
+        if xpix >= 1 && xpix <= xdim && ypix >= ydim && ypix <= ydim+199
+            quad3 = quad3 + 1;
+            check = 1;
+        end
+        % quad 4
+        if xpix >= 1 && xpix <= xdim && ypix >= 1-199 && ypix <= 1
+            quad4 = quad4 + 1;
+            check = 1;
+        end
+
+        if check == 1
+            % require that the magnitude is within sensible bounds
+            if thismag < 8 && ~isnan(thismag)
+                numinbnds = numinbnds + 1;
+
+                % save x/y location of star and magnitude
+                quadxpix(row) = xpix;
+                quadypix(row) = ypix;
+                quadmag(row) = thismag;
+
+            % checks to see how many stars excluded for which criteria
+            elseif thismag >= 8
+                checkmag(row) = thismag;
+                nummagmax = nummagmax + 1;
+            elseif isnan(thismag)
+                nummagnan = nummagnan + 1;
+            end
         end
     end
 end
@@ -124,6 +187,14 @@ quadypix = quadypix(quadypix~=0);
 quadmag = quadmag(quadmag~=0);
 brightra= raa(raa~=0);
 brightdec=decc(decc~=0);
+
+if numinbnds > 0
+    ghostcount = 1;
+else
+    ghostcount = 0;
+end
+
+% disp(min(Gmag))
 
 % save bright star info to data
 data.ghost.brightmag = quadmag;

@@ -23,7 +23,7 @@ function nh_calcref()
   mydgl = zeros(nfiles,1);
   mycrr = zeros(nfiles,1);
   
-  goodfiles = [1,5,6,7,8];
+  goodfiles = [5,6,7,8];
   
   for ifile=1:nfiles
     

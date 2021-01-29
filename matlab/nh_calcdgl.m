@@ -2,18 +2,52 @@ function data = nh_calcdgl(data, paths)
   
   dglparams = nh_get_dgl_params();
   
-  irismap = fitsread(sprintf('%siris_%02d_fx.fits',...
-      paths.irisdir,data.header.fieldnum));
-  irisra = fitsread(sprintf('%siris_%02d_ra.fits',...
-      paths.irisdir,data.header.fieldnum));
-  irisdc = fitsread(sprintf('%siris_%02d_dc.fits',...
-      paths.irisdir,data.header.fieldnum));
+%   %load in iris maps
+%   irismap = fitsread(sprintf('%siris_%02d_fx.fits',...
+%       paths.irisdir,data.header.fieldnum));
+%   irisra = fitsread(sprintf('%siris_%02d_ra.fits',...
+%       paths.irisdir,data.header.fieldnum));
+%   irisdc = fitsread(sprintf('%siris_%02d_dc.fits',...
+%       paths.irisdir,data.header.fieldnum));
+%   
+%   %create interpolation of iris map and lorri field
+%   F = TriScatteredInterp(irisra(:),irisdc(:),irismap(:));
+%   irisim = F(data.astrometry.ra,data.astrometry.dec);
   
-  %create interpolation of iris map and lorri field
-  F = TriScatteredInterp(irisra(:),irisdc(:),irismap(:));
-  irisim = F(data.astrometry.ra,data.astrometry.dec);
+  %check if planck maps are already made, if not call python script that makes
+  %them (isfile returns 1 if file exists)
+  if( ~(isfile(sprintf('%splanck_%s_fx.fits',paths.planckdir,data.header.timestamp)) && ...
+      isfile(sprintf('%splanck_%s_ra.fits',paths.planckdir,data.header.timestamp)) && ...
+      isfile(sprintf('%splanck_%s_dc.fits',paths.planckdir,data.header.timestamp))) )
+    %if at least one of the files isn't there, call python script to make
+    %them all
+    disp('No Planck file found, retrieving new Planck file.')
+    pydir = '/home/symons/nh_ebl_pipeline/py/planck/'; %where the python script is
+    pyfile = 'get_planck.py'; %name of the python file to run
+    imagefile = [paths.imagedir,'regist_',data.header.rawfile]; %fits file to send to the python script
+    %write the imagefile path in a text file to where the python script is
+    fileID = fopen([pydir,'imagefile.txt'],'w'); %open the file to be written
+    fprintf(fileID,'%s',imagefile); %write imagefile path
+    fclose(fileID); %close file
+    %call python script
+    system(['python ',pydir,pyfile]);
+    %get the planck files and move them to their data directory
+    movefile([pydir,'planck_',data.header.timestamp,'_fx.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_fx.fits']); %move from pydir to paths.planckdir
+    movefile([pydir,'planck_',data.header.timestamp,'_ra.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_ra.fits']); %move from pydir to paths.planckdir
+    movefile([pydir,'planck_',data.header.timestamp,'_dc.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_dc.fits']); %move from pydir to paths.planckdir
+  end
+
+  %load in planck maps
+  irismap = fitsread(sprintf('%splanck_%s_fx.fits',...
+      paths.planckdir,data.header.timestamp));
+  irisra = fitsread(sprintf('%splanck_%s_ra.fits',...
+      paths.planckdir,data.header.timestamp));
+  irisdc = fitsread(sprintf('%splanck_%s_dc.fits',...
+      paths.planckdir,data.header.timestamp));
   
-  %calculte mean and std of iris map
+  irisim = irismap;
+  
+  %calculate mean and std of iris map
   ohm_mean = nanmean(irisim(:));
   ohm_std = nanstd(irisim(:));
   
@@ -36,7 +70,6 @@ function data = nh_calcdgl(data, paths)
   
   %nu I_nu is (iris map - 0.8 MJy/sr) * 1e-20 * 3e8/100e-6 * 1e9
   nuinu = (irisim-dglparams.cib(1)) .* dglparams.norm;
-  
   
   %b_lambda (I_nu_opt/I_nu_100um) is estimated by fitting mean ZDA04 model to many measurements
   %of b_lambda
@@ -81,7 +114,18 @@ function data = nh_calcdgl(data, paths)
   data.dgl.dglim = dglim;
   data.dgl.conv = dglparams.cbar(1).*dl;
   data.dgl.convp = dglparams.norm .* dglparams.cbar(1).*dl;
-    
+  
+  %Plot DGL image
+%   x = linspace((-256/2)*4.1/60,(256/2)*4.1/60,257);
+%   y = linspace((-256/2)*4.1/60,(256/2)*4.1/60,257);
+%   imagesc(x,y,dglim)
+%   axis('xy')
+%   axis image
+%   xlabel('[arcmin]')
+%   ylabel('[arcmin]')
+%   a = colorbar;
+%   a.Label.String = 'DGL Intensity [nW m^{-2} sr^{-1}]';
+  
   %disp(sprintf('Field number: %d; b: %4.2f; DGL: %7.3f; DGLerr: %7.3f.',...
   %    data.header.fieldnum,data.coords.galactic(2),dgl_mean,dgl_err))
   

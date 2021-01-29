@@ -17,7 +17,7 @@ function [ field ] = get_field(ra,dec)
 % email: pgi8114@rit.edu
 % modified: MZ, Jun 16 2016
 
-  paths = get_paths();
+  paths = get_paths_new();
 
   load(sprintf('%scataloginfo.mat',paths.catdir)); 
   [~,n] = size(field_number);

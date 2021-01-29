@@ -16,5 +16,8 @@ function npaths=get_paths_new()
    npaths.mandir = '/data/symons/nh_data/manmask/';
    %npaths.gscdir = '/data/zemcov/NH/GSCII/';
    npaths.irisdir = '/data/symons/nh_data/IRIS/';
+   npaths.planckdir = '/data/symons/nh_data/planck/';
    npaths.starlistdir = '/data/symons/nh_data/star_lists/';
+   npaths.gaiadir = '/data/symons/nh_data/gaia/';
+   npaths.simdir = '/data/symons/nh_data/sims/';
 end
