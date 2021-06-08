@@ -8,7 +8,7 @@ close all;
 clearvars idx;
 
 %Import paths for data location
-paths = get_paths();
+paths = get_paths_old();
 npaths = get_paths_new();
 
 fprintf('Parsing dark files.\n');
@@ -36,7 +36,7 @@ isgoodnew = zeros(numel(nlightfiles),1);
 %These field numbers were previously determined by going through all the
 %files
 oldgoodfields = [3,5,6,7];
-newgoodfields = [1,5,6,7,8];
+newgoodfields = [5,6,7,8];
 
 %Check for old light files
 for ifile=1:numel(lightfiles)
@@ -256,12 +256,12 @@ darkcurrdark = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(darktemp+273.15).^3.*exp(-640
 for ifile=1:numoldlightfiles
     load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
     data.ref.darkcurr=darkcurrlight(ifile);
-%     save(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
+    save(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
 end
 for ifile=1:numnewlightfiles
     load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
     data.ref.darkcurr=darkcurrlight(ifile+numoldlightfiles);
-    %save(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
+    save(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
 end
 
 %Colorcoding dark current for plotting purposes
@@ -311,25 +311,25 @@ xlabel('Days from launch','FontSize',20);
 ylabel('Mean Photocurrent (nW m^-^2 sr^-^1)','FontSize',20);
 
 %Plot dark current and CCD temp over time, color coded by new vs. old data
-% fig = figure(1); clf
-% left_color = [0 0 0];
-% right_color = [0 0 0];
-% set(fig, 'defaultAxesColorOrder',[left_color;right_color]);
-% yyaxis left
-% p1 = semilogy(lightdatenew(lightdatenew~=0),darkcurrnew(darkcurrnew~=0),'b.', 'MarkerSize',15);
-% hold on;
-% dd = semilogy(darkdate, darkcurrdark, 'r.', 'MarkerSize',15);
-% p2 = semilogy(lightdateold(lightdateold~=0),darkcurrold(darkcurrold~=0),'r.', 'MarkerSize',15);
-% hold on;
-% xline(3463,'k:');
-% xlabel('Days from launch');
-% ylabel('Dark current (e^-/sec/pixel)');
-% yyaxis right
-% r1 = scatter(lightdatenew(lightdatenew~=0),lighttempnew(lighttempnew~=0),'MarkerEdgeColor','none');
-% r2 = scatter(lightdateold(lightdateold~=0),lighttempold(lighttempold~=0),'MarkerEdgeColor','none');
-% r3 = scatter(darkdate, darktemp+273.15, 'MarkerEdgeColor','none');
-% ylabel('CCD Temperature (K)');
-% legend([p2 p1],{'Pre-Pluto encounter','Pluto encounter and beyond'});
+fig = figure(1); clf
+left_color = [0 0 0];
+right_color = [0 0 0];
+set(fig, 'defaultAxesColorOrder',[left_color;right_color]);
+yyaxis left
+p1 = semilogy(lightdatenew(lightdatenew~=0),darkcurrnew(darkcurrnew~=0),'b.', 'MarkerSize',15);
+hold on;
+dd = semilogy(darkdate, darkcurrdark, 'r.', 'MarkerSize',15);
+p2 = semilogy(lightdateold(lightdateold~=0),darkcurrold(darkcurrold~=0),'r.', 'MarkerSize',15);
+hold on;
+xline(3463,'k:');
+xlabel('Days from launch');
+ylabel('Dark current (e^-/sec/pixel)');
+yyaxis right
+r1 = scatter(lightdatenew(lightdatenew~=0),lighttempnew(lighttempnew~=0),'MarkerEdgeColor','none');
+r2 = scatter(lightdateold(lightdateold~=0),lighttempold(lighttempold~=0),'MarkerEdgeColor','none');
+r3 = scatter(darkdate, darktemp+273.15, 'MarkerEdgeColor','none');
+ylabel('CCD Temperature (K)');
+legend([p2 p1],{'Pre-Pluto encounter','Pluto encounter and beyond'});
 
 % figure(2); clf
 % plot(lighttemp,darkcurr,'b.');

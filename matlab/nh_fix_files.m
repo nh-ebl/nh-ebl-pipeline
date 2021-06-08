@@ -9,8 +9,11 @@
 
 function nh_fix_files()
 
+%***CAUTION: RUNNING THIS ON ESTABLISHED DATA OVERWRITES DATA MAT FILES***
+% Load old data files and save if not starting from scratch
+
 % get the paths appropriate to this system
-paths = get_paths_new();
+paths = get_paths_old_ghosts();
 
 % get a list of all the image files in the *.fit format
 imagedata = dir(sprintf('%s*.fit',paths.imagedir));
@@ -37,6 +40,9 @@ for ifile=1:size(imagedata)
     % load up the astrometry information
     load(sprintf('%s%s.mat',paths.astrodir,subfile));
     
+    % If modifying established data (and not re-running from scratch), load data file here
+%     load(sprintf('%s%s',datadir,datafiles(ifile).name));
+    
     % append the image data to the data structure
     data.data = image_i;
     
@@ -51,7 +57,7 @@ for ifile=1:size(imagedata)
     data.header.timestamp = timestamp;
     
     % find the field number for this observation
-    fieldnum = get_field(data.astrometry.id_crval1,data.astrometry.id_crval2);
+    fieldnum = get_field(data.astrometry.id_crval1,data.astrometry.id_crval2,paths);
     data.header.fieldnum = fieldnum;
     
     data.header.rawfile = subfile;
@@ -68,8 +74,8 @@ for ifile=1:size(imagedata)
         darkpst = subfile(23:43);
     end
     
-%     darkstring = sprintf('%s%s/%seng_1.fit',paths.engdir,darkpre,darkpst);
-    darkstring = sprintf('%s%s/%seng.fit',paths.engdir,darkpre,darkpst);
+    darkstring = sprintf('%s%s/%seng_1.fit',paths.engdir,darkpre,darkpst);
+%     darkstring = sprintf('%s%s/%seng.fit',paths.engdir,darkpre,darkpst);
     
     
     data.ref.file = darkstring;

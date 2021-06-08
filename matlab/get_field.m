@@ -1,4 +1,4 @@
-function [ field ] = get_field(ra,dec)
+function [ field ] = get_field(ra,dec,paths)
 % Get the field number for a fits file.
 %   Returns the number of the corresponding catalog field based on the ra 
 %   and dec of the input file. The values for each field are based on the
@@ -16,8 +16,6 @@ function [ field ] = get_field(ra,dec)
 % date: May 3, 2016
 % email: pgi8114@rit.edu
 % modified: MZ, Jun 16 2016
-
-  paths = get_paths_new();
 
   load(sprintf('%scataloginfo.mat',paths.catdir)); 
   [~,n] = size(field_number);

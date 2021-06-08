@@ -18,7 +18,7 @@ date_array_mat=[];
 
 for iter=1:numel(duration_array)
     
-    if duration_array(iter)> 5 % pick out images with >1s of exposure
+    if duration_array(iter)> 5 % pick out images with >1s of exposure (changed to 5 sec at some point?)
     %if duration_array(iter) > 0.5 & duration_array(iter) < 10 %for launch data only
         file=file_array(iter).name;
         date=date_array(iter).name;

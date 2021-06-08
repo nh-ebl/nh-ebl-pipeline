@@ -18,7 +18,7 @@ close all
 %
 
 %% Import the data old
-[~, ~, oldghostinfo] = xlsread('/data/symons/NH_old_data/mat/good/old_ghost_info.xlsx','old_ghost_info');
+[~, ~, oldghostinfo] = xlsread('/data/symons/NH_old_data/mat/ghosts/old_ghost_info.xlsx','old_ghost_info');
 oldghostinfo = oldghostinfo(2:end,:);
 oldghostinfo(cellfun(@(x) ~isempty(x) && isnumeric(x) && isnan(x),oldghostinfo)) = {''};
 
@@ -42,7 +42,7 @@ npaths=get_paths_new();
 
 % Load both data directories
 %old
-datafiles = dir(sprintf('%s*.mat',paths.datadir));
+datafiles = dir(sprintf('%s*.mat',paths.datadirghosts));
 %new
 ndatafiles= dir(sprintf('%s*.mat',npaths.datadir));
 
@@ -73,7 +73,7 @@ for ifile=1:size(datafiles,1)
     disp(sprintf('On file %d of %d.',ifile,size(datafiles,1)));
     
     % Load data
-    load(sprintf('%s%s',paths.datadir,datafiles(ifile).name));
+    load(sprintf('%s%s',paths.datadirghosts,datafiles(ifile).name));
     
     % Append ghost x and y position, radius, total position, and if partial
     data.ghost.ghostx = oldghostinfo{ifile,14};

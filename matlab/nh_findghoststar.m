@@ -7,7 +7,7 @@
 % Thayer, June 2019
 %added the RA and DEC variables and recorded their values
 
-function [data, ghostcount] = nh_findghoststar(data, paths, use_gaia)
+function [data, ghostcount, realghostcount] = nh_findghoststar(data, paths, use_gaia)
 
 % load up the corresponding catalog file
 if use_gaia == 1
@@ -47,7 +47,9 @@ brightra=zeros(ncat,1);
 brightdec=zeros(ncat,1);
 raa=zeros(ncat,1);
 decc=zeros(ncat,1);
-
+boxxpix = zeros(ncat,1);
+boxypix = zeros(ncat,1);
+boxmag = zeros(ncat,1);
 
 % loop over each catalog entry;
 for row = 1:ncat
@@ -72,7 +74,7 @@ for row = 1:ncat
             rangeexclude = rangeexclude+1;
         end
         thissg = nanmean(sg);
-        % if all star/galaxy classifications are nan (signifying bright star),
+        % if all star/galaxy classfifications are nan (signifying bright star),
         % assign sg of 1 so bright stars not excluded
         if isnan(B1sg(row)) && isnan(B2sg(row)) && isnan(R1sg(row)) && isnan(R2sg(row)) && isnan(I2sg(row))
             nansgcnt = nansgcnt + 1;
@@ -161,6 +163,11 @@ for row = 1:ncat
         end
 
         if check == 1
+            % save star to list of stars in ghost box
+            boxxpix(row) = xpix;
+            boxypix(row) = ypix;
+            boxmag(row) = thismag;
+            
             % require that the magnitude is within sensible bounds
             if thismag < 8 && ~isnan(thismag)
                 numinbnds = numinbnds + 1;
@@ -187,12 +194,25 @@ quadypix = quadypix(quadypix~=0);
 quadmag = quadmag(quadmag~=0);
 brightra= raa(raa~=0);
 brightdec=decc(decc~=0);
+boxxpix = boxxpix(boxxpix~=0);
+boxypix = boxypix(boxypix~=0);
+boxmag = boxmag(boxmag~=0);
 
 if numinbnds > 0
     ghostcount = 1;
 else
     ghostcount = 0;
 end
+
+% check for logged physical ghost - requires ghost_analysis to have already
+% been run and saved to data - if no data.ghost yet, can't do this
+if strcmp(data.ghost.ghostx , '') == 1 || data.ghost.ghostx == 0
+    realghostcount = 0;
+else
+    realghostcount = 1;
+end
+% set count to 0 if no logged ghost data
+% realghostcount=0;
 
 % disp(min(Gmag))
 
@@ -202,4 +222,7 @@ data.ghost.brightxpix = quadxpix;
 data.ghost.brightypix = quadypix; 
 data.ghost.brightra = raa;
 data.ghost.brightdec = decc;
+data.ghost.boxxpix = boxxpix;
+data.ghost.boxypix = boxypix;
+data.ghost.boxmag = boxmag;
 end

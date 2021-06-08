@@ -11,6 +11,17 @@
 clear all
 close all
 
+%use USNOB1 or Gaia for star masking
+use_gaia = 1; %0 for USNOB1
+new_star_mask = 0; %0 for skipping star masking and using existing mask
+
+%set max mag for masking (mask all stars brighter than this), also
+%calculate gaia isl between this and 20
+max_mag = 21 ; %17.75 old value
+
+%optionally save lists of stars and flux
+save_file = 0; %1 to save
+
 % Retrieve paths for new data
 paths = get_paths_new();
 
@@ -43,7 +54,7 @@ for ifile=1:size(datafiles,1)
     for i=1:length(nsig)
         
         % Run makemask with current N value and retrieve mu
-        [data,mu] = nh_makemask(data,paths,nsig(i));
+        [data,mu] = nh_makemask(data,paths,nsig(i),use_gaia,new_star_mask, max_mag, save_file);
         checkmu(i) = mu;
     end
     
@@ -66,3 +77,6 @@ h = figure(1);
 plot(nsig',mean(dydx,2));
 xlabel('N sigma for clip mask');
 ylabel('Mu after mask');
+%     ext = '.png';
+%     imagename = sprintf('%s%s%s',paths.ghostdiffcompdir,data.header.timestamp,ext);
+%     print(h,imagename, '-dpng');

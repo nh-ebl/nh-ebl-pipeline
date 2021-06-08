@@ -54,19 +54,25 @@ bkgsum = skysum/skymaskarea*aparea;
 % inside ghost
 %Preallocate for edge values of peak histogram value
 minmaxedge = zeros(2,1);
+%Calculate background (mean of unmasked pixels, including masked ghost)
+bkg = mean(mean(data.image.calimage.*~data.mask.onemask));
 %Save only ghost area of image
-ghost = image(mask);
+ghost = image(mask)-bkg;
 %Find indices where pixel values are > 0
 idx = ghost>0;
 %Save the bin edges and bin counts for a histogram of the ghost
-[N,edges] = histcounts(ghost(idx),15);
+[N,edges] = histcounts(ghost(idx));
 %Find the bin with maximum counts
 [M,I] = max(N);
 %Calculate edge values for that bin
 minmaxedge(1,1) = edges(I);
 minmaxedge(2,1) = edges(I+1);
 %Pixel value is average of those bin edges
-pixval = mean(minmaxedge);
+pixval = median(minmaxedge);
+mean(minmaxedge)-median(minmaxedge);
+if pixval == 0.5
+    fprintf('Ghost is not completely masked')
+end
 %Total counts for ghost are pixel value x number of pixels in ghost
 skysub_apsum = pixval*length(values);
 flux = skysub_apsum/data.astrom.exptime;
@@ -80,14 +86,16 @@ info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',nu
 % set(h,'visible','off');
 % g = histogram(ghost(idx),15);
 % title(sprintf('%s',data.header.rawfile));
+% xlabel('Intensity [nW m^{-2} sr^{-1}]');
+% ylabel('N');
 % ext = '.png';
-% imagename = sprintf('%s%s%s',npaths.histdir,data.header.timestamp,ext);
+% imagename = sprintf('%s%s%s',paths.ghosthistdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
 %Plot 'bullseye' of ghost aperture and sky annulus
 % h = figure(1);
 % clf;
-% % set(h,'visible','off');
+% set(h,'visible','off');
 % totalmask = skymask + mask;
 % imagesc(totalmask.*image);
 % pbaspect([1 1 1]);
@@ -98,7 +106,7 @@ info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',nu
 % colorbar; 
 % caxis([-20,20]);
 % grid on;
-
+% 
 % t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on'); 
 % t2.LineStyle = 'none';
 % title(sprintf('%s',data.header.rawfile));
@@ -109,7 +117,7 @@ info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',nu
 %Plot entire image with circle around ghost
 % h = figure(1);
 % clf;
-% set(h,'visible','on');
+% set(h,'visible','off');
 % th = 0:pi/50:2*pi;
 % xunit = rad*cos(th)+sourcex;
 % yunit = rad*sin(th)+sourcey;
@@ -117,7 +125,8 @@ info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',nu
 % hold on;
 % plot(xunit,yunit);
 % pbaspect([1 1 1]);
-% colorbar;
+% a = colorbar;
+% a.Label.String = 'Intensity [nW m^{-2} sr^{-1}]';
 % caxis([-5,5]);
 % t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on');
 % t2.LineStyle = 'none';
@@ -125,6 +134,8 @@ info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',nu
 % colorbar; 
 % grid on;
 % title(sprintf('%s',data.header.rawfile));
+% xlabel('LORRI X Pixels');
+% ylabel('LORRI Y Pixels');
 % ext = '.png';
 % imagename = sprintf('%s%s%s',paths.magdir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
