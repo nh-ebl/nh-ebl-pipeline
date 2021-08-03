@@ -55,11 +55,12 @@ bkgsum = skysum/skymaskarea*aparea;
 %Preallocate for edge values of peak histogram value
 minmaxedge = zeros(2,1);
 %Calculate background (mean of unmasked pixels, including masked ghost)
-bkg = mean(mean(data.image.calimage.*~data.mask.onemask));
+bkg = mean(data.image.calimage(~data.mask.onemask));
 %Save only ghost area of image
-ghost = image(mask)-bkg;
-%Find indices where pixel values are > 0
-idx = ghost>0;
+idx = image~=0;
+ghost = image(mask&idx)-bkg;
+%Find indices where pixel values are not 0 (masked)
+idx = ghost~=0;
 %Save the bin edges and bin counts for a histogram of the ghost
 [N,edges] = histcounts(ghost(idx));
 %Find the bin with maximum counts
@@ -68,7 +69,9 @@ idx = ghost>0;
 minmaxedge(1,1) = edges(I);
 minmaxedge(2,1) = edges(I+1);
 %Pixel value is average of those bin edges
-pixval = median(minmaxedge);
+% pixval = median(minmaxedge);
+% Mean ghost pixel value - hist seems Poisson-like
+pixval = mean(ghost(idx));
 mean(minmaxedge)-median(minmaxedge);
 if pixval == 0.5
     fprintf('Ghost is not completely masked')
@@ -84,7 +87,13 @@ info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',nu
 % h = figure(1);
 % clf;
 % set(h,'visible','off');
-% g = histogram(ghost(idx),15);
+% g = histogram(ghost(idx));
+% hold on;
+% xl1 = xline(median(ghost(idx)),'r');
+% xl1.LineWidth = 2;
+% xl2 = xline(mean(ghost(idx)),'b');
+% xl2.LineWidth = 2;
+% legend([xl1,xl2],{'Median','Mean'},'Location','northeast');
 % title(sprintf('%s',data.header.rawfile));
 % xlabel('Intensity [nW m^{-2} sr^{-1}]');
 % ylabel('N');
@@ -115,7 +124,7 @@ info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',nu
 % print(h,imagename, '-dpng');
 
 %Plot entire image with circle around ghost
-% h = figure(1);
+% h = figure(2);
 % clf;
 % set(h,'visible','off');
 % th = 0:pi/50:2*pi;
@@ -127,13 +136,15 @@ info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',nu
 % pbaspect([1 1 1]);
 % a = colorbar;
 % a.Label.String = 'Intensity [nW m^{-2} sr^{-1}]';
-% caxis([-5,5]);
-% t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on');
-% t2.LineStyle = 'none';
-% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-% colorbar; 
-% grid on;
-% title(sprintf('%s',data.header.rawfile));
+% caxis([-250,250]);
+% % t2 = annotation('textbox',[0.13,0.075,0,0],'string',info,'FitBoxToText','on');
+% % t2.LineStyle = 'none';
+% % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+% % colorbar; 
+% % grid on;
+% % title(sprintf('%s',data.header.rawfile));
+% title(sprintf('Ghost Mean: %.2f Bkg: %.2f Sub Mean: %.2f Num Pix: %d Ghost Tot: %.2f',mean(image(mask & image~=0)),bkg,pixval,length(values),skysub_apsum));
+% set(gca,'YDir','normal');
 % xlabel('LORRI X Pixels');
 % ylabel('LORRI Y Pixels');
 % ext = '.png';

@@ -1,10 +1,10 @@
 function select_regist_pipeline(phase1)
 
 % path to main folder
-path = '/data/symons/nh_data/'
+path = '/data/symons/nh_data_new/';
 
-phase_array = {phase1}
-size(phase_array)
+phase_array = {phase1};
+size(phase_array);
 
 for i=1:1
     phase = char(phase_array(i));
@@ -14,7 +14,7 @@ for i=1:1
     
 %     %construct duration data
 %     sprintf('Collecting exposure time data...')
-    duration_cust(phase,path);
+%     duration_cust(phase,path);
 %     texp_vs_t_ext(phase,path);
 %     texp_vs_t(phase,path);
 %     sprintf('Duration task completed.')
@@ -47,9 +47,9 @@ for i=1:1
     
 %     % register RA and dec
 %     sprintf('Performing astrometric registration...')
-% %     ra_dec(phase,path)
-% %     ra_dec_mat_to_dat(phase,path)
-%     astro_regist(phase,path)
+%     ra_dec(phase,path)
+%     ra_dec_mat_to_dat(phase,path)
+    astro_regist(phase,path)
 %     sprintf('Registration task completed')
     
     % mask_pipeline(sprintf('regist'),path)

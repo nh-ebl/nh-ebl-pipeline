@@ -1,12 +1,17 @@
-function usnoisl = nh_usnoisl(data, paths, use_gaia, wing_mag, save_file)
+function usnoisl = nh_usnoisl(data, paths, use_gaia, wing_mag, save_file, flag_method)
 
 resize = 10;
 
 datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
-% load('lookup/nh_lorri_psf.mat');
-
-thispsf = data.psf.modelpsf;
+% If new method, load per data file psf
+if strcmp(flag_method,'new') == 1
+    thispsf = data.psf.modelpsf;
+    % If old method, load single saved old psf
+elseif (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'old') == 1)
+    load('lookup/nh_lorri_psf.mat');
+    thispsf = psf.modelpsf;
+end
 
 starimage = zeros(256.*resize);
 wingimage = zeros(256.*resize);
@@ -76,10 +81,13 @@ end
 starimage_conv = conv2(starimage,thispsf,'same');
 wingimage_conv = conv2(wingimage,thispsf,'same');
 
-% starimage_dec = resize.*imresize(starimage_conv,1./resize,'nearest');
-% wingimage_dec = resize.*imresize(wingimage_conv,1./resize,'nearest');
-starimage_dec = RegridderZen(starimage_conv,ceil(size(starimage_conv)*1./resize));
-wingimage_dec = RegridderZen(wingimage_conv,ceil(size(wingimage_conv)*1./resize));
+if strcmp(flag_method,'old') == 1
+    starimage_dec = resize.*imresize(starimage_conv,1./resize,'nearest');
+    wingimage_dec = resize.*imresize(wingimage_conv,1./resize,'nearest');
+elseif (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
+    starimage_dec = RegridderZen(starimage_conv,ceil(size(starimage_conv)*1./resize));
+    wingimage_dec = RegridderZen(wingimage_conv,ceil(size(wingimage_conv)*1./resize));
+end
 
 starimage_cal = starimage_dec .* data.cal.nu .* 1e-26 .* 1e9 ./ ...
     data.cal.omega_pix;

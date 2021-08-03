@@ -5,6 +5,7 @@ function paths=get_paths_old()
    paths.astrodir = '/data/symons/NH_old_data/NH/regist/good/';
    paths.catdir = '/data/symons/NH_old_data/USNOB1_old/mat_files/';
    paths.maskdir = '/data/symons/NH_old_data/masks/';
+   paths.selectmaskdir = '/data/symons/NH_old_data/select_masks/';
    paths.ghostdir = '/data/symons/NH_old_data/ghosts/';
    paths.magdir = '/data/symons/NH_old_data/mags/';
    paths.histdir = '/data/symons/NH_old_data/hist/';
@@ -16,6 +17,6 @@ function paths=get_paths_old()
    paths.mandir = '/data/symons/NH_old_data/manmask/';
    paths.gscdir = '/data/symons/NH_old_data/GSCII/';
    paths.gaiadir = '/data/symons/NH_old_data/gaia/';
-   %paths.irisdir = '/data/zemcov/NH/IRIS/';
+   paths.irisdir = '/data/symons/NH_old_data/IRIS/';
    
 end

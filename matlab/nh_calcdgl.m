@@ -1,51 +1,53 @@
-function data = nh_calcdgl(data, paths)
+function data = nh_calcdgl(data, paths, flag_method)
   
   dglparams = nh_get_dgl_params();
   
-%   %load in iris maps
-%   irismap = fitsread(sprintf('%siris_%02d_fx.fits',...
-%       paths.irisdir,data.header.fieldnum));
-%   irisra = fitsread(sprintf('%siris_%02d_ra.fits',...
-%       paths.irisdir,data.header.fieldnum));
-%   irisdc = fitsread(sprintf('%siris_%02d_dc.fits',...
-%       paths.irisdir,data.header.fieldnum));
-%   
-%   %create interpolation of iris map and lorri field
-%   F = TriScatteredInterp(irisra(:),irisdc(:),irismap(:));
-%   irisim = F(data.astrometry.ra,data.astrometry.dec);
-  
-  %check if planck maps are already made, if not call python script that makes
-  %them (isfile returns 1 if file exists)
-  if( ~(isfile(sprintf('%splanck_%s_fx.fits',paths.planckdir,data.header.timestamp)) && ...
-      isfile(sprintf('%splanck_%s_ra.fits',paths.planckdir,data.header.timestamp)) && ...
-      isfile(sprintf('%splanck_%s_dc.fits',paths.planckdir,data.header.timestamp))) )
-    %if at least one of the files isn't there, call python script to make
-    %them all
-    disp('No Planck file found, retrieving new Planck file.')
-    pydir = '/home/symons/nh_ebl_pipeline/py/planck/'; %where the python script is
-    pyfile = 'get_planck.py'; %name of the python file to run
-    imagefile = [paths.imagedir,'regist_',data.header.rawfile]; %fits file to send to the python script
-    %write the imagefile path in a text file to where the python script is
-    fileID = fopen([pydir,'imagefile.txt'],'w'); %open the file to be written
-    fprintf(fileID,'%s',imagefile); %write imagefile path
-    fclose(fileID); %close file
-    %call python script
-    system(['python ',pydir,pyfile]);
-    %get the planck files and move them to their data directory
-    movefile([pydir,'planck_',data.header.timestamp,'_fx.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_fx.fits']); %move from pydir to paths.planckdir
-    movefile([pydir,'planck_',data.header.timestamp,'_ra.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_ra.fits']); %move from pydir to paths.planckdir
-    movefile([pydir,'planck_',data.header.timestamp,'_dc.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_dc.fits']); %move from pydir to paths.planckdir
-  end
+  if strcmp(flag_method,'new') == 1
+      %check if planck maps are already made, if not call python script that makes
+      %them (isfile returns 1 if file exists)
+      if( ~(isfile(sprintf('%splanck_%s_fx.fits',paths.planckdir,data.header.timestamp)) && ...
+          isfile(sprintf('%splanck_%s_ra.fits',paths.planckdir,data.header.timestamp)) && ...
+          isfile(sprintf('%splanck_%s_dc.fits',paths.planckdir,data.header.timestamp))) )
+        %if at least one of the files isn't there, call python script to make
+        %them all
+        disp('No Planck file found, retrieving new Planck file.')
+        pydir = '/home/symons/nh_ebl_pipeline/py/planck/'; %where the python script is
+        pyfile = 'get_planck.py'; %name of the python file to run
+        imagefile = [paths.imagedir,'regist_',data.header.rawfile]; %fits file to send to the python script
+        %write the imagefile path in a text file to where the python script is
+        fileID = fopen([pydir,'imagefile.txt'],'w'); %open the file to be written
+        fprintf(fileID,'%s',imagefile); %write imagefile path
+        fclose(fileID); %close file
+        %call python script
+        system(['python ',pydir,pyfile]);
+        %get the planck files and move them to their data directory
+        movefile([pydir,'planck_',data.header.timestamp,'_fx.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_fx.fits']); %move from pydir to paths.planckdir
+        movefile([pydir,'planck_',data.header.timestamp,'_ra.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_ra.fits']); %move from pydir to paths.planckdir
+        movefile([pydir,'planck_',data.header.timestamp,'_dc.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_dc.fits']); %move from pydir to paths.planckdir
+      end
 
-  %load in planck maps
-  irismap = fitsread(sprintf('%splanck_%s_fx.fits',...
-      paths.planckdir,data.header.timestamp));
-  irisra = fitsread(sprintf('%splanck_%s_ra.fits',...
-      paths.planckdir,data.header.timestamp));
-  irisdc = fitsread(sprintf('%splanck_%s_dc.fits',...
-      paths.planckdir,data.header.timestamp));
-  
-  irisim = irismap;
+      %load in planck maps
+      irismap = fitsread(sprintf('%splanck_%s_fx.fits',...
+          paths.planckdir,data.header.timestamp));
+      irisra = fitsread(sprintf('%splanck_%s_ra.fits',...
+          paths.planckdir,data.header.timestamp));
+      irisdc = fitsread(sprintf('%splanck_%s_dc.fits',...
+          paths.planckdir,data.header.timestamp));
+      irisim = irismap;
+
+elseif (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'old') == 1)
+      %load in iris maps
+      irismap = fitsread(sprintf('%siris_%02d_fx.fits',...
+          paths.irisdir,data.header.fieldnum));
+      irisra = fitsread(sprintf('%siris_%02d_ra.fits',...
+          paths.irisdir,data.header.fieldnum));
+      irisdc = fitsread(sprintf('%siris_%02d_dc.fits',...
+          paths.irisdir,data.header.fieldnum));
+
+      %create interpolation of iris map and lorri field
+      F = TriScatteredInterp(irisra(:),irisdc(:),irismap(:));
+      irisim = F(data.astrometry.ra,data.astrometry.dec);
+  end
   
   %calculate mean and std of iris map
   ohm_mean = nanmean(irisim(:));

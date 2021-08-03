@@ -1,4 +1,4 @@
-function data = nh_trilegalisl(paths, data, tri_gaia, tri_mag, max_mag, save_file)
+function data = nh_trilegalisl(paths, data, tri_gaia, tri_mag, max_mag, save_file, flag_method)
 
 fieldnum = data.header.fieldnum;
 
@@ -31,7 +31,7 @@ end
 
 nfiles = numel(V);
 
-isltot = zeros(nfiles,1); 
+isltot = zeros(nfiles,1);
 islmasked = zeros(nfiles,1);
 islghost = zeros(nfiles,1);
 
@@ -39,14 +39,22 @@ for jfile=1:nfiles
     
     mag = V(jfile).mlf;
     % save trilegal mags to text file
-    dlmwrite(['trimag',num2str(jfile),'.txt'],mag,'delimiter','\n','precision',8)
+    %     dlmwrite(['trimag',num2str(jfile),'.txt'],mag,'delimiter','\n','precision',8)
     
     % step 3: convert from LORRI-band mag to flux
-    Fcat = data.cal.vzero .* 10.^(-V(jfile).mlf/2.5);
+    if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
+        Fcat = data.cal.vzero .* 10.^(-V(jfile).mlf/2.5);
+    elseif strcmp(flag_method, 'old') == 1
+        Fcat = 3055 .* 10.^(-V(jfile).mlf/2.5);
+    end
     
     % step 4: make a mask function
     if tri_gaia == 0
-        whpl = V(jfile).V > max_mag;
+        if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
+            whpl = V(jfile).V > max_mag;
+        elseif strcmp(flag_method, 'old') == 1
+            whpl = V(jfile).V > data.mask.maxmag;
+        end
     elseif tri_gaia == 1
         whpl = V(jfile).V > tri_mag;
     end
@@ -67,17 +75,17 @@ for jfile=1:nfiles
     
 end
 
-star_list = horzcat(magcat,(lIlcat.*(data.astrom.imagew.*data.astrom.imageh)));
-
-if tri_gaia == 0
-    filename = strcat(num2str(max_mag),'_tri_only.mat');
-elseif tri_gaia == 1
-    filename = strcat(num2str(tri_mag),'_tri.mat');
-end
-
-if save_file == 1
-    save(filename,'star_list');
-end
+% star_list = horzcat(magcat,(lIlcat.*(data.astrom.imagew.*data.astrom.imageh)));
+%
+% if tri_gaia == 0
+%     filename = strcat(num2str(max_mag),'_tri_only.mat');
+% elseif tri_gaia == 1
+%     filename = strcat(num2str(tri_mag),'_tri.mat');
+% end
+%
+% if save_file == 1
+%     save(filename,'star_list');
+% end
 
 islout.isltotmean = mean(isltot);
 islout.isltoterr = std(isltot);
@@ -85,17 +93,17 @@ islout.isltoterr = std(isltot);
 islout.islmaskedmean = mean(islmasked); %this is ISL
 islout.islmaskederr = std(islmasked);
 
-% Calculate total ISL from stars with Gaia mag > 8 (used for diffuse ghost)
-totislghost = mean(islghost);
-% Calculate estimate of expected summed diffuse ghost contribution based on
-% slope of ghost sb vs. star sb
-ghostsbcomp = data.ghost.diffuseslope*totislghost;
-% Compare to summed diffuse ghost sb
-ghostsbdiff = data.ghost.diffusesub - ghostsbcomp;
-% Save comparison to data
-data.ghost.diffuseisl = totislghost;
-data.ghost.diffusecomp = ghostsbcomp;
-data.ghost.diffusediff = ghostsbdiff;
+% % Calculate total ISL from stars with Gaia mag > 8 (used for diffuse ghost)
+% totislghost = mean(islghost);
+% % Calculate estimate of expected summed diffuse ghost contribution based on
+% % slope of ghost sb vs. star sb
+% ghostsbcomp = data.ghost.diffuseslope*totislghost;
+% % Compare to summed diffuse ghost sb
+% ghostsbdiff = data.ghost.diffusesub - ghostsbcomp;
+% % Save comparison to data
+% data.ghost.diffuseisl = totislghost;
+% data.ghost.diffusecomp = ghostsbcomp;
+% data.ghost.diffusediff = ghostsbdiff;
 
 % fileout = sprintf('%sisl/%s',paths.tridir,datafiles(ifile).name);
 %

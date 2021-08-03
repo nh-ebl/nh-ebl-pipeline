@@ -6,7 +6,14 @@
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [data,mu] = nh_makemask(data,paths,nsig,use_gaia,new_star_mask,max_mag,save_file)
+function [data,mu] = nh_makemask(data,paths,nsig,use_gaia,new_star_mask,max_mag,save_file,flag_method,errflag_mags)
+
+% read in the .fits data for the calibrated image file
+imagename = ['regist_',data.header.rawfile];
+image_i = fitsread(sprintf('%s%s',paths.imagedir,imagename));
+
+% read in data.data to replace possibly modified version from earlier run
+data.data = image_i;
 
 %% here begins the star catalog masking
 
@@ -37,7 +44,13 @@ clipmask = zeros(xdim,ydim);
 
 % the maximum magnitude of star to mask - this should be a value that
 % gives back approximately 50% of pixels masked, and as large as possible
-max_mag = max_mag; %old way: 16.5 + 2.5 * log10(sqrt(data.astrometry.id_exptime));
+if strcmp(flag_method,'new') == 1
+    max_mag = max_mag; %old way: 16.5 + 2.5 * log10(sqrt(data.astrometry.id_exptime));
+elseif strcmp(flag_method, 'old') == 1
+    max_mag = 17.75;
+elseif strcmp(flag_method, 'old_corr') == 1
+    max_mag = 16.5 + 2.5 * log10(sqrt(data.astrometry.id_exptime));
+end
 
 %%%%%%%%%%%%%%%% old stuff
 %Set values for radius calculation: r(mag) = -alpha(mag - max_mag)+min_r
@@ -172,8 +185,12 @@ if new_star_mask == 1
             
             %mags don't seem to have any wild values, so we'll use all of
             %them without restriction
-            thismag = Gmag(row); %+ randn(1) .* 0.25; %need to know what is possible gaia mag error to change this value
-            
+            if errflag_mags == 1
+                thismag = Gmag(row) + Gmagerr(row)*randn(1); %If including mag error, include up to the full reported Gaia error with Gaussian probability
+            elseif errflag_mags == 0
+                thismag = Gmag(row); %+ randn(1) .* 0.25; %need to know what is possible gaia mag error to change this value
+            end
+                
             allmags(row) = thismag;
             
             %find x/y coordinate of the object
@@ -302,37 +319,76 @@ end
 %% thus ends the manual masking
 %% here begins the optical ghost masking
 
-% If image has a star > mag 8 in range of causing a ghost, mask the ghost
-
-if data.ghost.brightmag(1,1) > 0
-    [ghostmask,data] = nh_ghostmask(data,paths);
+if strcmp(flag_method,'new') == 1
+    % If image has a star > mag 8 in range of causing a ghost, mask the ghost
+    if data.ghost.brightmag(1,1) > 0
+        [ghostmask,data] = nh_ghostmask(data,paths);
+    end
+else
+    ghostmask = zeros(256);
 end
 
-    
-    %%%%%%%%%%%%%%%%%%
-    %% thus ends the optical ghost masking
-    %% here begins the static masking
-    
-    edgelength = 5;
-    statmask(1:edgelength,:) = 1;
-    statmask(256-edgelength+1:256,:) = 1;
-    statmask(:,1:edgelength) = 1;
-    statmask(:,256-edgelength+1:256) = 1;
-    %statmask(128-16:128+16,128-16:128+16) = 1;
-    
-    if 0
-        % this bit is in case we want to find out what happens if we mask hard for
-        % optical ghosts
-        [xp,yp] = meshgrid([1:size(data.data,1)]-256./2);
-        rad = sqrt(xp.^2 + yp.^2);
-        whpl = rad <= 1.5.*50; % mask 50% futher than necessary based on Cheng et
-        %  al description
-        statmask(whpl) = 1;
+%%%%%%%%%%%%%%%%%%
+%% thus ends the optical ghost masking
+%% here begins the static masking
+
+edgelength = 5;
+statmask(1:edgelength,:) = 1;
+statmask(256-edgelength+1:256,:) = 1;
+statmask(:,1:edgelength) = 1;
+statmask(:,256-edgelength+1:256) = 1;
+%statmask(128-16:128+16,128-16:128+16) = 1;
+
+if 0
+    % this bit is in case we want to find out what happens if we mask hard for
+    % optical ghosts
+    [xp,yp] = meshgrid([1:size(data.data,1)]-256./2);
+    rad = sqrt(xp.^2 + yp.^2);
+    whpl = rad <= 1.5.*50; % mask 50% futher than necessary based on Cheng et
+    %  al description
+    statmask(whpl) = 1;
+end
+
+%% that's the static mask (right now just clips out edge pixels)
+%% here begins the clip masking
+%% first, compute the mean and std of the unmasked pixels
+
+if strcmp(flag_method,'new') == 1
+    % 2-round clip mask
+    for iter=1:2
+        if iter == 1
+            clipmean = mean(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+            clipstd = std(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+            % now find all unmasked pixels > 3 sigma away from the mean
+            whpl = ((data.data > clipmean + nsig.*clipstd) | (data.data < clipmean - nsig.*clipstd)) &...
+                ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+            clipmask(whpl) = 1;
+        elseif iter > 1
+            clipmean = mean(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+            clipstd = std(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+            % now find all unmasked pixels > 3 sigma away from the mean
+            whpl = ((data.data > clipmean + nsig.*clipstd) | (data.data < clipmean - nsig.*clipstd)) &...
+                ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
+            clipmask(whpl) = 1;
+        end
     end
     
-    %% that's the static mask (right now just clips out edge pixels)
-    %% here begins the clip masking
-    %% first, compute the mean and std of the unmasked pixels
+elseif strcmp(flag_method,'old') == 1
+    clipmean = mean(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+    clipstd = std(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+    
+    % old way - seems wrong - instead of masking data >/< mean +/- nsig*std it
+    % masks abs(data) > mean + nsig*std, this assumes mean is ~0 and
+    % gaussian is symmetric around 0, but mean is positive so mean - nsig*std not
+    % the same as mean + nsig*std
+    whpl = (abs(data.data) > clipmean + nsig.*clipstd) & ...
+        ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+    
+    % and set the mask bit
+    clipmask(whpl) = 1;
+    
+elseif strcmp(flag_method,'old_corr') == 1
+    
     clipmean = mean(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
     clipstd = std(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
     
@@ -340,190 +396,228 @@ end
     whpl = ((data.data > clipmean + nsig.*clipstd) | (data.data < clipmean - nsig.*clipstd)) &...
         ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
     
-%     % Median Option see https://stackoverflow.com/questions/11686720/is-there-a-numpy-builtin-to-reject-outliers-from-a-list
-%     clipmedian = median(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask)); %  Get the median of the data
-%     clipmediandist = abs(clipmedian - data.data); % Get the absolute distance between the data and the median of the data
-%     clipmediandistcompare = clipmediandist/clipmedian; % Scale the dist from the median by the median of the dist from the median
-%     whpl = (clipmediandistcompare > 3.5) &... % Get where the scaled dist is greater than the comparator value
-%         ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;        
+    
+    %     % Median Option see https://stackoverflow.com/questions/11686720/is-there-a-numpy-builtin-to-reject-outliers-from-a-list
+    %     clipmedian = median(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask)); %  Get the median of the data
+    %     clipmediandist = abs(clipmedian - data.data); % Get the absolute distance between the data and the median of the data
+    %     clipmediandistcompare = clipmediandist/clipmedian; % Scale the dist from the median by the median of the dist from the median
+    %     whpl = (clipmediandistcompare > 3.5) &... % Get where the scaled dist is greater than the comparator value
+    %         ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
     
     % whpl = (abs(data.data) > 10) & ...
     %     ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+    
     % and set the mask bit
     clipmask(whpl) = 1;
-    
-    %%%%%%%%%%%%%%%%%
-    %%  now create the union of all of the masks as a bitwise mask
-    whpl = starmask == 1;
-    fullmask(whpl) = 1;
-    ghostlessmask(whpl) = 1;
-    whpl = linemask == 1;
-    fullmask(whpl) = fullmask(whpl) + 2;
-    ghostlessmask(whpl) = ghostlessmask(whpl) + 2;
-    whpl = clipmask == 1;
-    fullmask(whpl) = fullmask(whpl) + 4;
-    ghostlessmask(whpl) = ghostlessmask(whpl) + 4;
-    whpl = statmask == 1;
-    fullmask(whpl) = fullmask(whpl) + 8;
-    ghostlessmask(whpl) = ghostlessmask(whpl) + 8;
-    whpl = manmask == 1;
-    fullmask(whpl) = fullmask(whpl) + 16;
-    ghostlessmask(whpl) = ghostlessmask(whpl) + 16;
-    whpl = ghostmask == 1;
-    fullmask(whpl) = fullmask(whpl) + 32;
-    
-    % and so that we have it to hand, compute the mean of the fully masked pixels
-    datmean = mean(data.data(~fullmask)./ data.astrom.exptime);
-    datstd = std(data.data(~fullmask)./ data.astrom.exptime);
-    
-    % create a mask which is just 1 everywhere there is a bad pixel, no matter
-    % the reason
-    onemask = fullmask > 0;
-    oneghostlessmask = ghostlessmask > 0;
-    
-    % compute the mask fraction
-    maskfrac = sum(onemask(:))./256.^2;
-    
-    % dump all of this information into a structure
-    mask.mask = fullmask;
-    mask.starmask = starmask;
-    mask.linemask = linemask;
-    mask.clipmask = clipmask;
-    mask.statmask = statmask;
-    mask.manmask = manmask;
-    mask.ghostmask = ghostmask;
-    mask.oneghostlessmask = oneghostlessmask;
-    mask.onemask = onemask;
-    mask.maskfrac = maskfrac;
-    mask.maxmag = max_mag;
-    
-    % and append it to the data structure
-    data.mask = mask;
-    data.stats.maskmean = datmean;
-    data.stats.maskstd = datstd;
-    data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
-    
-    %Plot masked data and non-masked data on same plot
-    % ax1 = subplot(1,2,1);
-    % imagesc(data.data.*~data.mask.onemask)
-    % colorbar
-    % caxis([-5,100])
-    % caxis('auto')
-    
-    % ax2 = subplot(1,2,2);
-    % imagesc(data.data)
-    % colorbar
-    % caxis([-5,100])
-    % caxis(ax1.CLim)
-    
-    %Plot masked data with optional mouse movement returns value
-%         h = figure(1);
-%         clf;
-%         imagesc(data.data.*~data.mask.onemask)
-%         set(h,'visible','off');
-%         % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-%         a = colorbar;
-%         a.Label.String = 'Intensity [DN]';
-%         pbaspect([1 1 1]);
-%         xlabel('LORRI X Pixels');
-%         ylabel('LORRI Y Pixels');
-% %         caxis([-10,10]);
+end
+
+% Turn off clip mask
+%     clipmask = zeros(size(data.data));
+
+%%%%%%%%%%%%%%%%%
+%%  now create the union of all of the masks as a bitwise mask
+whpl = starmask == 1;
+fullmask(whpl) = 1;
+ghostlessmask(whpl) = 1;
+whpl = linemask == 1;
+fullmask(whpl) = fullmask(whpl) + 2;
+ghostlessmask(whpl) = ghostlessmask(whpl) + 2;
+whpl = clipmask == 1;
+fullmask(whpl) = fullmask(whpl) + 4;
+ghostlessmask(whpl) = ghostlessmask(whpl) + 4;
+whpl = statmask == 1;
+fullmask(whpl) = fullmask(whpl) + 8;
+ghostlessmask(whpl) = ghostlessmask(whpl) + 8;
+whpl = manmask == 1;
+fullmask(whpl) = fullmask(whpl) + 16;
+ghostlessmask(whpl) = ghostlessmask(whpl) + 16;
+whpl = ghostmask == 1;
+fullmask(whpl) = fullmask(whpl) + 32;
+
+% and so that we have it to hand, compute the mean of the fully masked pixels
+datmean = mean(data.data(~fullmask)./ data.astrom.exptime);
+datstd = std(data.data(~fullmask)./ data.astrom.exptime);
+
+% create a mask which is just 1 everywhere there is a bad pixel, no matter
+% the reason
+onemask = fullmask > 0;
+oneghostlessmask = ghostlessmask > 0; % mask without ghostmask, used in ghost_analysis for diff ghost fit 
+
+% % Calculate peak hist of masked image
+% %Preallocate for edge values of peak histogram value
+% minmaxedge = zeros(2,1);
+% %Save only ghost area of image
+% im = data.data.*~data.mask.onemask;
+% %Find indices where pixel values are > 0
+% idx = im>0;
+% %Save the bin edges and bin counts for a histogram of the ghost
+% [N,edges] = histcounts(im(idx));
+% [~,I] = max(N); % Find bin with max counts
+% minmaxedge(1,1) = edges(I); % Get the edge values for that bin
+% minmaxedge(2,1) = edges(I+1);
+% idx2 = (im >= edges(I)) & im < (edges(I+1)); % Get the values in the bin edges (uses histcount bin edge logic)
+% [N,edges] = histcounts(im(idx&idx2)); % Redo histcounts with only edges, let auto alg work
+% edges = linspace(edges(1),edges(end),length(edges)*10); % Boost edge fidelity
+% %     bin_width = mean(diff(edges))
+% [N,edges] = histcounts(im(idx&idx2),edges); % Redo histcounts again with higher fidelity bin edges based on auto alg
+% %Find the bin with maximum counts
+% [M,I] = max(N);
+% %Calculate edge values for that bin
+% minmaxedge(1,1) = edges(I);
+% minmaxedge(2,1) = edges(I+1);
+% %Pixel value is average of those bin edges
+% most_prob_val = median(minmaxedge)/data.astrom.exptime;
+%     datmean2 = mean(data.data(~fullmask&idx)./ data.astrom.exptime)
+%     datmedian = median(data.data(~fullmask&idx)./ data.astrom.exptime)
+
+% compute the mask fraction
+maskfrac = sum(onemask(:))./256.^2;
+
+% dump all of this information into a structure
+mask.mask = fullmask;
+mask.starmask = starmask;
+mask.linemask = linemask;
+mask.clipmask = clipmask;
+mask.statmask = statmask;
+mask.manmask = manmask;
+mask.ghostmask = ghostmask;
+mask.oneghostlessmask = oneghostlessmask;
+mask.onemask = onemask;
+mask.maskfrac = maskfrac;
+mask.maxmag = max_mag;
+
+% and append it to the data structure
+data.mask = mask;
+data.stats.maskmean = datmean;
+% data.stats.mostprob = most_prob_val;
+data.stats.maskstd = datstd;
+data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
+
+%Plot masked data and non-masked data on same plot
+% ax1 = subplot(1,2,1);
+% imagesc(data.data.*~data.mask.onemask)
+% colorbar
+% caxis([-5,100])
+% caxis('auto')
+
+% ax2 = subplot(1,2,2);
+% imagesc(data.data)
+% colorbar
+% caxis([-5,100])
+% caxis(ax1.CLim)
+
+%Plot masked data with optional mouse movement returns value
+% h = figure(1);
+% clf;
+% imagesc(data.data.*~data.mask.onemask)
+% set(h,'visible','off');
+% % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+% a = colorbar;
+% a.Label.String = 'Intensity [DN]';
+% pbaspect([1 1 1]);
+% xlabel('LORRI X Pixels');
+% ylabel('LORRI Y Pixels');
+% caxis([-10,10]);
 % %         title(sprintf('%s',data.header.rawfile));
-%         % grid minor;
-%         title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
-%         set(gca,'YDir','normal');
-%         ext = '.png';
-%         imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
-%         print(h,imagename, '-dpng');
-    
-    % Plot histogram of masked image using hist fit and overplotting mean +/-
-    % sigma
-    maskim = data.data.*~data.mask.onemask;
-    maskim(maskim==0) = NaN;
-    % bins = 40;
-    
-    % h = figure(1);
-    % clf;
-    % set(h,'visible','on');
-    % histfitCustom(maskim(:),bins,'normal');
-    % title(sprintf('%s',data.header.rawfile));
-    % ylimMax = ylim; %get the ylims (min and max)
-    % ylimMax = ylimMax(2); %get the actual max
-    % ylim( [0.5, ylimMax] ); %force 0
-    % set(gca,'YScale','log');
-    % hold on
-    % plot( repmat(nanmean(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
-    % plot( repmat(nanmean(maskim(:))+nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
-    % plot( repmat(nanmean(maskim(:))-nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
-    % hold off
-    % ext = '.png';
-    % imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
-    % print(h,imagename, '-dpng');
-    
-    %Calculate fit to data
-    % pd = fitdist(maskim(:),'normal');
-    % mu = pd.mu;
-    % Calculate the theoretical PDF from the fit parameters
-    % x_range = linspace(floor(nanmin(nanmin(maskim))),ceil(nanmax(nanmax(maskim))),100);
-    % probability_predicted = pdf(pd,x_range);
-    
-    % Plot histogram with calculated fit over the top
-    % figure
-    % % histogram(maskim(:),60,'Normalization','probability')
-    % g = histogram(maskim(:),bins);
-    % hold on
-    % h = plot(x_range,probability_predicted*max(g.Values)/max(probability_predicted),'.-','LineWidth',3);
-    % set(gca,'YScale','log');
-    % ylimMax = ylim; %get the ylims (min and max)
-    % ylimMax = ylimMax(2); %get the actual max
-    % ylim( [0.5, ylimMax] ); %force 0
-    % xlim([-25,25]);
-    
-    %Plot histfit and calculated fit together
-    % h = figure;
-    % clf;
-    % set(h,'visible','off');
-    % % histfit(maskim(:),bins,'normal');
-    % g = histfitCustom(maskim(:),bins,'normal');
-    % hold on
-    % plot(x_range,probability_predicted*max(g(1).YData)/max(probability_predicted),'.-','LineWidth',3);
-    % set(gca,'YScale','log');
-    % title(sprintf('%s',data.header.rawfile));
-    % ylim( [0.5, 100000] ); %force 0
-    % xlim([-50,50]);
-    % ext = '.png';
-    % imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
-    % print(h,imagename, '-dpng');
-    
-    
-    %inspired by https://www.mathworks.com/matlabcentral/answers/313862-how-to-plot-a-normal-distribution-graph-to-fit-a-bar-graph
-    mu = nanmean(maskim(:));
-    % sd = nanstd(maskim(:));
-    % fun_dist_norm = @(mu,sd,x) exp(-(x-mu).^2 ./ (2*sd^2)) /(sd*sqrt(2*pi)); % Function for Standard Normal Distribution
-    %
-    % [counts,edges] = histcounts(maskim(:), bins);  % Histogram
-    %
-    % centers = edges(1:length(edges)-1) + mean(diff(edges))/2; % Calculate centers
-    %
-    % centers_xVect = linspace(min(centers), max(centers),500); % x-vector for plotting
-    %
-    % norm_dist = fun_dist_norm(mu,sd,centers_xVect); % Calculate Standard Normal Distribution
-    %
-    % h = figure;
-    % bar(centers, counts,1); % Plot Histogram
-    % hold on
-    % plot(centers_xVect, norm_dist*max(counts)/max(norm_dist), '.-', 'LineWidth',2); % Plot Scaled Standard Normal Distribution
-    % hold off
-    % set(gca,'YScale','log');
-    % ylimMax = ylim; %get the ylims (min and max)
-    % ylimMax = ylimMax(2); %get the actual max
-    % ylim( [0.5, ylimMax] );
-    % xlim([-25,25]);
-    % grid
-    %see
-    %https://www.mathworks.com/matlabcentral/answers/175958-function-pdf-doesn-t-return-pdf-values
-    %as to why norm_dist (or histfit for that matter) don't return perfectly
-    %scaled results
-    
-    
+% % grid minor;
+% % title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
+% title(sprintf('Field: %d',data.header.fieldnum));
+% set(gca,'YDir','normal');
+% ext = '.png';
+% % imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
+% imagename = sprintf('%s%s%s',paths.selectmaskdir,data.header.timestamp,ext);
+% print(h,imagename, '-dpng');
+
+% Plot histogram of masked image using hist fit and overplotting mean +/-
+% sigma
+maskim = data.data.*~data.mask.onemask;
+maskim(maskim==0) = NaN;
+bins = 40;
+
+%     h = figure(1);
+%     clf;
+%     set(h,'visible','on');
+%     histfitCustom(maskim(:),bins,'normal');
+%     title(sprintf('%s',data.header.rawfile));
+%     ylimMax = ylim; %get the ylims (min and max)
+%     ylimMax = ylimMax(2); %get the actual max
+%     ylim( [0.5, ylimMax] ); %force 0
+%     set(gca,'YScale','log');
+%     hold on
+%     plot( repmat(nanmean(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
+%     plot( repmat(nanmean(maskim(:))+nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
+%     plot( repmat(nanmean(maskim(:))-nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
+%     hold off
+% ext = '.png';
+% imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
+% print(h,imagename, '-dpng');
+
+%Calculate fit to data
+pd = fitdist(maskim(:),'normal');
+mu = pd.mu;
+datmean = mean(data.data(~fullmask));
+%Calculate the theoretical PDF from the fit parameters
+x_range = linspace(floor(nanmin(nanmin(maskim))),ceil(nanmax(nanmax(maskim))),100);
+probability_predicted = pdf(pd,x_range);
+
+%     % Plot histogram with calculated fit over the top
+%     figure
+%     % histogram(maskim(:),60,'Normalization','probability')
+%     g = histogram(maskim(:),bins);
+%     hold on
+%     h = plot(x_range,probability_predicted*max(g.Values)/max(probability_predicted),'.-','LineWidth',3);
+%     set(gca,'YScale','log');
+%     ylimMax = ylim; %get the ylims (min and max)
+%     ylimMax = ylimMax(2); %get the actual max
+%     ylim( [0.5, ylimMax] ); %force 0
+%     xlim([-25,25]);
+
+%Plot histfit and calculated fit together
+%     h = figure;
+%     clf;
+%     set(h,'visible','off');
+%     % histfit(maskim(:),bins,'normal');
+%     g = histfitCustom(maskim(:),bins,'normal');
+%
+%     hold on
+% %     plot(x_range,probability_predicted*max(g(1).YData)/max(probability_predicted),'.-','LineWidth',3);
+%     set(gca,'YScale','log');
+%     title(['\mu fit = ',num2str(pd.mu)]); %sprintf('%s',data.header.rawfile)
+%     ylim( [0.5, 100000] ); %force 0
+% %     xlim([-50,50]);
+%     ext = '.png';
+%     imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
+%     print(h,imagename, '-dpng');
+
+
+%inspired by https://www.mathworks.com/matlabcentral/answers/313862-how-to-plot-a-normal-distribution-graph-to-fit-a-bar-graph
+mu = nanmean(maskim(:));
+%     sd = nanstd(maskim(:));
+%     fun_dist_norm = @(mu,sd,x) exp(-(x-mu).^2 ./ (2*sd^2)) /(sd*sqrt(2*pi)); % Function for Standard Normal Distribution
+%
+%     [counts,edges] = histcounts(maskim(:), bins);  % Histogram
+%
+%     centers = edges(1:length(edges)-1) + mean(diff(edges))/2; % Calculate centers
+%
+%     centers_xVect = linspace(min(centers), max(centers),500); % x-vector for plotting
+%
+%     norm_dist = fun_dist_norm(mu,sd,centers_xVect); % Calculate Standard Normal Distribution
+%
+%     h = figure;
+%     bar(centers, counts,1); % Plot Histogram
+%     hold on
+%     plot(centers_xVect, norm_dist*max(counts)/max(norm_dist), '.-', 'LineWidth',2); % Plot Scaled Standard Normal Distribution
+%     hold off
+%     set(gca,'YScale','log');
+%     ylimMax = ylim; %get the ylims (min and max)
+%     ylimMax = ylimMax(2); %get the actual max
+%     ylim( [0.5, ylimMax] );
+%     xlim([-25,25]);
+%     grid
+%see
+%https://www.mathworks.com/matlabcentral/answers/175958-function-pdf-doesn-t-return-pdf-values
+%as to why norm_dist (or histfit for that matter) don't return perfectly
+%scaled results
+
+
 end

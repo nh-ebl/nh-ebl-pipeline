@@ -1,4 +1,4 @@
-function paths=get_paths_old_ghosts()
+ function paths=get_paths_old_ghosts()
    paths.datadir='/data/symons/NH_old_data/mat/ghosts/';
    paths.imagedir = '/data/symons/NH_old_data/NH/regist/selected_data/ghosts/';
    paths.astrodir = '/data/symons/NH_old_data/NH/regist/ghosts/';

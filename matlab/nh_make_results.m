@@ -1,6 +1,38 @@
 function nh_make_results()
 
+% set paths here for desired data set
+% paths = get_paths_old();
 paths = get_paths_new();
+
+% Save which data we're looking at
+if strcmp(paths.datadir,'/data/symons/NH_old_data/mat/ghosts/') == 1
+    data_type = 'ghost';
+elseif strcmp(paths.datadir,'/data/symons/NH_old_data/mat/good/') == 1
+    data_type = 'old';
+elseif strcmp(paths.datadir,'/data/symons/nh_data/mat/') == 1
+    data_type = 'new';
+end
+
+% If method file exists, read saved text file for data_type and see which method last used
+fileID = fopen([data_type,'method.txt'],'r');
+flag_method = fscanf(fileID,'%s');
+fclose(fileID);
+
+% based on paths, decide if we're analysing old data, new data, or ghost
+% data
+if strcmp(paths.datadir,'/data/symons/NH_old_data/mat/ghosts/') == 1
+    ghost = 1;
+    old = 0;
+    new = 0;
+elseif strcmp(paths.datadir,'/data/symons/NH_old_data/mat/good/') == 1
+    old = 1;
+    ghost = 0;
+    new = 0;
+elseif strcmp(paths.datadir,'/data/symons/nh_data/mat/') == 1
+    new = 1;
+    old = 0;
+    ghost = 0;
+end
 
 datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
@@ -33,7 +65,15 @@ myghostdifferrpos = zeros(nfiles,1);
 myghostdifferrneg = zeros(nfiles,1);
 myghostdiffcomp = zeros(nfiles,1);
 
-goodfiles = [5,6,7,8];
+% set good files based on data set
+if new == 1
+    goodfiles = [5,6,7,8];
+elseif old == 1
+    goodfiles = [3,5,6,7];
+elseif ghost == 1
+    goodfiles = [5,9];
+end
+
 thissum = 0;
 
 for ifile=1:nfiles
@@ -66,9 +106,15 @@ for ifile=1:nfiles
     
     myav(ifile) = 0.4.*data.header.A_V;
     
+    % Reference-corrected mean of masked image
     mysig(ifile) = data.stats.corrmean;
+    % Reference-corrected most probable value of masked image
+    %     mysig(ifile) = data.stats.corrmostprob;
     
-    mymasked(ifile) = sum(sum(data.image.calimage.*data.mask.onemask));
+    % Sum of image brightness of *masked* stars - how bright is the
+    % masked-out portion of each image per pixel
+    starmaskfrac = sum(data.mask.starmask(:))./256.^2;
+    mymasked(ifile) = (sum(sum(data.image.calimage.*data.mask.starmask)))/(data.astrom.imagew.*data.astrom.imageh.*starmaskfrac);
     
     mytri(ifile) = data.isl.trimean;
     
@@ -82,51 +128,87 @@ for ifile=1:nfiles
     
     mycrr(ifile) = data.ref.bias;
     
-    myghostdiff(ifile) = data.ghost.diffusesub;
-    myghostdifferrpos(ifile) = data.ghost.diffusesuberrpos;
-    myghostdifferrneg(ifile) = data.ghost.diffusesuberrneg;
-    myghostdiffcomp(ifile) = data.ghost.diffusediff;
+    if strcmp(flag_method,'new') == 1
+        myghostdiff(ifile) = data.ghost.diffusesub;
+        myghostdifferrpos(ifile) = data.ghost.diffusesuberrpos;
+        myghostdifferrneg(ifile) = data.ghost.diffusesuberrneg;
+        myghostdiffcomp(ifile) = data.ghost.diffusediff;
+    end
     
     mygood = myfieldnum(ifile) == goodfiles;
     
     if sum(mygood) > 0
-        isgood(ifile) = 1;
-        mystring = sprintf('%f, %d, %s, %f, %f, %f, %d, %f, %f, %f, %f',...
-            mydate(ifile),myfieldnum(ifile),...
-            mytarget{ifile},mysun(ifile),myohm(ifile),myelong(ifile),...
-            mycrr(ifile),...
-            mysig(ifile),myisl(ifile),mydgl(ifile),...
-            mysig(ifile)-myisl(ifile)-mydgl(ifile));
-        
-        disp(mystring)
-        
-        image = data.image.calimage;
-        save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(ifile),ifile),'image');
-        
-        nanimage = image;
-        nanimage(data.mask.onemask) = NaN;
-        save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(ifile),ifile),'nanimage');
-        
-        %figure(1); clf
-        %imagesc(data.dgl.dglim)
-        %pause(1)
-        
+        % If struct field data.header.bad exists, check if file is good or
+        % bad - only mark as good if not bad
+        if isfield(data.header,'bad')
+            % Only use good images
+            if data.header.bad == 0
+                isgood(ifile) = 1;
+                mystring = sprintf('%f, %d, %s, %f, %f, %f, %d, %f, %f, %f, %f',...
+                    mydate(ifile),myfieldnum(ifile),...
+                    mytarget{ifile},mysun(ifile),myohm(ifile),myelong(ifile),...
+                    mycrr(ifile),...
+                    mysig(ifile),myisl(ifile),mydgl(ifile),...
+                    mysig(ifile)-myisl(ifile)-mydgl(ifile));
+                
+                disp(mystring)
+                
+                image = data.image.calimage;
+                save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(ifile),ifile),'image');
+                
+                nanimage = image;
+                nanimage(data.mask.onemask) = NaN;
+                save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(ifile),ifile),'nanimage');
+                
+                %figure(1); clf
+                %imagesc(data.dgl.dglim)
+                %pause(1)
+            end
+            % If struct field does not exist, files have not been marked good
+            % or bad - assume all good
+        else
+            isgood(ifile) = 1;
+                mystring = sprintf('%f, %d, %s, %f, %f, %f, %d, %f, %f, %f, %f',...
+                    mydate(ifile),myfieldnum(ifile),...
+                    mytarget{ifile},mysun(ifile),myohm(ifile),myelong(ifile),...
+                    mycrr(ifile),...
+                    mysig(ifile),myisl(ifile),mydgl(ifile),...
+                    mysig(ifile)-myisl(ifile)-mydgl(ifile));
+                
+                disp(mystring)
+                
+                image = data.image.calimage;
+                save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(ifile),ifile),'image');
+                
+                nanimage = image;
+                nanimage(data.mask.onemask) = NaN;
+                save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(ifile),ifile),'nanimage');
+                
+                %figure(1); clf
+                %imagesc(data.dgl.dglim)
+                %pause(1)
+        end
     end
     
     %if myfieldnum(ifile) == 7
     %  dbstop
     %end
     
-    
 end
-
 
 isgood = logical(isgood);
 
 isgood_masked = mymasked(isgood);
+isgood_corrmean = mysig(isgood);
 isgood_tri = mytri(isgood);
 isgood_psfwing = mypsfwing(isgood);
+isgood_isl = myisl(isgood);
+isgood_dgl = mydgl(isgood);
+if strcmp(flag_method,'new') == 1
+    isgood_diffghost = myghostdiff(isgood);
+end
 isgood_field = myfieldnum(isgood);
+isgood_b = myb(isgood);
 
 % Calculate mean masked contribution, trilegal contribution, and psf wing
 % contribution per field
@@ -135,7 +217,16 @@ for i = 1:length(goodfiles)
     field_masked = mean(isgood_masked(k_field));
     field_tri = mean(isgood_tri(k_field));
     field_psfwing = mean(isgood_psfwing(k_field));
-    disp(['Field #',num2str(goodfiles(i)),': masked mean = ',num2str(field_masked),' | tri mean = ',num2str(field_tri),' |  psfwing mean = ',num2str(field_psfwing)])
+    field_corrmean = mean(isgood_corrmean(k_field));
+    field_isl = mean(isgood_isl(k_field));
+    field_dgl = mean(isgood_dgl(k_field));
+    if strcmp(flag_method,'new') == 1
+        field_diffghost = mean(isgood_diffghost(k_field));
+    else
+        field_diffghost = 0;
+    end
+    field_b = mean(isgood_b(k_field));
+    disp(['Field #',num2str(goodfiles(i)),': b = ' ,num2str(field_b),' | masked mean = ',num2str(field_masked),' | corr mean = ',num2str(field_corrmean),' | tri mean = ',num2str(field_tri),' |  psfwing mean = ',num2str(field_psfwing),' | ISL mean = ',num2str(field_isl),' | DGL mean = ',num2str(field_dgl),' | Diff Ghost mean = ',num2str(field_diffghost)])
 end
 
 figure(1); clf
@@ -143,18 +234,20 @@ plot(mysun(isgood),mysig(isgood)-myisl(isgood)-mydgl(isgood),'o')
 xlabel('Solar Distance')
 ylabel('EBL')
 
-figure(2); clf
-plot(mysun(isgood),myghostdiff(isgood),'o')
-hold on;
-errorbar(mysun(isgood),myghostdiff(isgood), myghostdifferrneg(isgood), myghostdifferrpos(isgood), 'LineStyle','none','Color','k');
-xlabel('Solar Distance')
-ylabel('Summed Ghost Intensity [nW m^{-2} sr^{-1}]')
-
-figure(3); clf
-plot(mysun(isgood),myghostdiffcomp(isgood),'o')
-yline(mean(myghostdiffcomp(isgood)))
-xlabel('Solar Distance')
-ylabel('(Predicted Summed Ghost Intensity - ISL Estimation) [nW m^{-2} sr^{-1}]')
+if strcmp(flag_method,'new') == 1
+    figure(2); clf
+    plot(mysun(isgood),myghostdiff(isgood),'o')
+    hold on;
+    errorbar(mysun(isgood),myghostdiff(isgood), myghostdifferrneg(isgood), myghostdifferrpos(isgood), 'LineStyle','none','Color','k');
+    xlabel('Solar Distance')
+    ylabel('Summed Ghost Intensity [nW m^{-2} sr^{-1}]')
+    
+    figure(3); clf
+    plot(mysun(isgood),myghostdiffcomp(isgood),'o')
+    yline(mean(myghostdiffcomp(isgood)))
+    xlabel('Solar Distance')
+    ylabel('(Predicted Summed Ghost Intensity - ISL Estimation) [nW m^{-2} sr^{-1}]')
+end
 
 mydist = zeros(numel(goodfiles),1);
 mygal = zeros(numel(goodfiles),1);
@@ -171,7 +264,11 @@ for ifield=1:numel(goodfiles)
     whpl = myfieldnum == goodfiles(ifield);
     mydist(ifield) = mean(mysun(whpl));
     mygal(ifield) = mean(myb(whpl));
-    thissig = mysig(whpl)-myisl(whpl)-mydgl(whpl)-myghostdiff(whpl);
+    if strcmp(flag_method,'new') == 1
+        thissig = mysig(whpl)-myisl(whpl)-mydgl(whpl)-myghostdiff(whpl);
+    else
+        thissig = mysig(whpl)-myisl(whpl)-mydgl(whpl);
+    end
     thiserr = myerr(whpl);
     mysubmen(ifield) = sum(mysig(whpl)./thiserr.^2)./sum(1./thiserr.^2);
     mysuberr(ifield) = std(mysig(whpl));
@@ -227,11 +324,11 @@ z_b = [85.74,28.41,57.69,62.03];
 zem = errorbar(z_b,z_pts,z_err_sem,'.','MarkerSize',20,'MarkerEdge',[0, 0.4470, 0.7410],'LineStyle','none','Color',[0, 0.4470, 0.7410]); %old error bars were myunc, based on std not sem
 % supermean = sum(mymean./myunc.^2)./sum(1./myunc.^2) %old way was myunc instead of mysem
 % superunc = 1./sqrt(sum(1./myunc.^2)) %old way was myunc instead of mysem
-% 
+%
 % superav = sum(myavp./myunc.^2)./sum(1./myunc.^2)
-% 
+%
 % supersub = sum(mysubmen./myunc.^2)./sum(1./myunc.^2)
-% 
+%
 % plot(xlim,[supermean,supermean],'Color',[0, 0.4470, 0.7410])
 % plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
 % plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
@@ -252,8 +349,4 @@ ohm = myohmp;
 save('../scratch/nh_make_results.mat','distance','rawmean','rawmean',...
     'rawerr','cobmean','coberr','supermean','supererr','ohm')
 
-
-
-dbstop
-
-% end
+end

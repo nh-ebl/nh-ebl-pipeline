@@ -31,6 +31,14 @@ load (sprintf('%smatrix/%s_ra_dec.mat',path,phase));
 
 i = 1;
 
+% Try to make required folders if they don't exist
+if not(isfolder([path,'regist/']))
+    mkdir([path,'regist/'])
+end
+if not(isfolder([path,'regist/selected_data/']))
+    mkdir([path,'regist/selected_data/'])
+end
+
 for i=1:Ncols
     sprintf('Currently on file number %d',i)
     
@@ -46,7 +54,7 @@ for i=1:Ncols
     % make some paths
     imfile = sprintf('%s%s/selected_data/%s',path,phase,filename);
     %befile = sprintf('mybackend.cfg');
-    befile = sprintf('/usr/local/astrometry/etc/astrometry.cfg')
+    befile = sprintf('/usr/local/astrometry/etc/astrometry.cfg');
     otfile = sprintf('reduc_astro_align');
     offile = sprintf('%sregist/selected_data/regist_%s_%s',path,phase,filename);
     
@@ -68,6 +76,7 @@ for i=1:Ncols
         imfile);
     
     % now the solver's been set up, do the system call to
+%     s = system(solfcall);
     s = system(solfcall);
     
     % remove all of the extra files that solve-field makes - these are not

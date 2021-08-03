@@ -8,7 +8,7 @@
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function data = nh_calibrate(data,paths)
+function data = nh_calibrate(data,paths,flag_method)
 
 % based on paths, decide if we're analysing old data, new data, or ghost
 % data
@@ -43,7 +43,11 @@ data.cal.vzero = 3050; % Jy at R_L=0.
 data.cal.Jyperbit = data.cal.vzero .* data.cal.szero; % Jy/bit
 
 % some astrometric quantities we'll need that are fixed values from elsewhere
-data.cal.pixsize = 4.*4.96e-6; % radians, used to be * 1.05 ''/pix -> wrong
+if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
+    data.cal.pixsize = 4.*4.96e-6; % radians, used to be * 1.05 ''/pix -> wrong
+elseif strcmp(flag_method, 'old') == 1
+    data.cal.pixsize = 4.*4.96e-6*1.05; % radians, used to be * 1.05 ''/pix -> wrong
+end
 data.cal.pixsize_arcsec = data.cal.pixsize .* 180 .* 3600 ./ pi; % arcsec
 data.cal.omega = data.cal.pixperbeam .* data.cal.pixsize.^2;
 data.cal.omega_pix = (data.cal.pixsize_arcsec./3600.).^2 * (pi./180.).^2;
@@ -57,30 +61,57 @@ data.cal.sbconv = data.cal.Jyperbit * data.const.Jy .* data.const.nW .* ...
 
 if new == 1
     load('lookup/nh_refcorr_new.mat');
+    mostprob_date = data.refcorr.mostprob_date;
+    mostprob_corr = data.refcorr.mostprob_corr;
+    mean_date = data.refcorr.date;
+    mean_corr = data.refcorr.corr;
+    whpl_mean = data.header.date_jd == mean_date;
+    whpl_mostprob = data.header.date_jd == mostprob_date;
 elseif old == 1
     load('lookup/nh_refcorr_old.mat');
+    whpl_mean = data.header.date_jd == correction.date;
+    mean_corr = correction.corr;
 elseif ghost == 1
     load('lookup/nh_refcorr_ghost.mat');
+    whpl_mean = data.header.date_jd == correction.date;
+    mean_corr = correction.corr;
 end
-
-
-whpl = data.header.date_jd == correction.date;
 
 % calculate some of the stats to take account of the calibration factor
 data.stats.calmean = data.cal.sbconv .* data.stats.maskmean;
 data.stats.calerr = data.cal.sbconv .* data.stats.maskerr;
 
-data.stats.corrmean = data.cal.sbconv .* (data.stats.maskmean + ...
-    correction.corr(whpl)./data.header.exptime);
+% Reference bias correction used to be added, but seems wrong and now is
+% subtracted
+
+% Reference-corrected masked mean in surface brightness units - from saved
+% corr file - any old data needs this
+% data.stats.corrmean = data.cal.sbconv .* (data.stats.maskmean - ...
+%     correction.corr(whpl)./data.header.exptime);
+% Reference-corrected masked mean in sb - from data saved corr
+if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
+    data.stats.corrmean = data.cal.sbconv .* (data.stats.maskmean - ...
+    mean_corr(whpl_mean)./data.header.exptime);
+elseif strcmp(flag_method, 'old') == 1
+    data.stats.corrmean = data.cal.sbconv .* (data.stats.maskmean + ...
+    mean_corr(whpl_mean)./data.header.exptime);
+end
+% Reference-corrected most prob val in sb - from data saved corr
+% data.stats.corrmostprob = data.cal.sbconv .* (data.stats.mostprob - ...
+%     mostprob_corr(whpl_mostprob)./data.header.exptime);
 data.stats.correrr = data.cal.sbconv .* (data.stats.maskerr);
 
 % pull out the raw image data
 rawimage = data.data;
 
-% and make calibrated versions of that as well.
+% and make calibrated versions of that as well. - changed to subtract ref
+% corr from each pixel before calibrating
 data.image.rawimage = rawimage ./ data.header.exptime;
-data.image.calimage = rawimage .* data.cal.sbconv ./ data.header.exptime;
-
+if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
+    data.image.calimage = ((rawimage./ data.header.exptime) - (mean_corr(whpl_mean)./data.header.exptime)).* data.cal.sbconv;
+elseif strcmp(flag_method, 'old') == 1
+    data.image.calimage = ((rawimage./ data.header.exptime)).* data.cal.sbconv;
+end
 end
 
 

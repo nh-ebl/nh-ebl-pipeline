@@ -8,7 +8,7 @@
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function data=nh_add_meta(data)
+function data=nh_add_meta(data,flag_method)
 
 A_V = [0.054,0.056,0.220,0.054,0.055,0.155,0.100,3.706,0.811,1.953,...
     2.437,0.305,2.592,0.768];
@@ -45,7 +45,11 @@ data.header.arfac = arfac(data.header.fieldnum);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 data.cal.nommagoff = data.astrometry.id_photzpt;
-data.cal.magoff = 18.88; %18.88 from 2020 calibration paper, old 18.53 from fig S5 of nature paper
+if strcmp(flag_method,'new') == 1
+    data.cal.magoff = 18.88; %18.88 from 2020 calibration paper, old 18.53 from fig S5 of nature paper
+elseif (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'old') == 1)
+    data.cal.magoff = 18.53;
+end
 data.cal.gaia2lorrimag = -0.0323;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

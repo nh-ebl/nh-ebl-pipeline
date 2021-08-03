@@ -161,14 +161,14 @@ starghostdistall3=zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 starghostdistall4=zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 
 % Plot all ghosts together
-h = figure(1);
-clf;
-im = zeros(256);
-imagesc(im);
-hold on;
-pbaspect([1 1 1]);
-xlabel('LORRI X Pixels');
-ylabel('LORRI Y Pixels');
+% h = figure(1);
+% clf;
+% im = zeros(256);
+% imagesc(im);
+% hold on;
+% pbaspect([1 1 1]);
+% xlabel('LORRI X Pixels');
+% ylabel('LORRI Y Pixels');
 
 
 % For old data files
@@ -209,17 +209,17 @@ for ifile=1:size(datafiles,1)
         
         % Calculate 'mask' of each ghost and plot - im>0 for all masks = 1, im for weighted by
     % repeated location
-        [xgrid, ygrid] = meshgrid(1:size(data.data,2), 1:size(data.data,1));
+%         [xgrid, ygrid] = meshgrid(1:size(data.data,2), 1:size(data.data,1));
         % Create mask where meshgrid values are less than radius distance from
         % source (adjusting back to origin in lower left corner)
         % Radius was determined by maximum possible ghost radius (18), now extended
         % to 21.5 to make up for coord prediction having some error
-        mask = ((xgrid-(data.ghost.ghostx)).^2 + (ygrid-(data.ghost.ghosty)).^2) <= data.ghost.ghostrad.^2;
+%         mask = ((xgrid-(data.ghost.ghostx)).^2 + (ygrid-(data.ghost.ghosty)).^2) <= data.ghost.ghostrad.^2;
         % Set mask values to 1
-        ghostmask = zeros(256);
-        ghostmask(mask) = 1;
-        im = im + ghostmask;
-        imagesc(im>0);
+%         ghostmask = zeros(256);
+%         ghostmask(mask) = 1;
+%         im = im + ghostmask;
+%         imagesc(im>0);
         
         % ghost brightness analysis
         %using ap_photom, the brightness of the ghost is determined and
@@ -607,17 +607,17 @@ for ifile=1:size(ndatafiles,1)
         
         % Plot all ghost 'masks' together - im>0 for all masks = 1, im for weighted by
     % repeated location
-        [xgrid, ygrid] = meshgrid(1:size(data.data,2), 1:size(data.data,1));
+%         [xgrid, ygrid] = meshgrid(1:size(data.data,2), 1:size(data.data,1));
         % Create mask where meshgrid values are less than radius distance from
         % source (adjusting back to origin in lower left corner)
         % Radius was determined by maximum possible ghost radius (18), now extended
         % to 21.5 to make up for coord prediction having some error
-        mask = ((xgrid-(data.ghost.ghostx)).^2 + (ygrid-(data.ghost.ghosty)).^2) <= data.ghost.ghostrad.^2;
+%         mask = ((xgrid-(data.ghost.ghostx)).^2 + (ygrid-(data.ghost.ghosty)).^2) <= data.ghost.ghostrad.^2;
         % Set mask values to 1
-        ghostmask = zeros(256);
-        ghostmask(mask) = 1;
-        im = im + ghostmask;
-        imagesc(im>0);
+%         ghostmask = zeros(256);
+%         ghostmask(mask) = 1;
+%         im = im + ghostmask;
+%         imagesc(im>0);
         
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,1);
@@ -971,11 +971,12 @@ for ifile=1:size(ndatafiles,1)
     %     save(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name),'data');
 end
 
-th = 0:pi/50:2*pi;
-xunit = 58.2*cos(th)+128;
-yunit = 58.2*sin(th)+128;
-plot(xunit,yunit);
-set(gca,'YDir','normal');
+% Plot total ghost radius on plot of all ghosts
+% th = 0:pi/50:2*pi;
+% xunit = 58.2*cos(th)+128;
+% yunit = 58.2*sin(th)+128;
+% plot(xunit,yunit);
+% set(gca,'YDir','normal');
 
 %% Graphs
 
@@ -1076,7 +1077,7 @@ legend([mg1,mg2,mg3,mg4,fit2,fit2err],{'Mag 3.88','Mag 5.97','Mag 6.21','Mag 6.2
 xlabel('Star Magnitude');
 % ylabel('Number of Pixels * Ghost Peak Intensity [nW m^{-2} sr^{-1}]');
 % ylabel('Ghost Peak Intensity [nW m^{-2} sr^{-1}]');
-ylabel('Mean(Log(Number of Pixels * Ghost Peak Intensity)) [nW m^{-2} sr^{-1}]');
+ylabel('Mean(Log(Number of Pixels * Ghost Mean Intensity)) [nW m^{-2} sr^{-1}]');
 % ylabel('Mean(Log(Ghost Peak Intensity)) [nW m^{-2} sr^{-1}]');
 
 %
