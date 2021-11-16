@@ -21,8 +21,10 @@ function npaths=get_paths_new()
    %npaths.gscdir = '/data/zemcov/NH/GSCII/';
    npaths.irisdir = '/data/symons/nh_data/IRIS/';
    npaths.planckdir = '/data/symons/nh_data/planck/';
+   npaths.dgldir = '/data/symons/nh_data/dgl/';
    npaths.scatteringdir = '/data/symons/nh_data/scattering/';
    npaths.starlistdir = '/data/symons/nh_data/star_lists/';
    npaths.gaiadir = '/data/symons/nh_data/gaia/';
-   npaths.simdir = '/data/symons/nh_data/sims/';
+   npaths.simgaiadir = '/data/symons/nh_data/sims_gaia/';
+   npaths.simusnobdir = '/data/symons/nh_data/sims_usnob/';
 end

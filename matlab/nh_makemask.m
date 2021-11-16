@@ -6,14 +6,22 @@
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [data,mu] = nh_makemask(data,paths,nsig,use_gaia,new_star_mask,max_mag,save_file,flag_method,errflag_mags)
+function [data,mu] = nh_makemask(data,paths,params,nsig,use_gaia,new_star_mask,max_mag,save_file,flag_method,errflag_mags)
+
+% load('run_params.mat','params')
+if params.err_mags == 1
+    % Choose data dir based on err_flag
+    datastruct = data.(params.err_str);
+else
+    datastruct = data;
+end
 
 % read in the .fits data for the calibrated image file
 imagename = ['regist_',data.header.rawfile];
 image_i = fitsread(sprintf('%s%s',paths.imagedir,imagename));
 
 % read in data.data to replace possibly modified version from earlier run
-data.data = image_i;
+datastruct.data = image_i;
 
 %% here begins the star catalog masking
 
@@ -321,8 +329,10 @@ end
 
 if strcmp(flag_method,'new') == 1
     % If image has a star > mag 8 in range of causing a ghost, mask the ghost
-    if data.ghost.brightmag(1,1) > 0
+    if ~isempty(datastruct.ghost.brightmag) %datastruct.ghost.brightmag(1,1) > 0
         [ghostmask,data] = nh_ghostmask(data,paths);
+    else
+        ghostmask = zeros(256);
     end
 else
     ghostmask = zeros(256);
@@ -435,7 +445,7 @@ whpl = ghostmask == 1;
 fullmask(whpl) = fullmask(whpl) + 32;
 
 % and so that we have it to hand, compute the mean of the fully masked pixels
-datmean = mean(data.data(~fullmask)./ data.astrom.exptime);
+datmean = mean(data.data(~fullmask)./ data.astrom.exptime); %DN/s
 datstd = std(data.data(~fullmask)./ data.astrom.exptime);
 
 % create a mask which is just 1 everywhere there is a bad pixel, no matter
@@ -486,12 +496,20 @@ mask.onemask = onemask;
 mask.maskfrac = maskfrac;
 mask.maxmag = max_mag;
 
-% and append it to the data structure
-data.mask = mask;
-data.stats.maskmean = datmean;
-% data.stats.mostprob = most_prob_val;
-data.stats.maskstd = datstd;
-data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
+% If error is on, write to error substruct
+if params.err_mags == 1
+    data.(params.err_str).mask = mask;
+    data.(params.err_str).stats.maskmean = datmean;
+    data.(params.err_str).stats.maskstd = datstd;
+    data.(params.err_str).stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
+else
+    % and append it to the data structure
+    data.mask = mask;
+    data.stats.maskmean = datmean;
+    % data.stats.mostprob = most_prob_val;
+    data.stats.maskstd = datstd;
+    data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
+end
 
 %Plot masked data and non-masked data on same plot
 % ax1 = subplot(1,2,1);
@@ -619,5 +637,12 @@ mu = nanmean(maskim(:));
 %as to why norm_dist (or histfit for that matter) don't return perfectly
 %scaled results
 
+
+if params.err_mags == 1
+    % Choose data dir based on err_flag
+    data.(params.err_str) = datastruct;
+else
+    data = datastruct;
+end
 
 end

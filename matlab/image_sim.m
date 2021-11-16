@@ -5,13 +5,15 @@ clc;
 clear variables;
 close all;
 
+paths = get_paths_new();
+% paths = get_paths_old();
+
 %set pipeline settings
 use_gaia = 1;
 max_mag = 30;
+tri_type = 'gaia'; % Select 'ubvri' for interpolated LORRI mags or 'gaia' for G mags
 
 magBinsStepSize = 1; %sets the step size for the mag bins
-
-paths = get_paths_new();
 
 datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
@@ -87,7 +89,7 @@ for ifile=1:nfiles
                     %randn(1) .* 0.25;
                 else
                     thismag = NaN;
-                    rangeexclude = rangeexclude+1;
+%                     rangeexclude = rangeexclude+1;
                 end
                 allmags(row) = thismag;
                 thissg = nanmean(sg);
@@ -103,11 +105,11 @@ for ifile=1:nfiles
                 
                 % check if the object is in the image
                 if xpix >= 1-20 && xpix <= xdim+20 && ypix >= 1-20 && ypix <= ydim+20
-                    numinimg = numinimg + 1;
+%                     numinimg = numinimg + 1;
                     
                     % require that the magnitude is within sensible bounds
                     if thismag < max_mag & ~isnan(thismag) & thissg > 0
-                        numinbnds = numinbnds + 1;
+%                         numinbnds = numinbnds + 1;
                         
                         % another little piece of housekeeping; just making sure that we're
                         % keeping track of the magnitudes of stars that have made it this far.
@@ -158,7 +160,7 @@ for ifile=1:nfiles
                         checkmag(row) = thismag;
                         nummagmax = nummagmax + 1;
                     elseif isnan(thismag)
-                        nummagnan = nummagnan + 1;
+%                         nummagnan = nummagnan + 1;
                     elseif thissg <= 0
                         checksg(row) = thissg;
                         numsgover = numsgover + 1;
@@ -259,8 +261,26 @@ for ifile=1:nfiles
         surveyarea = data.astrom.imagew.*data.astrom.imageh.*...
             data.cal.pixsize_arcsec.^2 ./ 3600.^2;
         
-        % step 2: read in the trilegal information
-        load(sprintf('/home/symons/nh_ebl_pipeline/matlab/lookup/isltrilegal_%02d.mat',fieldnum));
+        if strcmp(paths.datadir,'/data/symons/NH_old_data/mat/ghosts/') == 1
+            ghost = 1;
+            old = 0;
+            new = 0;
+        elseif strcmp(paths.datadir,'/data/symons/NH_old_data/mat/good/') == 1
+            old = 1;
+            ghost = 0;
+            new = 0;
+        elseif strcmp(paths.datadir,'/data/symons/nh_data/mat/') == 1
+            new = 1;
+            old = 0;
+            ghost = 0;
+        end
+        
+        % load the appropriate trilegal catalog files
+        if new == 1 
+            load(sprintf('/home/symons/nh_ebl_pipeline/matlab/lookup/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
+        elseif old == 1 
+            load(sprintf('/home/symons/isl_trilegal/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
+        end
         
         ntri = numel(V);
         
@@ -273,10 +293,21 @@ for ifile=1:nfiles
         
         for jfile=1:ntri
             
-            trimag{jfile} = V(jfile).mlf;
+            if strcmp(tri_type,'ubvri')
+                
+                trimag{jfile} = V(jfile).mlf;
             
-            % step 3: convert from LORRI-band mag to flux
-            Fcat = data.cal.vzero .* 10.^(-V(jfile).mlf/2.5);
+                % step 3: convert from LORRI-band mag to flux
+                Fcat = data.cal.vzero .* 10.^(-V(jfile).mlf/2.5);
+                
+            elseif strcmp(tri_type,'gaia')
+                
+                trimag{jfile} = V(jfile).G;
+            
+                % step 3: convert from LORRI-band mag to flux
+                Fcat = data.cal.vzero .* 10.^(-V(jfile).G/2.5);
+                
+            end
             
             %         % step 4: make a mask function
             %         if tri_gaia == 0
@@ -621,13 +652,21 @@ for ifile=1:nfiles
         %     scatter(tri_list(:,1),tri_list(:,2),50,'filled');
         %     scatter(gaia_list(:,1),gaia_list(:,2),30,'filled');
         set(gca,'YScale','log'); %use log on y axis
-        legend('Gaia Catalog','Trilegal');
+        if use_gaia == 1
+            legend('Gaia Catalog',sprintf('Trilegal %s',tri_type));
+        else
+            legend('USNOB1 Catalog',sprintf('Trilegal %s',tri_type));
+        end
         %     title(sprintf('m = %1.1f',mag));
         xlabel('Mag Bin');
         ylabel('Surface Brightness in Bin [nW m^-2 sr^-1]');
 %         ylabel('Num. of Stars');
         ext = '.png';
-        imagename = sprintf('%s%s%s',paths.simdir,data.header.timestamp,ext);
+        if use_gaia == 1
+            imagename = sprintf('%s%s%s',paths.simgaiadir,data.header.timestamp,ext);
+        else
+            imagename = sprintf('%s%s%s',paths.simusnobdir,data.header.timestamp,ext);
+        end
         print(h,imagename, '-dpng');
         display('donezo');
     end

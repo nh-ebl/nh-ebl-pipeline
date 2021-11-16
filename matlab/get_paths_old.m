@@ -18,5 +18,8 @@ function paths=get_paths_old()
    paths.gscdir = '/data/symons/NH_old_data/GSCII/';
    paths.gaiadir = '/data/symons/NH_old_data/gaia/';
    paths.irisdir = '/data/symons/NH_old_data/IRIS/';
-   
+   paths.planckdir = '/data/symons/NH_old_data/planck/';
+   paths.dgldir = '/data/symons/NH_old_data/dgl/';
+   paths.simgaiadir = '/data/symons/NH_old_data/sims_gaia/';
+   paths.simusnobdir = '/data/symons/NH_old_data/sims_usnob/';
 end

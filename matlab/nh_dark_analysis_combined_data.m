@@ -26,7 +26,10 @@ nlightfiles = dir(sprintf('%s*.mat',npaths.datadir));
 darktemp = zeros(size(ndarkfiles,1),1);
 darkdate = zeros(size(ndarkfiles,1),1);
 darksig = zeros(size(ndarkfiles,1),2);
+darksig_mean = zeros(size(ndarkfiles,1),2);
 darkref = zeros(size(ndarkfiles,1),2);
+darkref_med = zeros(size(ndarkfiles,1),2);
+darkref_sig = zeros(size(ndarkfiles,1),2);
 darkexp = zeros(size(ndarkfiles,1),1);
 darkfield = zeros(size(ndarkfiles,1),1);
 
@@ -60,12 +63,16 @@ numnewlightfiles = sum(isgoodnew);
 
 %Preallocate space for variables light
 lighttemp = zeros((numoldlightfiles+numnewlightfiles),1);
+lightfpubtemp = zeros((numoldlightfiles+numnewlightfiles),1);
 lightdate = zeros((numoldlightfiles+numnewlightfiles),1);
 lightsig = zeros((numoldlightfiles+numnewlightfiles),2);
 lightref = zeros((numoldlightfiles+numnewlightfiles),2);
+lightref_med = zeros((numoldlightfiles+numnewlightfiles),2);
+lightref_sig = zeros((numoldlightfiles+numnewlightfiles),2);
 lightexp = zeros((numoldlightfiles+numnewlightfiles),1);
 lightfield = zeros((numoldlightfiles+numnewlightfiles),1);
 lightlIl = zeros((numoldlightfiles+numnewlightfiles),2);
+lightbad = zeros((numoldlightfiles+numnewlightfiles),1);
 photcurr = zeros((numoldlightfiles+numnewlightfiles),1);
 gall = zeros((numoldlightfiles+numnewlightfiles),1);
 galb = zeros((numoldlightfiles+numnewlightfiles),1);
@@ -87,8 +94,11 @@ for ifile=1:size(ndarkfiles)
     darktemp(ifile,1) = data.header.ccdtemp;
     darkdate(ifile,1) = data.header.date_jd - data.header.launch_jd;
     darksig(ifile,1) = median(data.dark(:));
+    darksig_mean(ifile,1) = mean(data.dark(:));
     darksig(ifile,2) = std(data.dark(:));
     darkref(ifile,1) = mean(data.ref.line);
+    darkref_med(ifile,1) = median(data.ref.line);
+    darkref_sig(ifile,1) = nh_sigclip(data.ref.line);
     darkref(ifile,2) = std(data.ref.line);
     darkexp(ifile,1) = data.header.exptime;
     %If date in certain range, assign field number
@@ -117,10 +127,13 @@ for ifile=1:numel(lightfiles)
         load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
     
         lighttemp(jfile,1) = data.header.ccdtemp;
+        lightfpubtemp(jfile,1) = data.astrom.fpubtemp;
         lightdate(jfile,1) = data.header.date_jd - data.header.launch_jd;
         lightsig(jfile,1) = data.ref.engmean;
         lightsig(jfile,2) = sqrt(data.ref.engmean);
         lightref(jfile,1) = mean(data.ref.line);
+        lightref_med(jfile,1) = median(data.ref.line);
+        lightref_sig(jfile,1) = nh_sigclip(data.ref.line);
         lightref(jfile,2) = std(data.ref.line);
         lightexp(jfile,1) = data.header.exptime;
         lightfield(jfile,1) = data.header.fieldnum;
@@ -151,15 +164,19 @@ for ifile=1:numel(nlightfiles)
         load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
 
         lighttemp(jfile+numoldlightfiles,1) = data.header.ccdtemp;
+        lightfpubtemp(jfile+numoldlightfiles,1) = data.astrom.fpubtemp;
         lightdate(jfile+numoldlightfiles,1) = data.header.date_jd - data.header.launch_jd;
         lightsig(jfile+numoldlightfiles,1) = data.ref.engmean;
         lightsig(jfile+numoldlightfiles,2) = sqrt(data.ref.engmean);
         lightref(jfile+numoldlightfiles,1) = mean(data.ref.line);
+        lightref_med(jfile+numoldlightfiles,1) = median(data.ref.line);
+        lightref_sig(jfile+numoldlightfiles,1) = nh_sigclip(data.ref.line);
         lightref(jfile+numoldlightfiles,2) = std(data.ref.line);
         lightexp(jfile+numoldlightfiles,1) = data.header.exptime;
         lightfield(jfile+numoldlightfiles,1) = data.header.fieldnum;
         lightlIl(jfile+numoldlightfiles,1) = data.stats.maskmean./data.header.exptime;
         lightlIl(jfile+numoldlightfiles,2) = data.stats.maskstd;
+        lightbad(jfile+numoldlightfiles,1) = data.header.bad;
         
         maskim = data.image.calimage.*~data.mask.onemask;
         maskim(maskim==0) = NaN;
@@ -196,7 +213,7 @@ for jfield=1:nfieldsdark
 end
 
 %Prepare to save mean values for like fields
-nfieldslight = 9; %Light data currently comes from 9 different fields
+nfieldslight = length(oldgoodfields)+length(newgoodfields); %Light data currently comes from 8 different fields
 lighttempm = zeros(nfieldslight,1);
 lighterrm = zeros(nfieldslight,1);
 lightdatem = zeros(nfieldslight,1);
@@ -249,20 +266,20 @@ lightlIlmp = lightlIlm(whpl,1);
 lightlIlmq = lightlIlm(whpl,2);
 lightlIlm = [lightlIlmp,lightlIlmq];
 
-%Calculate dark current for temperatures we already have
+%Calculate dark current for temperatures we already have - in e/s/pix
 darkcurrlight = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273.15).^3.*exp(-6400./(lighttemp+273.15));
 darkcurrdark = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(darktemp+273.15).^3.*exp(-6400./(darktemp+273.15));
 %Load and save dark current
-for ifile=1:numoldlightfiles
-    load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
-    data.ref.darkcurr=darkcurrlight(ifile);
-    save(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
-end
-for ifile=1:numnewlightfiles
-    load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
-    data.ref.darkcurr=darkcurrlight(ifile+numoldlightfiles);
-    save(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
-end
+% for ifile=1:numoldlightfiles
+%     load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
+%     data.ref.darkcurr=darkcurrlight(ifile);
+%     save(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
+% end
+% for ifile=1:numnewlightfiles
+%     load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
+%     data.ref.darkcurr=darkcurrlight(ifile+numoldlightfiles);
+%     save(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),'data');
+% end
 
 %Colorcoding dark current for plotting purposes
 for ifile=1:numoldlightfiles+numnewlightfiles
@@ -284,6 +301,15 @@ for ifile=1:numoldlightfiles+numnewlightfiles
     end
 end
 
+% Convert dark current in e/s/pix to DN/s/pix
+darkcurrdn = darkcurrnew/22;
+% Convert dark current in DN/s/pix to nW/m2/sr
+darkcurrnw = darkcurrdn*data.cal.sbconv;
+% Calculate mean dark current (few new files) in nW/m2/sr
+meandc = mean(darkcurrnw);
+% Calculate dark curr err as 20% of dark curr
+dc_err = 0.2*meandc;
+
 %Plot photocurrent over mission time for all light data, color coded by new
 %vs. old data
 % figure;
@@ -302,16 +328,85 @@ end
 % xlabel('Days from launch','FontSize',20);
 % ylabel('Mean Photocurrent (nW m^-^2 sr^-^1)','FontSize',20);
 
+figcnt = 1;
+
+% Plot mean of masked raw image (light data) vs. mean of reference pixels
+% (also light data) - with x=y line overplotted
+figure(figcnt); clf
+hold on;
+% xlabel('Sigma-Clipped Mean of Reference Pixels')
+% ylabel('Mean of Raw Image Pixels')
+xlabel('Mean of Raw Image Pixels [DN]')
+ylabel('Mean of Reference Pixels [DN]')
+% r = scatter(lightref(:,1),lightsig(:,1),'r');
+goodlightsig = lightsig(lightbad<1,1);
+goodlightref = lightref(lightbad<1,1);
+goodlightfield = lightfield(lightbad<1,1);
+goodlightdate = lightdate(lightbad<1,1);
+goodlightfpubtemp = lightfpubtemp(lightbad<1,1);
+% r = scatter(goodlightsig,goodlightref,'r'); % All points red
+% r = scatter(goodlightsig,goodlightref,[],goodlightfield); % Points color-coded by field number
+% r = scatter(goodlightsig,goodlightref,[],goodlightdate); % Points color-coded by date
+r = scatter(goodlightsig,goodlightref,[],goodlightfpubtemp); % Points color-coded by fpub temp
+g = colorbar;
+% Plot x = y
+x = [535:550];
+y = [535:550];
+xy = plot(x,y,'g');
+% xlim([80,4000])
+% ylim([535,550]);
+% b = scatter(darkref(:,1),darksig_mean(:,1),'b');
+% Basic linear fit
+[fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
+xfit=linspace(535,550);
+yfit=(fitobject.p1*xfit + fitobject.p2);
+% fitwut = plot(xfit,yfit,'b');
+% Fit with slope = 1
+mdl = fitlm(goodlightsig,goodlightref-1*goodlightsig,'constant');
+yfit=(1*xfit + mean(mdl.Fitted));
+% fitwut_constslope = plot(xfit,yfit,'m');
+% Calculate rejected points
+k = goodlightsig >= goodlightref; %get where goodlightref (y on plot) are under y=x line, (1*goodlightsig-0) is the full math for future ref
+goodlightsig_rejection = goodlightsig(k);
+goodlightref_rejection = goodlightref(k);
+% Fit with slope = 1 and points above x=y rejected
+mdl_rejection = fitlm(goodlightsig_rejection,goodlightref_rejection-1*goodlightsig_rejection,'constant');
+yfit=(1*xfit + mean(mdl_rejection.Fitted));
+fitwut_constslope_rejection = plot(xfit,yfit,'k');
+% Robust fit w/ default weighting - this is the good one being used for ref corr
+mdl_robust = fitlm(goodlightsig,goodlightref,'RobustOpts','on');
+yfit=(mdl_robust.Coefficients{2,1}*xfit + mdl_robust.Coefficients{1,1});
+fitwut_robust = plot(xfit,yfit,'c');
+% Huber weighting
+mdl_robust_huber = fitlm(goodlightsig,goodlightref,'RobustOpts','huber');
+yfit=(mdl_robust_huber.Coefficients{2,1}*xfit + mdl_robust_huber.Coefficients{1,1});
+fitwut_robust_huber = plot(xfit,yfit,'b');
+% legend([xy fitwut fitwut_constslope fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
+%     {'X = Y',sprintf('Linear Fit: y = %.3fx + %.3f',fitobject.p1,fitobject.p2), ...
+%     sprintf('Linear Fit: y = 1x + %.3f',mean(mdl.Fitted))...
+%     ,sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
+%     sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
+%     sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
+%     ,'Location','northeast');
+legend([xy fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
+    {'X = Y', ...
+    sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
+    sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
+    sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
+    ,'Location','northeast');
+figcnt = figcnt + 1;
+
 %Plot photocurrent over mission time for all light data, color coded by
 %heliocentric distance
-figure;
+figure(figcnt);
 scatter(lightdate,photcurr,80,abs(helidist));
 colorbar;
 xlabel('Days from launch','FontSize',20);
 ylabel('Mean Photocurrent (nW m^-^2 sr^-^1)','FontSize',20);
+figcnt = figcnt + 1;
 
 %Plot dark current and CCD temp over time, color coded by new vs. old data
-fig = figure(1); clf
+fig = figure(figcnt); clf
 left_color = [0 0 0];
 right_color = [0 0 0];
 set(fig, 'defaultAxesColorOrder',[left_color;right_color]);
@@ -330,13 +425,14 @@ r2 = scatter(lightdateold(lightdateold~=0),lighttempold(lighttempold~=0),'Marker
 r3 = scatter(darkdate, darktemp+273.15, 'MarkerEdgeColor','none');
 ylabel('CCD Temperature (K)');
 legend([p2 p1],{'Pre-Pluto encounter','Pluto encounter and beyond'});
+figcnt = figcnt + 1;
 
 % figure(2); clf
 % plot(lighttemp,darkcurr,'b.');
 % xlabel('CCD Temperature (C)');
 % ylabel('Dark current');
 
-figure(3); clf
+figure(figcnt); clf
 semilogx(lightdate,lighttemp,'r.');
 hold on;
 %errorbar(lightdate,lighttemp,0.15.*ones(size(lightdate)),'ro');
@@ -371,41 +467,43 @@ xline(3463,'k:');
 lighttemp = lighttemp + 273.15;
 darktemp = darktemp + 273.15;
 myfunc = myfunc + 273.15;
+figcnt = figcnt + 1;
 
 %   save('../scratch/nh_dark_analysis_fig1.mat','lightdate','lighttemp',...
 %       'darkdate','darktemp','mydates','myfunc','cover');
 
-figure(4); clf
-semilogx(lightdate,lightref(:,1),'ro')
+figure(figcnt); clf
+s1 = semilogx(lightdate,lightref(:,1),'ro');
 hold on   ;
 %errorbar(lightdate,lightref(:,1),lightref(:,2)./sqrt(256),'ro')
-semilogx(lightdatem,lightrefm(:,1),'kh');
+s2 = semilogx(lightdatem,lightrefm(:,1),'kh');
 %errorbar(lightdatem,lightrefm(:,1),lightrefm(:,2),'kh')
-semilogx(darkdate,darkref(:,1),'bo') ;
+s3 = semilogx(darkdate,darkref(:,1),'bo') ;
 %errorbar(darkdate,darkref(:,1),darkref(:,2)./sqrt(256),'bo')
-semilogx(darkdatem,darkrefm(:,1),'kh');
+s4 = semilogx(darkdatem,darkrefm(:,1),'kh');
 %errorbar(darkdatem,darkrefm(:,1),darkrefm(:,2),'kh')
 xlim([80,4000])
-ylim([520,560]);
+ylim([520,575]);
 xlabel('Days from launch');
 ylabel('Mean of Reference Pixels');
 
 cover = data.header.cover_jd - data.header.launch_jd;
 cover = [cover,cover];
-plot(cover,ylim,'k:');
-xline(3463,'k:');
+s5 = plot(cover,ylim,'k:');
+s6 = xline(3463,'k:');
+legend([s1 s2 s3 s4 s5 s6],{'Light Images','Light Images Field Mean','Dark Images','Dark Images Field Mean','Cover Ejected','Pluto Encounter'},'Location','northwest');
 
 meanvref = sum(lightrefm(:,1)./lightrefm(:,2).^2)./sum(1./lightrefm(:,2).^2);
 sigvref = std(lightref(:,1))./2;
+figcnt = figcnt + 1;
 
-figure;
-figure(5); clf
+figure(figcnt); clf
 hold on;
-xlabel('ref')
-ylabel('sig')
-scatter(lightref(:,1),lightsig(:,1),'r');
+xlabel('Mean of Reference Pixels')
+ylabel('Mean of Raw Image Pixels')
+r = scatter(lightref(:,1),lightsig(:,1),'r');
 hold on;
-scatter(darkref(:,1),darksig(:,1),'b');
+b = scatter(darkref(:,1),darksig(:,1),'b');
 
 %vreffit = polyfit(darkref(:,1),darksig(:,1),1);
 [a_york, b_york, sigma_ayork, sigma_byork] =...
@@ -413,17 +511,18 @@ scatter(darkref(:,1),darksig(:,1),'b');
 
 vref = [meanvref:0.1:meanvref+11];
 vlight = b_york .* vref + a_york;
-plot(vref,vlight,'b');
-plot([meanvref,meanvref],ylim,'r--');
+p1 = plot(vref,vlight,'b');
+p2 = plot([meanvref,meanvref],ylim,'r--');
 plot([meanvref+sigvref,meanvref+sigvref],ylim,'r:');
 plot([meanvref-sigvref,meanvref-sigvref],ylim,'r:');
 
 
 xlabel('Mean of Reference Pixels');
-ylabel('Mean of Light Pixels') ;
+ylabel('Mean of Image Pixels') ;
+legend([r b],{'Light Images','Dark Images',},'Location','southeast');
+figcnt = figcnt + 1;
 
-figure;
-figure(6); clf
+figure(figcnt); clf
 plot(darktemp,darkref(:,1),'bo');
 hold on
 
@@ -442,9 +541,9 @@ end
 
 xlabel('CCD Temperature (K)');
 ylabel('Mean of Reference Pixels, Cover On');
+figcnt = figcnt + 1;
 
-figure;
-figure(7); clf
+figure(figcnt); clf
 tccd = [-85:1:-50];
 plot(tccd,b_york.*tccd+a_york,'b');
 hold on
@@ -466,9 +565,9 @@ plot(xlim,[meanvref-sigvref,meanvref-sigvref],'r:');
 
 xlabel('CCD Temperature (°C)');
 ylabel('Mean of Reference Pixels');
+figcnt = figcnt + 1;
 
-figure;
-figure(8); clf
+figure(figcnt); clf
 tccd = [-85:1:-45];
 darkcurrent = 10.*(1./22).*1e4.*122.*(tccd+273).^3.*exp(-6400./(tccd+273));
 plot(tccd,darkcurrent+meanvref,'k');
@@ -502,15 +601,14 @@ ylim([537,548]);
 tccd = tccd + 273.15;
 lighttempm = lighttempm + 273.15;
 darktempm = darktempm + 273.15;
+figcnt = figcnt + 1;
+
 %
 %   save('../scratch/nh_dark_analysis_fig6.mat','meanvref',...
 %           'sigvref','tccd','modelone','modeltwo','lighttempm',...
 % 	  'lightrefm','darktempm','darkrefm');
 
-
-
-figure;
-figure(9); clf
+figure(figcnt); clf
 plot(lightrefm(:,1),lightlIlm(:,1),'ro');
 %errorbar(lightrefm(:,1),lightlIlm(:,1),lightlIlm(:,2),'ro');
 hold on;
@@ -540,8 +638,5 @@ cover = data.header.cover_jd - data.header.launch_jd;
 cover = [cover,cover];
 plot(cover,ylim,'k:');
 
-
-
-
-%end
+fprintf('done')
 

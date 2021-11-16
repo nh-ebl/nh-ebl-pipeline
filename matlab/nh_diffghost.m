@@ -8,10 +8,18 @@
 
 %Symons 2021
 
-function [data] = nh_diffghost(data,paths)
+function [data] = nh_diffghost(data,paths,params)
+
+% load('run_params.mat','params')
+if params.err_mags == 1
+    % Choose ghost dir based on err_flag
+    ghostdir = data.(params.err_str).ghost;
+else
+    ghostdir = data.ghost;
+end
 
 % Calculate number of potential bright stars contributing to ghost
-numstars = size(data.ghost.brightmag,1);
+numstars = size(ghostdir.brightmag,1);
 
 % Preallocate space for list of star distance to center and x and y coord of star
 stardistcent = zeros(1,numstars);
@@ -19,8 +27,8 @@ stardistcent = zeros(1,numstars);
 % For all stars, retrieve x and y position
 for j = 1:numstars
     
-    x = data.ghost.brightxpix(j,1);
-    y = data.ghost.brightypix(j,1);
+    x = ghostdir.brightxpix(j,1);
+    y = ghostdir.brightypix(j,1);
     
     % Adjust coordinates for large (654x654) grid
     
@@ -39,9 +47,15 @@ end
 
 % For all stars, retrieve x and y position (except star that is causing
 % masked ghost)
-boxxpix = data.ghost.boxxpix(data.ghost.boxxpix~=data.ghost.brightxpix(I,1)) ;
-boxypix = data.ghost.boxypix(data.ghost.boxypix~=data.ghost.brightypix(I,1));
-boxmag = data.ghost.boxmag(data.ghost.boxmag~=data.ghost.brightmag(I,1));
+if ~isempty(ghostdir.brightxpix())
+    boxxpix = ghostdir.boxxpix(ghostdir.boxxpix~=ghostdir.brightxpix(I,1)) ;
+    boxypix = ghostdir.boxypix(ghostdir.boxypix~=ghostdir.brightypix(I,1));
+    boxmag = ghostdir.boxmag(ghostdir.boxmag~=ghostdir.brightmag(I,1));
+else
+    boxxpix = ghostdir.boxxpix;
+    boxypix = ghostdir.boxypix;
+    boxmag = ghostdir.boxmag;
+end
 
 % Adjust coordinates for large (654x654) grid
 xbox = 199 + boxxpix;
@@ -52,7 +66,7 @@ ybox = 199 + boxypix;
 % distance from star pixel to ghost pixel
 stardistcentbox = sqrt((xbox-(199+128)).^2 + (ybox-(199+128)).^2);
 
-% Cut down list to stars in range to cause ghost
+% Cut down list to stars in range to cause ghost - 18.22 arcmin
 boxxpixcut = boxxpix(stardistcentbox <= 268);
 boxypixcut = boxypix(stardistcentbox <= 268);
 boxmagcut = boxmag(stardistcentbox <= 268);
@@ -76,9 +90,9 @@ surveyarea = data.astrom.imagew.*data.astrom.imageh.*...
 starsb = 1e-26.*1e9.*data.cal.nu.*Fcat./(surveyarea .* (pi./180).^2);
 
 % Save summed diffuse ghost surface brightness to data
-data.ghost.diffusesub = sum(ghostsb);
-data.ghost.diffusesuberrpos = sqrt(sum(ghostsberrpos.^2));
-data.ghost.diffusesuberrneg = sqrt(sum(ghostsberrneg.^2));
+ghostdir.diffusesub = sum(ghostsb);
+ghostdir.diffusesuberrpos = sqrt(sum(ghostsberrpos.^2));
+ghostdir.diffusesuberrneg = sqrt(sum(ghostsberrneg.^2));
 
 % Calculate slope of ghost sb vs. star sb
 fitter = linear_fit(log10(starsb),log10(ghostsb));
@@ -87,7 +101,7 @@ fitterlin = linear_fit(10.^(starfit)',10.^(fitter.m*starfit' + fitter.b));
 ghostfit=(fitter.m*starfit + fitter.b);
 
 % Save slope to data to compare to ISL
-data.ghost.diffuseslope = fitterlin.m;
+ghostdir.diffuseslope = fitterlin.m;
 
 % Plot ghost sb vs. star sb with linear fit
 % h = figure(1);
@@ -119,5 +133,12 @@ data.ghost.diffuseslope = fitterlin.m;
 % ax2.Color = 'none';
 % ax1.Box = 'off';
 % ax2.Box = 'off';
+
+if params.err_mags == 1
+    % Choose ghost dir based on err_flag
+    data.(params.err_str).ghost = ghostdir;
+else
+    data.ghost = ghostdir;
+end
 
 end

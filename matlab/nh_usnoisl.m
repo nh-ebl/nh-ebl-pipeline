@@ -1,8 +1,15 @@
-function usnoisl = nh_usnoisl(data, paths, use_gaia, wing_mag, save_file, flag_method)
+function usnoisl = nh_usnoisl(data, paths, use_gaia, wing_mag, save_file, flag_method, errflag_psf)
+
+load('run_params.mat','params')
+if params.err_on == 1
+    datastruct = data.(params.err_str);
+    maskdir = data.err_mags;
+else
+    datastruct = data;
+    maskdir = data;
+end
 
 resize = 10;
-
-datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
 % If new method, load per data file psf
 if strcmp(flag_method,'new') == 1
@@ -51,8 +58,11 @@ for row = 1:ncat
         
     elseif use_gaia == 1
         
-        thismag = Gmag(row); %+ randn(1) .* 0.25; %need to know what is possible gaia mag error to change this value
-        
+        if errflag_psf == 1
+            thismag = Gmag(row) + Gmagerr(row)*randn(1); %If including mag error, include up to the full reported Gaia error with Gaussian probability
+        elseif errflag_psf == 0
+            thismag = Gmag(row); %+ randn(1) .* 0.25; %need to know what is possible gaia mag error to change this value
+        end        
     end
     
     %find x/y coordinate of the object
@@ -95,7 +105,7 @@ wingimage_cal = wingimage_dec .* data.cal.nu .* 1e-26 .* 1e9 ./ ...
     data.cal.omega_pix;
 
 wingimage_cal_masked = wingimage_cal;
-wingimage_cal_masked(data.mask.onemask) = nan;
+wingimage_cal_masked(maskdir.mask.onemask) = nan;
 psfsize = ceil(size(thispsf)/resize/2);
 
 xpixlist = xpixlist(xpixlist~=0);
@@ -123,9 +133,9 @@ if save_file == 1
     save(filename,'star_list');
 end
 
-usnoisl.isltot = mean(starimage_cal(~data.mask.onemask));
+usnoisl.isltot = mean(starimage_cal(~maskdir.mask.onemask));
 usnoisl.totimage = starimage_cal;
-usnoisl.islwing = mean(wingimage_cal(~data.mask.onemask)); %this one gets used
+usnoisl.islwing = mean(wingimage_cal(~maskdir.mask.onemask)); %this one gets used
 usnoisl.wingimage = wingimage_cal;
 usnoisl.islfaint = usnoisl.isltot - usnoisl.islwing;
 

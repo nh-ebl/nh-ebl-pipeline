@@ -1,11 +1,11 @@
-function data = nh_trilegalisl(paths, data, tri_gaia, tri_mag, max_mag, save_file, flag_method)
+function data = nh_trilegalisl(paths, data, tri_gaia, tri_mag, max_mag, save_file, flag_method, tri_type)
 
 fieldnum = data.header.fieldnum;
 
 % step 1: compute the area of a LORRI image and pull out that many stars
 % from the list at random
 surveyarea = data.astrom.imagew.*data.astrom.imageh.*...
-    data.cal.pixsize_arcsec.^2 ./ 3600.^2;
+    data.cal.pixsize_arcsec.^2 ./ 3600.^2; % num of pix in image * degree/pix = total deg^2
 
 % step 2: read in the trilegal information
 % determine which files are being examined
@@ -24,9 +24,9 @@ elseif strcmp(paths.datadir,'/data/symons/nh_data/mat/') == 1
 end
 % load the appropriate trilegal catalog files
 if new == 1
-    load(sprintf('/home/symons/nh_ebl_pipeline/matlab/lookup/isltrilegal_%02d.mat',fieldnum));
+    load(sprintf('/home/symons/nh_ebl_pipeline/matlab/lookup/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
 elseif old == 1
-    load(sprintf('/home/symons/isl_trilegal/isltrilegal_%02d.mat',fieldnum));
+    load(sprintf('/home/symons/isl_trilegal/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
 end
 
 nfiles = numel(V);
@@ -37,41 +37,67 @@ islghost = zeros(nfiles,1);
 
 for jfile=1:nfiles
     
-    mag = V(jfile).mlf;
-    % save trilegal mags to text file
-    %     dlmwrite(['trimag',num2str(jfile),'.txt'],mag,'delimiter','\n','precision',8)
-    
-    % step 3: convert from LORRI-band mag to flux
-    if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
-        Fcat = data.cal.vzero .* 10.^(-V(jfile).mlf/2.5);
-    elseif strcmp(flag_method, 'old') == 1
-        Fcat = 3055 .* 10.^(-V(jfile).mlf/2.5);
-    end
-    
-    % step 4: make a mask function
-    if tri_gaia == 0
+    % If using trilegal catalog based on UBVRI magnitudes
+    if strcmp(tri_type,'ubvri')
+        mag = V(jfile).mlf;
+        % save trilegal mags to text file
+        %     dlmwrite(['trimag',num2str(jfile),'.txt'],mag,'delimiter','\n','precision',8)
+
+        % step 3: convert from LORRI-band mag to flux
         if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
-            whpl = V(jfile).V > max_mag;
+            Fcat = data.cal.vzero .* 10.^(-V(jfile).mlf/2.5);
         elseif strcmp(flag_method, 'old') == 1
-            whpl = V(jfile).V > data.mask.maxmag;
+            Fcat = 3055 .* 10.^(-V(jfile).mlf/2.5);
         end
-    elseif tri_gaia == 1
-        whpl = V(jfile).V > tri_mag;
+
+        % step 4: make a mask function
+        if tri_gaia == 0
+            if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
+                whpl = V(jfile).V > max_mag;
+            elseif strcmp(flag_method, 'old') == 1
+                whpl = V(jfile).V > data.mask.maxmag;
+            end
+        elseif tri_gaia == 1
+            whpl = V(jfile).V > tri_mag;
+        end
+    % If using trilegal catalog based on G magnitudes
+    elseif strcmp(tri_type,'gaia')
+            mag = V(jfile).G;
+        % save trilegal mags to text file
+        %     dlmwrite(['trimag',num2str(jfile),'.txt'],mag,'delimiter','\n','precision',8)
+
+        % step 3: convert from LORRI-band mag to flux
+        if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
+            Fcat = data.cal.vzero .* 10.^(-V(jfile).G/2.5);
+        elseif strcmp(flag_method, 'old') == 1
+            Fcat = 3055 .* 10.^(-V(jfile).G/2.5);
+        end
+
+        % step 4: make a mask function
+        if tri_gaia == 0
+            if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
+                whpl = V(jfile).G > max_mag;
+            elseif strcmp(flag_method, 'old') == 1
+                whpl = V(jfile).G > data.mask.maxmag;
+            end
+        elseif tri_gaia == 1
+            whpl = V(jfile).G > tri_mag;
+        end
     end
     
     % Select only stars with Gaia mag > 8 (used for diffuse ghost calc)
-    diffghoststars = (V(jfile).mlf-data.cal.gaia2lorrimag) > 8;
+%     diffghoststars = (V(jfile).mlf-data.cal.gaia2lorrimag) > 8;
     
     magcat = mag(whpl);
     
     % step 5: convert to surface brightness
     lIltot = 1e-26.*1e9.*data.cal.nu.*Fcat./(surveyarea .* (pi./180).^2);
-    lIlcat = 1e-26.*1e9.*data.cal.nu.*Fcat(whpl)./(surveyarea .* (pi./180).^2); %this one is ISL
-    lIlghost = 1e-26.*1e9.*data.cal.nu.*Fcat(diffghoststars)./(surveyarea .* (pi./180).^2); %diffuse ghost stars only
+    lIlcat = 1e-26.*1e9.*data.cal.nu.*Fcat(whpl)./(surveyarea .* (pi./180).^2); %this one is ISL - per radian squared
+%     lIlghost = 1e-26.*1e9.*data.cal.nu.*Fcat(diffghoststars)./(surveyarea .* (pi./180).^2); %diffuse ghost stars only
     
     isltot(jfile) = sum(lIltot);
     islmasked(jfile) = sum(lIlcat); %this is ISL
-    islghost(jfile) = sum(lIlghost);%total diffuse ghost star ISL
+%     islghost(jfile) = sum(lIlghost);%total diffuse ghost star ISL
     
 end
 

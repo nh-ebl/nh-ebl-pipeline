@@ -31,10 +31,35 @@ end
 flag_method = 'new';
 
 %set portion of pipeline to run
-procstepflag = 1; %1 - masking, 2 - add meta & diff ghosts, 3 - jail bars, 4 - calibrate, 5 - isl, 6 - dgl
+procstepflag = 6; %1 - masking, 2 - add meta & diff ghosts, 3 - jail bars, 4 - calibrate, 5 - isl, 6 - dgl
 
 % Set error flags - error on means error of this type is being added in
-errflag_mags = 1; %1 is on, 0 is off
+errflag_mags = 0; %1 is on, 0 is off
+errflag_psf = 0 ;
+
+% Set error string, used to create data substruct
+if errflag_mags == 1
+    err_str = 'err_mags';
+    err_on = 1;
+elseif errflag_psf == 1
+    err_str = 'err_psf';
+    err_on = 1;
+else
+    err_str = 'no_err';
+    err_on = 0;
+end
+
+% Set and save run parameters to params struct
+params.data_type = data_type;
+params.method = flag_method;
+params.step = procstepflag;
+params.err_on = err_on;
+params.err_mags = errflag_mags;
+params.err_psf = errflag_psf;
+params.err_str = err_str;
+
+% Save run parameters
+save('run_params.mat','params');
 
 %use USNOB1 or Gaia for star masking
 if strcmp(flag_method,'new') == 1
@@ -52,7 +77,7 @@ else
     fileID = fopen([data_type,'method.txt'],'r'); 
     old_method = fscanf(fileID,'%s');
     fclose(fileID);
-end
+end 
 
 % If method has changed, redo star mask
 if strcmp(flag_method,old_method) == 1
@@ -68,6 +93,9 @@ fclose(fileID);
 
 %use Gaia or just Trilegal for ISL calc
 tri_gaia = 0; %0 for only Trilegal, 1 for Gaia and Trilegal - only need Trilegal if using Gaia for masking
+
+% Choose type of Trilegal magnitudes to use
+tri_type = 'gaia'; % Select 'ubvri' for interpolated LORRI mags or 'gaia' for G mags
 
 %keep or omit galaxies from Gaia data
 gals = 0; %0 for galaxies removed, 1 for galaxies included - galaxies removed is fine, little effect
@@ -129,8 +157,13 @@ for ifile=1:size(datafiles,1)
     %print field number
     disp(data.header.fieldnum)
     
+    %ensure error struct is made if error is on
+    if( (params.err_on == 1) && (isfield(data,params.err_str) == 0) )
+        data.(params.err_str) = struct; 
+    end
+    
     % Stop on a certain file
-    if ifile == 55
+    if ifile == 41  %55
 %     if ifile == 65 | ifile == 139 | ifile == 252 | ifile == 281 | ifile == 341
         fprintf('ahhhh')
 %         data.header.bad = 1;
@@ -139,7 +172,7 @@ for ifile=1:size(datafiles,1)
     end
     
     % Stop on a certain field
-%     if data.header.fieldnum == 7
+%     if data.header.fieldnum == 3
 %         fprintf('ahhhh')
 %     end
     
@@ -149,7 +182,7 @@ for ifile=1:size(datafiles,1)
         
         if strcmp(flag_method,'new') == 1
             %save ra, dec, pix, and mag of stars in image that could be causing ghosts
-            [data, ghostcount, realghostcount] = nh_findghoststar(data,paths,use_gaia);
+            [data, ghostcount, realghostcount] = nh_findghoststar(data,paths,params,use_gaia,errflag_mags);
             totalghosts = totalghosts + ghostcount;
             totalrealghosts = totalrealghosts + realghostcount;
         end
@@ -161,7 +194,8 @@ for ifile=1:size(datafiles,1)
         %mask out stars and ghosts in image (also stat and clip mask)
         %may need to redo catalog depending on gals
 %         catalog_data_gaia(gals,paths)
-        data = nh_makemask(data,paths,3,use_gaia,new_star_mask, max_mag, save_file, flag_method, errflag_mags);
+%         catalog_data_gaia_wide(gals,paths)
+        data = nh_makemask(data,paths,params,3,use_gaia,new_star_mask, max_mag, save_file, flag_method, errflag_mags);
         
         %         maskim = data.data.*~data.mask.onemask;
         %         maskim(maskim==0) = NaN;
@@ -191,7 +225,8 @@ for ifile=1:size(datafiles,1)
             %Calculate diffuse contribution from all stars in range to cause a
             %ghost. List of stars from nh_findghoststar. Later subtracted from
             %image mean.
-            data = nh_diffghost(data,paths);
+            data = nh_diffghost(data,paths,params);
+            data = nh_scattering(data, paths, errflag_mags, params);
         end
         
         %overwrite data file with changes
@@ -203,7 +238,7 @@ for ifile=1:size(datafiles,1)
         fprintf('Jail bars');
         %% Jail bar correction
         %perform jail bar correction on data.data and data.ref - need mask first, but can redo from original data
-        [data, evenMinusOdd(ifile), evenMinusOddFixed(ifile), oddMinusEvenref(ifile), oddMinusEvenrefFixed(ifile)] = nh_jail_bars(data,paths,flag_method);
+        [data, evenMinusOdd(ifile), evenMinusOddFixed(ifile), oddMinusEvenref(ifile), oddMinusEvenrefFixed(ifile)] = nh_jail_bars(data,paths,params,flag_method);
         
         %overwrite data file with changes
         save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
@@ -215,8 +250,8 @@ for ifile=1:size(datafiles,1)
         %% Calibration - nh_calcref MUST be run first!
         
         %save calibrated image in surface brightness units (nh_calcref saves refcorr which is used here)
-        %must redo calibration after jail bar correction, but nh_calcref must be run first
-        data = nh_calibrate(data,paths,flag_method);
+        %nh_calcref must be run first *FOR OLD METHOD ONLY*
+        data = nh_calibrate(data,paths,params,flag_method);
         
         %overwrite data file with changes
         save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
@@ -230,7 +265,7 @@ for ifile=1:size(datafiles,1)
         %calculate ISL from USNOB1 and Trilegal
         %may need to redo catalog depending on gals
         %         catalog_data_gaia(gals,paths)
-        data = nh_calcisl(data, paths, use_gaia, tri_gaia, tri_mag, wing_mag, max_mag, save_file, flag_method);
+        data = nh_calcisl(data, paths, params, use_gaia, tri_gaia, tri_mag, wing_mag, max_mag, save_file, flag_method, errflag_psf, tri_type);
         
         %         wing = data.isl.usnowing
         %         triisl = data.isl.trimeanmasksize
@@ -314,10 +349,29 @@ totalghosts;
 totalrealghosts;
 max(ghostdist);
 
+% figure(1);
 % plot(oddMinusEvenref);
+% xlabel('Image Number');
+% ylabel('Mean(Odd Col - Even Col) [DN]')
+% title('Raw Image before Correction')
+% 
+% figure(2);
 % plot(oddMinusEvenrefFixed);
+% xlabel('Image Number');
+% ylabel('Mean(Odd Col - Even Col) [DN]')
+% title('Raw Image after Correction')
+% 
+% figure(3);
 % plot(evenMinusOdd);
+% xlabel('Image Number');
+% ylabel('Mean(Even Col - Odd Col) [DN]')
+% title('Cal Image before Correction')
+% 
+% figure(4);
 % plot(evenMinusOddFixed);
+% xlabel('Image Number');
+% ylabel('Mean(Even Col - Odd Col) [DN]')
+% title('Cal Image after Correction')
 
 %figure(4);
 %plot(mydate - data.header.launch_jd,mytemp,'o');

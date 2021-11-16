@@ -91,7 +91,7 @@ for i=1:n
 	%[RA' DEC' B1mag' B2mag' R1mag' R2mag'];
     field_number=[field_number i];
 end
-field_DEC=[field_DEC 23.94 23.95 -33.81 -33.81];
+field_DEC=[field_DEC 23.94 23.95 -33.81 -33.81]; % These are coords for old ghost fields
 field_RA=[field_RA 196.04 196.02 237.55 237.58];
 save(sprintf('C:\\nh\\NH_old_data\\usnob1\\mat_files\\cataloginfo'), 'field_number','field_RA','field_DEC');
 	

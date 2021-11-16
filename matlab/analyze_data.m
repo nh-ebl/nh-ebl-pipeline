@@ -31,6 +31,10 @@ im_hist = zeros(size(datafiles));
 im_ref = zeros(size(datafiles));
 im_mean = zeros(size(datafiles));
 im_mostprob = zeros(size(datafiles));
+maskmeanold = zeros(size(datafiles));
+maskmean = zeros(size(datafiles));
+jailbar_type = zeros(size(datafiles));
+exposure_time = zeros(size(datafiles));
 field = zeros(size(datafiles));
 date = zeros(size(datafiles));
 im_num = zeros(size(datafiles));
@@ -145,7 +149,9 @@ for ifile=1:size(datafiles,1)
     %Preallocate for edge values of peak histogram value
 %     minmaxedge = zeros(2,1);
     %Save only ghost area of image
-    im = data.image.calimage(~data.mask.onemask);
+%     im = data.image.calimage(~data.mask.onemask);
+    uncorr_cal = (((data.data./ data.header.exptime)).* data.cal.sbconv);
+    im = uncorr_cal(~data.mask.onemask);
     %Find indices where pixel values are > 0
     %idx = im~=0;
 %     nbins_rice = round(2*(length(im(idx))^(1/3))); %rice
@@ -208,6 +214,10 @@ for ifile=1:size(datafiles,1)
     im_ref(ifile) = data.ref.bias;
     im_mean(ifile) = data.stats.corrmean;
     im_mostprob(ifile) = data.stats.corrmostprob;
+    maskmeanold(ifile) = data.stats.maskmeanold;
+    maskmean(ifile) = data.stats.maskmean;
+    jailbar_type(ifile) = data.header.jailbar_type;
+    exposure_time(ifile) = data.header.exptime;
 
     % Plot masked, calibrated image with red circle indicating ghost region
     % Title includes sum and npix of inner and outer regions, and difference of
@@ -331,6 +341,41 @@ end
 % xlabel('Julian Date')
 % ylabel('FPUB Temp [K]')
 
+% Plot difference in mask mean before and after jail bar correction
+figure(4)
+jailbarPlotter =  zeros(size(datafiles));
+jailbarPlotter(jailbar_type > 1) = 1;
+s1 = scatter(im_num(field>1 & bad < 1),(maskmean(field>1 & bad < 1)-maskmeanold(field>1 & bad < 1)).*exposure_time(field>1 & bad < 1),[],jailbarPlotter(field>1 & bad < 1));
+hold on;
+p1 = plot(im_num(field>1 & bad < 1),repmat(mean((maskmean(field>1 & bad < 1 & jailbarPlotter == 0)-maskmeanold(field>1 & bad < 1 & jailbarPlotter == 0)).*exposure_time(field>1 & bad < 1 & jailbarPlotter == 0)),sum(field>1 & bad < 1),1),'--');
+t1 = text(mean(im_num(field>1 & bad < 1)),0.20,num2str(mean((maskmean(field>1 & bad < 1 & jailbarPlotter == 0)-maskmeanold(field>1 & bad < 1 & jailbarPlotter == 0)).*exposure_time(field>1 & bad < 1 & jailbarPlotter == 0))));
+p2 = plot(im_num(field>1 & bad < 1),repmat(mean((maskmean(field>1 & bad < 1 & jailbarPlotter == 1)-maskmeanold(field>1 & bad < 1 & jailbarPlotter == 1)).*exposure_time(field>1 & bad < 1 & jailbarPlotter == 1)),sum(field>1 & bad < 1),1),'--');
+t2 = text(mean(im_num(field>1 & bad < 1)),-0.20,num2str(mean((maskmean(field>1 & bad < 1 & jailbarPlotter == 1)-maskmeanold(field>1 & bad < 1 & jailbarPlotter == 1)).*exposure_time(field>1 & bad < 1 & jailbarPlotter == 1))));
+xlabel('Image Number')
+ylabel('Image Masked Mean Delta (JailBarCorrection - PreJailBar) [DN]')
+colormap(jet);
+colorbar;
+
+% Plot mask mean (DN) before and after jail bar correction over all images
+figure(3)
+s1 = scatter(im_num(field>1 & bad < 1),maskmeanold(field>1 & bad < 1).*exposure_time(field>1 & bad < 1),[],jailbarPlotter(field>1 & bad < 1));
+colormap(jet);
+hold on;
+s2 = scatter(im_num(field>1 & bad < 1),maskmean(field>1 & bad < 1).*exposure_time(field>1 & bad < 1),'g','x');
+xlabel('Image Number')
+ylabel('Image Masked Mean [DN]')
+legend('Before Jail Bar Correction','After Jail Bar Correction')
+
+% Masked image mean before and after jail bar correction colored by field
+% number
+figure(5)
+% s1 = scatter(im_num(field>1 & bad < 1),maskmeanold(field>1 & bad < 1));
+% hold on;
+s2 = scatter(im_num(field>1 & bad < 1),maskmean(field>1 & bad < 1).*exposure_time(field>1 & bad < 1),[],field(field>1 & bad < 1));
+xlabel('Image Number')
+ylabel('Image Masked Mean [DN]')
+legend('Before Jail Bar Correction','After Jail Bar Correction')
+
 % Plot comparison of diff ghost sub from model and data
 figure(3)
 colormap(jet)
@@ -359,7 +404,7 @@ std(diffghostcheck(field>1))
 figure(4)
 colormap(jet)
 % Uncorrected most prob value and ref bias
-scatter(im_ref(field>1),im_hist(field>1),[],field(field>1))
+scatter(im_ref(field>1 & bad < 1),im_hist(field>1 & bad < 1),[],field(field>1 & bad < 1))
 % Corrected most prob value and ref bias
 % scatter(im_ref(field>1),im_mostprob(field>1),[],field(field>1))
 % Corrected mean and ref bias

@@ -7,17 +7,17 @@
 % Thayer, June 2019
 %added the RA and DEC variables and recorded their values
 
-function [data, ghostcount, realghostcount] = nh_findghoststar(data, paths, use_gaia)
+function [data, ghostcount, realghostcount] = nh_findghoststar(data, paths, params, use_gaia, errflag_mags)
 
 % load up the corresponding catalog file
 if use_gaia == 1
     load(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum));
-
+    
     % figure out the length of the catalog
     [ncat,~] = size(RA);
 elseif use_gaia == 0
     load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
-
+    
     % figure out the length of the catalog
     [~,ncat] = size(RA);
 end
@@ -56,7 +56,7 @@ for row = 1:ncat
     
     %if using USNOB1 catalog
     if use_gaia == 0
-    
+        
         % retrieve magnitudes and star/galaxy classification
         mags = [B1mag(row),B2mag(row),R1mag(row),R2mag(row),I2mag(row)];
         sg = [B1sg(row),B2sg(row),R1sg(row),R2sg(row),I2sg(row)];
@@ -80,10 +80,10 @@ for row = 1:ncat
             nansgcnt = nansgcnt + 1;
             thissg = 1;
         end
-
+        
         %find x/y coordinate of the object
         [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
-
+        
         % check if the object is in the target zone
         check = 0;
         % quad 1
@@ -106,18 +106,18 @@ for row = 1:ncat
             quad4 = quad4 + 1;
             check = 1;
         end
-
+        
         if check == 1
             % require that the magnitude is within sensible bounds
             if thismag < 8 && ~isnan(thismag) && thissg > 0
                 numinbnds = numinbnds + 1;
-
+                
                 % save x/y location of star and magnitude
                 quadxpix(row) = xpix;
                 quadypix(row) = ypix;
                 quadmag(row) = thismag;
-
-            % checks to see how many stars excluded for which criteria
+                
+                % checks to see how many stars excluded for which criteria
             elseif thismag >= 8
                 checkmag(row) = thismag;
                 nummagmax = nummagmax + 1;
@@ -128,17 +128,21 @@ for row = 1:ncat
                 numsgover = numsgover + 1;
             end
         end
-    
+        
     elseif use_gaia == 1
         %mags don't seem to have any wild values, so we'll use all of
         %them without restriction
-        thismag = Gmag(row); %+ randn(1) .* 0.25; %need to know what is possible gaia mag error to change this value
+        if errflag_mags == 1
+            thismag = Gmag(row) + Gmagerr(row)*randn(1); %If including mag error, include up to the full reported Gaia error with Gaussian probability
+        elseif errflag_mags == 0
+            thismag = Gmag(row); %+ randn(1) .* 0.25; %need to know what is possible gaia mag error to change this value
+        end
         raa=RA(row);
         decc=DEC(row);
-
+        
         %find x/y coordinate of the object
         [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
-
+        
         % check if the object is in the target zone
         check = 0;
         % quad 1
@@ -161,7 +165,7 @@ for row = 1:ncat
             quad4 = quad4 + 1;
             check = 1;
         end
-
+        
         if check == 1
             % save star to list of stars in ghost box
             boxxpix(row) = xpix;
@@ -171,13 +175,13 @@ for row = 1:ncat
             % require that the magnitude is within sensible bounds
             if thismag < 8 && ~isnan(thismag)
                 numinbnds = numinbnds + 1;
-
+                
                 % save x/y location of star and magnitude
                 quadxpix(row) = xpix;
                 quadypix(row) = ypix;
                 quadmag(row) = thismag;
-
-            % checks to see how many stars excluded for which criteria
+                
+                % checks to see how many stars excluded for which criteria
             elseif thismag >= 8
                 checkmag(row) = thismag;
                 nummagmax = nummagmax + 1;
@@ -206,7 +210,9 @@ end
 
 % check for logged physical ghost - requires ghost_analysis to have already
 % been run and saved to data - if no data.ghost yet, can't do this
-if strcmp(data.ghost.ghostx , '') == 1 || data.ghost.ghostx == 0
+if ~isfield(data.ghost,'ghostx')
+    realghostcount = 0;
+elseif strcmp(data.ghost.ghostx , '') == 1 || data.ghost.ghostx == 0
     realghostcount = 0;
 else
     realghostcount = 1;
@@ -216,13 +222,28 @@ end
 
 % disp(min(Gmag))
 
-% save bright star info to data
-data.ghost.brightmag = quadmag;
-data.ghost.brightxpix = quadxpix;
-data.ghost.brightypix = quadypix; 
-data.ghost.brightra = raa;
-data.ghost.brightdec = decc;
-data.ghost.boxxpix = boxxpix;
-data.ghost.boxypix = boxypix;
-data.ghost.boxmag = boxmag;
+% If error is on, write to error substruct
+% load('run_params.mat','params')
+if params.err_mags == 1
+    % save bright star info to data
+    data.(params.err_str).ghost.brightmag = quadmag;
+    data.(params.err_str).ghost.brightxpix = quadxpix;
+    data.(params.err_str).ghost.brightypix = quadypix;
+    data.(params.err_str).ghost.brightra = raa;
+    data.(params.err_str).ghost.brightdec = decc;
+    data.(params.err_str).ghost.boxxpix = boxxpix;
+    data.(params.err_str).ghost.boxypix = boxypix;
+    data.(params.err_str).ghost.boxmag = boxmag;
+else
+    % save bright star info to data
+    data.ghost.brightmag = quadmag;
+    data.ghost.brightxpix = quadxpix;
+    data.ghost.brightypix = quadypix;
+    data.ghost.brightra = raa;
+    data.ghost.brightdec = decc;
+    data.ghost.boxxpix = boxxpix;
+    data.ghost.boxypix = boxypix;
+    data.ghost.boxmag = boxmag;
+end
+
 end

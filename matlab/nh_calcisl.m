@@ -1,13 +1,23 @@
-function data=nh_calcisl(data, paths, use_gaia, tri_gaia, tri_mag, wing_mag, max_mag, save_file, flag_method)
+function data=nh_calcisl(data, paths, params, use_gaia, tri_gaia, tri_mag, wing_mag, max_mag, save_file, flag_method,errflag_psf,tri_type)
+
+% load('run_params.mat','params')
 
 % Calculate ISL from PSF wings for stars < X mag (using Gaia or USNOB1)
-usnoisl = nh_usnoisl(data, paths, use_gaia, wing_mag, save_file, flag_method);
+usnoisl = nh_usnoisl(data, paths, use_gaia, wing_mag, save_file, flag_method, errflag_psf);
 
-data.isl.usnotot = usnoisl.isltot;
-data.isl.usnototim = usnoisl.totimage;
-data.isl.usnowing = usnoisl.islwing; %this one gets used
-data.isl.usnowingim = usnoisl.wingimage;
-data.isl.usnofaint = usnoisl.islfaint;
+if params.err_psf == 1
+    data.(params.err_str).isl.usnotot = usnoisl.isltot;
+    data.(params.err_str).isl.usnototim = usnoisl.totimage;
+    data.(params.err_str).isl.usnowing = usnoisl.islwing; %this one gets used
+    data.(params.err_str).isl.usnowingim = usnoisl.wingimage;
+    data.(params.err_str).isl.usnofaint = usnoisl.islfaint;
+else
+    data.isl.usnotot = usnoisl.isltot;
+    data.isl.usnototim = usnoisl.totimage;
+    data.isl.usnowing = usnoisl.islwing; %this one gets used
+    data.isl.usnowingim = usnoisl.wingimage;
+    data.isl.usnofaint = usnoisl.islfaint;
+end
 
 %   gsciiisl = nh_gsciiisl(data);
 %
@@ -27,7 +37,7 @@ if tri_gaia == 1
 elseif tri_gaia == 0
     
     % Calculate ISL from trilegal for mag > mask mag
-    data = nh_trilegalisl(paths, data, tri_gaia, tri_mag, max_mag, save_file, flag_method);
+    data = nh_trilegalisl(paths, data, tri_gaia, tri_mag, max_mag, save_file, flag_method,tri_type);
     
     %     triout=nh_add_trilegalisl(data, paths);
     %     data.isl.tritotmean = triout.isltotmean;

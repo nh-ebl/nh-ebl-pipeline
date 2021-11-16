@@ -1,9 +1,19 @@
 function make_trilegalcats()
 
-paths = get_paths_new();
+% paths = get_paths_new();
+paths = get_paths_old();
 
-smallfields = [1,5,6,7,8];
-nfields = 5;
+if strcmp(paths.datadir,'/data/symons/NH_old_data/mat/good/') == 1
+    old = 1;
+    new = 0;
+    smallfields = [3,5,6,7]; % Old files
+    nfields = 4;
+elseif strcmp(paths.datadir,'/data/symons/nh_data/mat/') == 1
+    new = 1;
+    old = 0;
+    smallfields = [1,5,6,7,8]; % New files
+    nfields = 5;
+end
 
 %% need to account for B and R bands to improve
 %% magnitude accuracy.
@@ -15,11 +25,11 @@ filt_lambda = filt_lambda';
 % convert from column to row vector
 filt_trans = filt_trans'./max(filt_trans);
 
-for ifield=5:8 %nfields
+for ifield=5:7 %nfields % Make this be any set of numerically sequential fields - otherwise do one at a time
     
     disp(sprintf('On field %d of %d.',ifield,nfields));
     
-    indir = dir(sprintf('%s%02d/*.dat',paths.tridir,ifield));
+    indir = dir(sprintf('%s/ubvri/%02d/*.dat',paths.tridir,ifield));
     
     nfiles = numel(indir);
     
@@ -30,7 +40,7 @@ for ifield=5:8 %nfields
         disp(sprintf('Reading file...'));
         
         % step 1: read in the trilegal catalog information
-        filename = sprintf('%s%02d/%s',paths.tridir,ifield,...
+        filename = sprintf('%s/ubvri/%02d/%s',paths.tridir,ifield,...
             indir(ifile).name);
         
         [a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,U,B,V,R,I,J,H,K,a11] = ...
@@ -47,7 +57,7 @@ for ifield=5:8 %nfields
         I = I(1:nstars);
         
         whpl = ifield == smallfields;
-        if sum(whpl) == 0
+        if sum(whpl) == 0 % This skips currently, would need to be 1 to not skip
             nrands = nstars;
             nstars = round(0.0847 .* nstars); %should be 0.0841 to be 0.29*0.29 -> can convert 1 deg^2 of stars to 0.0841 deg^2
             ind = randperm(nrands,nstars);
@@ -91,8 +101,12 @@ for ifield=5:8 %nfields
     
     V = Vp;
     
-    save(sprintf('lookup/isltrilegal_%02d.mat',ifield),'V','-v7.3');
+    if new == 1
+        save(sprintf('lookup/ubvri/isltrilegal_%02d.mat',ifield),'V','-v7.3'); %Save location for new files
+    elseif old == 1
+        save(sprintf('/home/symons/isl_trilegal/ubvri/isltrilegal_%02d.mat',ifield),'V','-v7.3'); % Save location for old files
+    end
     
 end
 
-% end
+end

@@ -10,8 +10,16 @@
 
 function [ghostmask,data] = nh_ghostmask(data,paths)
 
+load('run_params.mat','params')
+if params.err_mags == 1
+    % Choose ghost dir based on err_flag
+    ghostdir = data.(params.err_str).ghost;
+else
+    ghostdir = data.ghost;
+end
+    
 % Calculate number of potential bright stars contributing to ghost
-numstars = size(data.ghost.brightmag,1);
+numstars = size(ghostdir.brightmag,1);
 
 % Preallocate space for list of star distance to center and x and y coord of star
 stardistcent = zeros(1,numstars);
@@ -21,8 +29,8 @@ stary = zeros(numstars,1);
 % For all stars, retrieve x and y position
 for j = 1:numstars
     
-    x = data.ghost.brightxpix(j,1);
-    y = data.ghost.brightypix(j,1);
+    x = ghostdir.brightxpix(j,1);
+    y = ghostdir.brightypix(j,1);
     
     % Adjust coordinates for large (654x654) grid
     
@@ -40,15 +48,15 @@ end
 [M,I] = min(stardistcent);
 
 % If star is in range to cause a ghost, mask ghost
-if M <= 268
+if M <= 268 %18.22 arcmin
     
     % Save the star x and y coords for the closest
     % star to ghost and adjust for origin at center of FOV
-    starx = data.ghost.brightxpix(I,1) + 199 - 327;
-    stary = data.ghost.brightypix(I,1) + 199 - 327;
+    starx = ghostdir.brightxpix(I,1) + 199 - 327;
+    stary = ghostdir.brightypix(I,1) + 199 - 327;
     
     % Save the star magnitude
-    starmag = data.ghost.brightmag(I,1);
+    starmag = ghostdir.brightmag(I,1);
     
     % Calculate ghost position and magnitude based on star position and
     % magnitude
@@ -59,7 +67,7 @@ if M <= 268
     
     % Calculate distance from ghost center to center of fov
     ghostdistcent = sqrt((128-(xghost+128))^2 + (128-(yghost+128))^2);
-    data.ghost.ghostdistcent = ghostdistcent;
+    ghostdir.ghostdistcent = ghostdistcent;
     
     % Create mask for ghost
     % Meshgrid based on image size
@@ -76,7 +84,14 @@ if M <= 268
 else
     % If star out of range, don't make a ghost mask
     ghostmask = zeros(256);
-    data.ghost.ghostdistcent = 0;
+    ghostdir.ghostdistcent = 0;
+end
+
+if params.err_mags == 1
+    % Choose ghost dir based on err_flag
+    data.(params.err_str).ghost = ghostdir;
+else
+    data.ghost = ghostdir;
 end
 
 end
