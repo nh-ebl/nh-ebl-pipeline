@@ -13,7 +13,7 @@ function nh_fix_files()
 % Load old data files and save if not starting from scratch
 
 % get the paths appropriate to this system
-paths = get_paths_old_ghosts();
+paths = get_paths_lauer();
 
 % get a list of all the image files in the *.fit format
 imagedata = dir(sprintf('%s*.fit',paths.imagedir));
@@ -63,19 +63,27 @@ for ifile=1:size(imagedata)
     data.header.rawfile = subfile;
     
     % now add reference pixel information
+    % Need to remove phase name and date folder from file name to get eng
+    % file folder and name
+    
+    % If phase name has 7 characters
     if strcmp(subfile(1:7),'jupiter')
         darkpre = subfile(9:23);
         darkpst = subfile(25:45);
-    elseif strcmp(subfile(1:6),'cruise') || strcmp(subfile(1:6),'launch')
+    % If phase name has 6 characters
+    elseif strcmp(subfile(1:6),'cruise') || strcmp(subfile(1:6),'launch') || strcmp(subfile(1:6),'n3c61f')
         darkpre = subfile(8:22);
         darkpst = subfile(24:44);
-    elseif strcmp(subfile(1:5),'pluto')
+    % If phase name has 5 characters
+    elseif strcmp(subfile(1:5),'pluto') || strcmp(subfile(1:5),'OE394') || strcmp(subfile(1:5),'OJ394') || strcmp(subfile(1:5),'ZL138')
         darkpre = subfile(7:21);
         darkpst = subfile(23:43);
     end
     
-    darkstring = sprintf('%s%s/%seng_1.fit',paths.engdir,darkpre,darkpst);
-%     darkstring = sprintf('%s%s/%seng.fit',paths.engdir,darkpre,darkpst);
+    % old data has eng_1 at end
+%     darkstring = sprintf('%s%s/%seng_1.fit',paths.engdir,darkpre,darkpst);
+    % new data has eng at end
+    darkstring = sprintf('%s%s/%seng.fit',paths.engdir,darkpre,darkpst);
     
     
     data.ref.file = darkstring;
@@ -88,7 +96,15 @@ for ifile=1:size(imagedata)
     data.ref.mean = mean(ref_i(whpl,257));
     data.ref.std = std(ref_i(whpl,257));
     
+    % write ghost position-finding fits to each file - derived in
+    % ghost_analysis
+    data.ghost.fitx = [0.1200, 8.0714];
+    data.ghost.fity = [0.1240, 1.9151];
+    
     % save the resulting data file
+    if not(isfolder([paths.datadir]))
+        mkdir([paths.datadir])
+    end
     save(sprintf('%s%s.mat',paths.datadir,timestamp),'data');
     
 end

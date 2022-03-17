@@ -14,7 +14,8 @@ close all
 %get paths for new data files or old data files
 % paths = get_paths_old_ghosts();
 % paths = get_paths_old();
-paths = get_paths_new();
+% paths = get_paths_new();
+paths = get_paths_lauer();
 datadir = paths.datadir;
 
 % Save which data we're looking at
@@ -22,7 +23,7 @@ if strcmp(paths.datadir,'/data/symons/NH_old_data/mat/ghosts/') == 1
     data_type = 'ghost';
 elseif strcmp(paths.datadir,'/data/symons/NH_old_data/mat/good/') == 1
     data_type = 'old';
-elseif strcmp(paths.datadir,'/data/symons/nh_data/mat/') == 1
+elseif strcmp(paths.datadir,'/data/symons/nh_data/mat/') == 1 || strcmp(paths.datadir,'/data/symons/nh_data_lauer/mat/') == 1
     data_type = 'new';
 end
 
@@ -31,7 +32,7 @@ end
 flag_method = 'new';
 
 %set portion of pipeline to run
-procstepflag = 6; %1 - masking, 2 - add meta & diff ghosts, 3 - jail bars, 4 - calibrate, 5 - isl, 6 - dgl
+procstepflag = 1; %1 - masking, 2 - add meta & diff ghosts, 3 - jail bars, 4 - calibrate, 5 - isl, 6 - dgl, 7 - extinction
 
 % Set error flags - error on means error of this type is being added in
 errflag_mags = 0; %1 is on, 0 is off
@@ -103,7 +104,7 @@ gals = 0; %0 for galaxies removed, 1 for galaxies included - galaxies removed is
 %set max mag for masking (mask all stars brighter than this), also
 %calculate gaia isl between this and 20
 if strcmp(flag_method,'new') == 1
-    max_mag = 21; %17.75 old value
+    max_mag = 21; %17.75 old value, 21 new value
 elseif (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'old') == 1)
     max_mag = 17.75; % if old method, this is overwritten in makemask
 end
@@ -180,22 +181,22 @@ for ifile=1:size(datafiles,1)
         fprintf('Masking and ghost analysis');
         %% Masking and optical ghosts
         
-        if strcmp(flag_method,'new') == 1
-            %save ra, dec, pix, and mag of stars in image that could be causing ghosts
-            [data, ghostcount, realghostcount] = nh_findghoststar(data,paths,params,use_gaia,errflag_mags);
-            totalghosts = totalghosts + ghostcount;
-            totalrealghosts = totalrealghosts + realghostcount;
-        end
+%         if strcmp(flag_method,'new') == 1 !!!NEED TO TURN BACK ON!!!
+%             %save ra, dec, pix, and mag of stars in image that could be causing ghosts
+%             [data, ghostcount, realghostcount] = nh_findghoststar(data,paths,params,use_gaia,errflag_mags);
+%             totalghosts = totalghosts + ghostcount;
+%             totalrealghosts = totalrealghosts + realghostcount;
+%         end
         
         %
         %manually mask portions of image - not needed for old ghost files
-%         data = nh_make_manmask(data,paths);
+        data = nh_make_manmask(data,paths);
         
         %mask out stars and ghosts in image (also stat and clip mask)
         %may need to redo catalog depending on gals
 %         catalog_data_gaia(gals,paths)
 %         catalog_data_gaia_wide(gals,paths)
-        data = nh_makemask(data,paths,params,3,use_gaia,new_star_mask, max_mag, save_file, flag_method, errflag_mags);
+%         data = nh_makemask(data,paths,params,3,use_gaia,new_star_mask, max_mag, save_file, flag_method, errflag_mags);
         
         %         maskim = data.data.*~data.mask.onemask;
         %         maskim(maskim==0) = NaN;
@@ -225,8 +226,9 @@ for ifile=1:size(datafiles,1)
             %Calculate diffuse contribution from all stars in range to cause a
             %ghost. List of stars from nh_findghoststar. Later subtracted from
             %image mean.
-            data = nh_diffghost(data,paths,params);
-            data = nh_scattering(data, paths, errflag_mags, params);
+%             data = nh_diffghost(data,paths,params); !!!NEED TO TURN THIS
+%             BACK ON !!!
+%             data = nh_scattering(data, paths, errflag_mags, params);
         end
         
         %overwrite data file with changes
@@ -247,7 +249,7 @@ for ifile=1:size(datafiles,1)
     
     if procstepflag == 4
         fprintf('Calibration');
-        %% Calibration - nh_calcref MUST be run first!
+        %% Calibration
         
         %save calibrated image in surface brightness units (nh_calcref saves refcorr which is used here)
         %nh_calcref must be run first *FOR OLD METHOD ONLY*
@@ -291,6 +293,18 @@ for ifile=1:size(datafiles,1)
         
     end
     
+    if procstepflag == 7
+        fprintf('Extinction calculation');
+        %% Extinction calculation
+        
+        %calculate extinction using SFD data
+        data = nh_extinction(data, paths);
+        
+        %overwrite data file with changes
+%         save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+        
+    end
+        
     %     mydate(ifile) = data.header.date_jd;
     %     mytemp(ifile) = data.header.ccdtemp;
     %     mymean(ifile) = data.stats.calmean;

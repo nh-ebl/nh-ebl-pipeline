@@ -19,7 +19,15 @@ function paths=get_paths_old()
    paths.gaiadir = '/data/symons/NH_old_data/gaia/';
    paths.irisdir = '/data/symons/NH_old_data/IRIS/';
    paths.planckdir = '/data/symons/NH_old_data/planck/';
+   paths.planckmcdir = '/data/symons/NH_old_data/planck_mc/';
+   paths.planckmchistdir = '/data/symons/NH_old_data/planck_mc_hists/';
+   paths.irissfddir = '/data/symons/NH_old_data/IRIS_SFD/';
+   paths.nhdir = '/data/symons/NH_old_data/n_hyd/';
    paths.dgldir = '/data/symons/NH_old_data/dgl/';
+   paths.dglmaskdir = '/data/symons/NH_old_data/dgl_masks/';
+   paths.dglmandir = '/data/symons/NH_old_data/dglmanmask/';
+   paths.scatteringdir = '/data/symons/NH_old_data/scattering/';
+   paths.extdir = '/data/symons/NH_old_data/ext/';
    paths.simgaiadir = '/data/symons/NH_old_data/sims_gaia/';
    paths.simusnobdir = '/data/symons/NH_old_data/sims_usnob/';
 end

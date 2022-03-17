@@ -98,13 +98,15 @@ data.coords.sol_elon = data.astrometry.id_sol_elon;
 temp_ref = data.ref.eng(:,1:256);
 
 data.ref.engmean = mean(temp_ref(~data.mask.onemask));
-data.ref.bias = nh_sigclip(data.ref.line) - median(data.ref.line);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% write ghost position-finding fits to each file - derived in
-% ghost_analysis
-data.ghost.fitx = [0.1200, 8.0714];
-data.ghost.fity = [0.1240, 1.9151];
+data.ref.biasmthd = data.astrom.biasmthd; % This is the listed bias method from the header - can be median or mean
+data.ref.biaslevl = data.astrom.biaslevl; % This is the listed bias level from the header
+% Determine currently used bias method
+if strcmp(data.ref.biasmthd,'mean of dark column data') == 1
+    data.ref.bias = nh_sigclip(data.ref.line) - mean(data.ref.line); % Calculate new bias level - to be used in nh_calibrate
+elseif strcmp(data.ref.biasmthd,'median of dark column data') == 1
+    data.ref.bias = nh_sigclip(data.ref.line) - median(data.ref.line); % Calculate new bias level - to be used in nh_calibrate
+else
+    fprintf('Absolute panic: bias method not recognized!')
+end
 
 end

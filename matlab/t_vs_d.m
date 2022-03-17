@@ -6,6 +6,9 @@
 launch_date = 2453755.291667;
 au = 1.496*10^8;
 
+if ~isfolder(sprintf('%stxt',path))
+    mkdir(sprintf('%stxt',path));
+end
 filename = fopen(sprintf('%stxt/%s_sun_NH.txt',path,phase), 'w');
 fprintf(filename, '%%t t_from_launch x y z d\n');
 

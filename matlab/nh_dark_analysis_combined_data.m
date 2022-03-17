@@ -267,6 +267,7 @@ lightlIlmq = lightlIlm(whpl,2);
 lightlIlm = [lightlIlmp,lightlIlmq];
 
 %Calculate dark current for temperatures we already have - in e/s/pix
+% New gain value from Lauer is 19.4 e/DN
 darkcurrlight = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273.15).^3.*exp(-6400./(lighttemp+273.15));
 darkcurrdark = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(darktemp+273.15).^3.*exp(-6400./(darktemp+273.15));
 %Load and save dark current
@@ -302,7 +303,7 @@ for ifile=1:numoldlightfiles+numnewlightfiles
 end
 
 % Convert dark current in e/s/pix to DN/s/pix
-darkcurrdn = darkcurrnew/22;
+darkcurrdn = darkcurrnew/22; % New gain value from Lauer is 19.4 e/DN
 % Convert dark current in DN/s/pix to nW/m2/sr
 darkcurrnw = darkcurrdn*data.cal.sbconv;
 % Calculate mean dark current (few new files) in nW/m2/sr

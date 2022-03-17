@@ -21,7 +21,7 @@ function [ field ] = get_field(ra,dec,paths)
   [~,n] = size(field_number);
 
   arcminutes = 15; %maximum value given by catalog 
-  degrees = arcminutes/60 - .07; 
+  degrees = arcminutes/60 - .07; % 0.18 degree tolerance
 
   for i = 1:n
     if ra < field_RA(i) + degrees  && ra > field_RA(i) - degrees && dec < field_DEC(i) + degrees  && dec > field_DEC(i) - degrees

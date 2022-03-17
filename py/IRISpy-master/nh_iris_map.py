@@ -37,11 +37,15 @@ imagefile = fileID.readlines()[0] #get the imagefile path
 fileID.close() #close the file
 hdul = fits.open(imagefile) #use the imagefile path
 #this is a reference image
-# hdul = fits.open('field_1.fit')
+# hdul = fits.open('regist_pluto_20151102_030873_lor_0308731028_0x633_sci.fit')
 
 ref_head = hdul[0].header
 timestamp = ref_head['SPCUTCJD'][3:]
 pixsize = 3600 *  np.mean([abs(ref_head['CD1_1'] + ref_head['CD2_1']), abs(ref_head['CD2_1'] + ref_head['CD2_2'])])
+
+# # Retrieve image with specified ra/dec, pixsize in degrees, and image width (assuming square)
+# pixsize = 4.08
+# ref_head = make_header(pixsize/3600, 256, 0.0756, -21.5451)
 
 #note that the fields in fields.txt are given in the ICRS coordinate frame, but the IRAS data has B1950 Astrometry.
 # ra_c = ref_head['SPCBRRA'] *u.deg
@@ -74,7 +78,11 @@ map = mosaic(ref_head, band=4)
 
 hdu = fits.PrimaryHDU(map, ref_head)
 hdul = fits.HDUList([hdu])
-hdul.writeto(config.DataDir + 'iris_' + timestamp + '_fx.fits')
+hdul.writeto(config.DataDir + 'iris_' + timestamp + '_fx.fits',overwrite=True)
+# hdul.writeto('iris_test.fits',overwrite=True)
+
+print('done')
+
 #ra
 # hdu = fits.PrimaryHDU(ra, head)
 # hdul = fits.HDUList([hdu])

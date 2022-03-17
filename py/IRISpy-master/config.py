@@ -15,7 +15,7 @@ IrisLookupFile = '/home/symons/nh_ebl_pipeline/py/iris_old/info_issa_map4.txt' #
 
 IrisDir =  '/home/symons/nh_ebl_pipeline/py/iris_old/IRISNOHOLES_B4/' #please point this
 # to the directory where you are keeping all of your IRIS fits files.
-DataDir = '/data/symons/nh_data/IRIS/' #please point this to where you want
+DataDir = '/home/symons/nh_ebl_pipeline/py/IRISpy-master/' #please point this to where you want
 # your saved data files to be stored
 #FieldsFile = 'fields.txt' #please point this to the filepath that contains your
 # txt file with the fields you want to look at.

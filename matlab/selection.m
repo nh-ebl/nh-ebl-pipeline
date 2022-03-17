@@ -49,6 +49,9 @@ for iter=1:numel(duration_array)
         % copy the selected .fit into a separate folder
         
         destination = sprintf('%s%s/selected_data',path,phase);
+        if ~isfolder(sprintf('%s%s/selected_data',path,phase))
+            mkdir(sprintf('%s%s/selected_data',path,phase));
+        end
         copyfile(filename,destination);
         oldfile = sprintf('%s%s/selected_data/%s',path, phase,file);
         newfile = sprintf('%s%s/selected_data/%s_%s',path, phase,date, file);

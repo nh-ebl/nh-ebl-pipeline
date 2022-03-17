@@ -1,3 +1,4 @@
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 %%  function nh_makemask.m
@@ -17,30 +18,30 @@ else
 end
 
 % read in the .fits data for the calibrated image file
-imagename = ['regist_',data.header.rawfile];
+imagename = ['regist_',datastruct.header.rawfile];
 image_i = fitsread(sprintf('%s%s',paths.imagedir,imagename));
 
-% read in data.data to replace possibly modified version from earlier run
+% read in datastruct.data to replace possibly modified version from earlier run
 datastruct.data = image_i;
 
 %% here begins the star catalog masking
 
 % load up the corresponding catalog file
 if use_gaia == 1
-    load(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum));
+    load(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,datastruct.header.fieldnum));
     
     % figure out the length of the catalog
     [ncat,~] = size(RA);
 elseif use_gaia == 0
-    load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
+    load(sprintf('%sfield_%d_data.mat',paths.catdir,datastruct.header.fieldnum));
     
     % figure out the length of the catalog
     [~,ncat] = size(RA);
 end
 
 % figure out the size the mask arrays need to be
-xdim = data.astrom.imagew;
-ydim = data.astrom.imageh;
+xdim = datastruct.astrom.imagew;
+ydim = datastruct.astrom.imageh;
 
 % make the empty mask arrays
 fullmask = zeros(xdim,ydim);
@@ -53,11 +54,11 @@ clipmask = zeros(xdim,ydim);
 % the maximum magnitude of star to mask - this should be a value that
 % gives back approximately 50% of pixels masked, and as large as possible
 if strcmp(flag_method,'new') == 1
-    max_mag = max_mag; %old way: 16.5 + 2.5 * log10(sqrt(data.astrometry.id_exptime));
+    max_mag = max_mag; %old way: 16.5 + 2.5 * log10(sqrt(datastruct.astrometry.id_exptime));
 elseif strcmp(flag_method, 'old') == 1
     max_mag = 17.75;
 elseif strcmp(flag_method, 'old_corr') == 1
-    max_mag = 16.5 + 2.5 * log10(sqrt(data.astrometry.id_exptime));
+    max_mag = 16.5 + 2.5 * log10(sqrt(datastruct.astrometry.id_exptime));
 end
 
 %%%%%%%%%%%%%%%% old stuff
@@ -84,7 +85,7 @@ numsgover = 0;
 nummagnan = 0;
 nansgcnt = 0;
 
-if new_star_mask == 1
+if new_star_mask == 1 || ~isfield(datastruct,'mask')
     
     % Create star mask - takes very long and can skip if already saved
     % loop over each catalog entry
@@ -121,7 +122,7 @@ if new_star_mask == 1
             end
             
             %find x/y coordinate of the object
-            [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
+            [ypix, xpix] = radec2pix(RA(row),DEC(row), datastruct.astrom);
             
             % check if the object is in the image
             if xpix >= 1-20 && xpix <= xdim+20 && ypix >= 1-20 && ypix <= ydim+20
@@ -202,7 +203,7 @@ if new_star_mask == 1
             allmags(row) = thismag;
             
             %find x/y coordinate of the object
-            [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
+            [ypix, xpix] = radec2pix(RA(row),DEC(row), datastruct.astrom);
             
             % prepare to sum flux of object being masked
             fluxsum = 0;
@@ -257,7 +258,7 @@ if new_star_mask == 1
                             end
                             if Circle(i,j) == 1
                                 starmask(ycurr,xcurr) = 1;
-                                fluxsum = fluxsum + data.data(ycurr,xcurr)./ data.astrom.exptime;
+                                fluxsum = fluxsum + datastruct.data(ycurr,xcurr)./ datastruct.astrom.exptime;
                             end
                         end
                     end
@@ -288,22 +289,22 @@ if new_star_mask == 1
         %keeping running lists of source mags, coordinates, and fluxes
         mymag = mymag(mymag~=0);
         myflux = myflux(myflux~=0);
-        mycalflux = data.cal.sbconv .* myflux;
+        mycalflux = datastruct.cal.sbconv .* myflux;
         %save list of stars to file
         %     star_list = horzcat(myxpix,myypix,mymag);
         star_list = horzcat(mymag,mycalflux);
         
         filename = strcat(num2str(max_mag),'_mask.mat');
         save(filename,'star_list');
-        %     filename = strcat(paths.starlistdir,data.header.timestamp,'star_list.mat');
+        %     filename = strcat(paths.starlistdir,datastruct.header.timestamp,'star_list.mat');
         %     save(filename,'star_list');
     end
     
 elseif new_star_mask == 0
     
     % If not repeating star mask creation, read in from data file
-    starmask = data.mask.starmask;
-    linemask = data.mask.linemask;
+    starmask = datastruct.mask.starmask;
+    linemask = datastruct.mask.linemask;
     
 end
 %%%%%%%%%%%%%%%%%%
@@ -312,14 +313,14 @@ end
 
 % If analyzing old ghost data, don't manually mask (masks out ghosts!)
 if strcmp(paths.datadir,'/data/symons/NH_old_data/mat/ghosts/') == 1
-    manmask = zeros(size(data.data));
+    manmask = zeros(size(datastruct.data));
 else
-    filein = sprintf('%s%s.mat',paths.mandir,data.header.timestamp);
+    filein = sprintf('%s%s.mat',paths.mandir,datastruct.header.timestamp);
     % If man mask files exists, create the mask, otherwise no man mask
     if numel(dir(filein))
         load(filein);
     else
-        manmask = zeros(size(data.data));
+        manmask = zeros(size(datastruct.data));
     end
 end
 
@@ -330,7 +331,7 @@ end
 if strcmp(flag_method,'new') == 1
     % If image has a star > mag 8 in range of causing a ghost, mask the ghost
     if ~isempty(datastruct.ghost.brightmag) %datastruct.ghost.brightmag(1,1) > 0
-        [ghostmask,data] = nh_ghostmask(data,paths);
+        [ghostmask,datastruct] = nh_ghostmask(datastruct,paths);
     else
         ghostmask = zeros(256);
     end
@@ -352,7 +353,7 @@ statmask(:,256-edgelength+1:256) = 1;
 if 0
     % this bit is in case we want to find out what happens if we mask hard for
     % optical ghosts
-    [xp,yp] = meshgrid([1:size(data.data,1)]-256./2);
+    [xp,yp] = meshgrid([1:size(datastruct.data,1)]-256./2);
     rad = sqrt(xp.^2 + yp.^2);
     whpl = rad <= 1.5.*50; % mask 50% futher than necessary based on Cheng et
     %  al description
@@ -367,31 +368,31 @@ if strcmp(flag_method,'new') == 1
     % 2-round clip mask
     for iter=1:2
         if iter == 1
-            clipmean = mean(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-            clipstd = std(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+            clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+            clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
             % now find all unmasked pixels > 3 sigma away from the mean
-            whpl = ((data.data > clipmean + nsig.*clipstd) | (data.data < clipmean - nsig.*clipstd)) &...
+            whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
             clipmask(whpl) = 1;
         elseif iter > 1
-            clipmean = mean(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
-            clipstd = std(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+            clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+            clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
             % now find all unmasked pixels > 3 sigma away from the mean
-            whpl = ((data.data > clipmean + nsig.*clipstd) | (data.data < clipmean - nsig.*clipstd)) &...
+            whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
             clipmask(whpl) = 1;
         end
     end
     
 elseif strcmp(flag_method,'old') == 1
-    clipmean = mean(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-    clipstd = std(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+    clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+    clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
     
     % old way - seems wrong - instead of masking data >/< mean +/- nsig*std it
     % masks abs(data) > mean + nsig*std, this assumes mean is ~0 and
     % gaussian is symmetric around 0, but mean is positive so mean - nsig*std not
     % the same as mean + nsig*std
-    whpl = (abs(data.data) > clipmean + nsig.*clipstd) & ...
+    whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) & ...
         ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
     
     % and set the mask bit
@@ -399,22 +400,22 @@ elseif strcmp(flag_method,'old') == 1
     
 elseif strcmp(flag_method,'old_corr') == 1
     
-    clipmean = mean(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-    clipstd = std(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+    clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+    clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
     
     % now find all unmasked pixels > 3 sigma away from the mean
-    whpl = ((data.data > clipmean + nsig.*clipstd) | (data.data < clipmean - nsig.*clipstd)) &...
+    whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
         ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
     
     
     %     % Median Option see https://stackoverflow.com/questions/11686720/is-there-a-numpy-builtin-to-reject-outliers-from-a-list
-    %     clipmedian = median(data.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask)); %  Get the median of the data
-    %     clipmediandist = abs(clipmedian - data.data); % Get the absolute distance between the data and the median of the data
+    %     clipmedian = median(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask)); %  Get the median of the data
+    %     clipmediandist = abs(clipmedian - datastruct.data); % Get the absolute distance between the data and the median of the data
     %     clipmediandistcompare = clipmediandist/clipmedian; % Scale the dist from the median by the median of the dist from the median
     %     whpl = (clipmediandistcompare > 3.5) &... % Get where the scaled dist is greater than the comparator value
     %         ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
     
-    % whpl = (abs(data.data) > 10) & ...
+    % whpl = (abs(datastruct.data) > 10) & ...
     %     ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
     
     % and set the mask bit
@@ -422,7 +423,7 @@ elseif strcmp(flag_method,'old_corr') == 1
 end
 
 % Turn off clip mask
-%     clipmask = zeros(size(data.data));
+%     clipmask = zeros(size(datastruct.data));
 
 %%%%%%%%%%%%%%%%%
 %%  now create the union of all of the masks as a bitwise mask
@@ -445,8 +446,8 @@ whpl = ghostmask == 1;
 fullmask(whpl) = fullmask(whpl) + 32;
 
 % and so that we have it to hand, compute the mean of the fully masked pixels
-datmean = mean(data.data(~fullmask)./ data.astrom.exptime); %DN/s
-datstd = std(data.data(~fullmask)./ data.astrom.exptime);
+datmean = mean(datastruct.data(~fullmask)./ datastruct.astrom.exptime); %DN/s
+datstd = std(datastruct.data(~fullmask)./ datastruct.astrom.exptime);
 
 % create a mask which is just 1 everywhere there is a bad pixel, no matter
 % the reason
@@ -457,7 +458,7 @@ oneghostlessmask = ghostlessmask > 0; % mask without ghostmask, used in ghost_an
 % %Preallocate for edge values of peak histogram value
 % minmaxedge = zeros(2,1);
 % %Save only ghost area of image
-% im = data.data.*~data.mask.onemask;
+% im = datastruct.datastruct.*~datastruct.mask.onemask;
 % %Find indices where pixel values are > 0
 % idx = im>0;
 % %Save the bin edges and bin counts for a histogram of the ghost
@@ -476,9 +477,9 @@ oneghostlessmask = ghostlessmask > 0; % mask without ghostmask, used in ghost_an
 % minmaxedge(1,1) = edges(I);
 % minmaxedge(2,1) = edges(I+1);
 % %Pixel value is average of those bin edges
-% most_prob_val = median(minmaxedge)/data.astrom.exptime;
-%     datmean2 = mean(data.data(~fullmask&idx)./ data.astrom.exptime)
-%     datmedian = median(data.data(~fullmask&idx)./ data.astrom.exptime)
+% most_prob_val = median(minmaxedge)/datastruct.astrom.exptime;
+%     datmean2 = mean(datastruct.data(~fullmask&idx)./ datastruct.astrom.exptime)
+%     datmedian = median(datastruct.data(~fullmask&idx)./ datastruct.astrom.exptime)
 
 % compute the mask fraction
 maskfrac = sum(onemask(:))./256.^2;
@@ -498,28 +499,28 @@ mask.maxmag = max_mag;
 
 % If error is on, write to error substruct
 if params.err_mags == 1
-    data.(params.err_str).mask = mask;
-    data.(params.err_str).stats.maskmean = datmean;
-    data.(params.err_str).stats.maskstd = datstd;
-    data.(params.err_str).stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
+    datastruct.(params.err_str).mask = mask;
+    datastruct.(params.err_str).stats.maskmean = datmean;
+    datastruct.(params.err_str).stats.maskstd = datstd;
+    datastruct.(params.err_str).stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 else
     % and append it to the data structure
-    data.mask = mask;
-    data.stats.maskmean = datmean;
-    % data.stats.mostprob = most_prob_val;
-    data.stats.maskstd = datstd;
-    data.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
+    datastruct.mask = mask;
+    datastruct.stats.maskmean = datmean;
+    % datastruct.stats.mostprob = most_prob_val;
+    datastruct.stats.maskstd = datstd;
+    datastruct.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 end
 
 %Plot masked data and non-masked data on same plot
 % ax1 = subplot(1,2,1);
-% imagesc(data.data.*~data.mask.onemask)
+% imagesc(datastruct.datastruct.*~datastruct.mask.onemask)
 % colorbar
 % caxis([-5,100])
 % caxis('auto')
 
 % ax2 = subplot(1,2,2);
-% imagesc(data.data)
+% imagesc(datastruct.data)
 % colorbar
 % caxis([-5,100])
 % caxis(ax1.CLim)
@@ -527,7 +528,7 @@ end
 %Plot masked data with optional mouse movement returns value
 % h = figure(1);
 % clf;
-% imagesc(data.data.*~data.mask.onemask)
+% imagesc(datastruct.data.*~datastruct.mask.onemask)
 % set(h,'visible','off');
 % % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
 % a = colorbar;
@@ -536,19 +537,22 @@ end
 % xlabel('LORRI X Pixels');
 % ylabel('LORRI Y Pixels');
 % caxis([-10,10]);
-% %         title(sprintf('%s',data.header.rawfile));
+% %         title(sprintf('%s',datastruct.header.rawfile));
 % % grid minor;
 % % title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
-% title(sprintf('Field: %d',data.header.fieldnum));
+% title(sprintf('Field: %d',datastruct.header.fieldnum));
 % set(gca,'YDir','normal');
 % ext = '.png';
-% % imagename = sprintf('%s%s%s',paths.maskdir,data.header.timestamp,ext);
-% imagename = sprintf('%s%s%s',paths.selectmaskdir,data.header.timestamp,ext);
+% if not(isfolder([paths.maskdir]))
+%     mkdir([paths.maskdir])
+% end
+% imagename = sprintf('%s%s%s',paths.maskdir,datastruct.header.timestamp,ext);
+% % imagename = sprintf('%s%s%s',paths.selectmaskdir,datastruct.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
 % Plot histogram of masked image using hist fit and overplotting mean +/-
 % sigma
-maskim = data.data.*~data.mask.onemask;
+maskim = datastruct.data.*~datastruct.mask.onemask;
 maskim(maskim==0) = NaN;
 bins = 40;
 
@@ -556,7 +560,7 @@ bins = 40;
 %     clf;
 %     set(h,'visible','on');
 %     histfitCustom(maskim(:),bins,'normal');
-%     title(sprintf('%s',data.header.rawfile));
+%     title(sprintf('%s',datastruct.header.rawfile));
 %     ylimMax = ylim; %get the ylims (min and max)
 %     ylimMax = ylimMax(2); %get the actual max
 %     ylim( [0.5, ylimMax] ); %force 0
@@ -567,13 +571,13 @@ bins = 40;
 %     plot( repmat(nanmean(maskim(:))-nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
 %     hold off
 % ext = '.png';
-% imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
+% imagename = sprintf('%s%s%s',paths.histdir,datastruct.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 
 %Calculate fit to data
 pd = fitdist(maskim(:),'normal');
 mu = pd.mu;
-datmean = mean(data.data(~fullmask));
+datmean = mean(datastruct.data(~fullmask));
 %Calculate the theoretical PDF from the fit parameters
 x_range = linspace(floor(nanmin(nanmin(maskim))),ceil(nanmax(nanmax(maskim))),100);
 probability_predicted = pdf(pd,x_range);
@@ -600,11 +604,11 @@ probability_predicted = pdf(pd,x_range);
 %     hold on
 % %     plot(x_range,probability_predicted*max(g(1).YData)/max(probability_predicted),'.-','LineWidth',3);
 %     set(gca,'YScale','log');
-%     title(['\mu fit = ',num2str(pd.mu)]); %sprintf('%s',data.header.rawfile)
+%     title(['\mu fit = ',num2str(pd.mu)]); %sprintf('%s',datastruct.header.rawfile)
 %     ylim( [0.5, 100000] ); %force 0
 % %     xlim([-50,50]);
 %     ext = '.png';
-%     imagename = sprintf('%s%s%s',paths.histdir,data.header.timestamp,ext);
+%     imagename = sprintf('%s%s%s',paths.histdir,datastruct.header.timestamp,ext);
 %     print(h,imagename, '-dpng');
 
 

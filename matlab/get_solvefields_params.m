@@ -16,6 +16,8 @@ function solf=get_solvefields_params()
   solf(1).noplots = '--no-plots'; % supress plot making
   solf(1).sex = '--use-sextractor'; % uses sextractor to find sources,
                                     % slightly more accurate
+  solf(1).guesson = '--guess-scale'; % try to guess pixel scale - saves time
+  solf(1).verifyoff = '--no-verify'; % don't try to verify wcs before solving - saves time
   
   % these are parameters which require filenames and paths; we set these
   % in the code itself
@@ -33,6 +35,9 @@ function solf=get_solvefields_params()
   solf(1).scalehigh = '0.45'; % degrees
   solf(1).strscaleunits = '--scale-units'; % units for scale params
   solf(1).scaleunits = 'degwidth'; % set limits above to degrees
+  
+  solf(1).depth = '--depth'; % limit depth (number of stars) examined per index
+  solf(1).numstars = '20'; % number of stars to consider before moving on
 
   % these set the nominal pointing and search radius of the solver
   solf(1).ra = '--ra';

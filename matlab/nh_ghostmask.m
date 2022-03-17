@@ -61,6 +61,7 @@ if M <= 268 %18.22 arcmin
     % Calculate ghost position and magnitude based on star position and
     % magnitude
     % Fit equations were calculated and saved in ghost analysis script
+    % Added to mat files in nh_fix_files
     xghost = data.ghost.fitx(1) * starx + data.ghost.fitx(2);
     yghost = data.ghost.fity(1) * stary + data.ghost.fity(2);
     magghost = 1.1473 * starmag + 8.1212;

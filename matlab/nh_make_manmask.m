@@ -1,8 +1,30 @@
 function data= nh_make_manmask(data,paths)
 
-% figure(1); clf
-%   imagesc(data.image.calimage.*~data.mask.onemask)
-%   colorbar
+%Plot masked data with optional mouse movement returns value
+h = figure(1);
+clf;
+imagesc(data.data.*(~data.mask.starmask & ~data.mask.linemask & ~data.mask.statmask & ~data.mask.ghostmask))
+% imagesc(data.data.*(~data.mask.onemask))
+set(h,'visible','off');
+% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+a = colorbar;
+a.Label.String = 'Intensity [DN]';
+pbaspect([1 1 1]);
+xlabel('LORRI X Pixels');
+ylabel('LORRI Y Pixels');
+caxis([-10,10]);
+%         title(sprintf('%s',data.header.rawfile));
+% grid minor;
+% title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
+title(sprintf('Field: %d',data.header.fieldnum));
+set(gca,'YDir','normal');
+ext = '.png';
+if not(isfolder([paths.clipmaskdir]))
+    mkdir([paths.clipmaskdir])
+end
+imagename = sprintf('%s%s%s',paths.clipmaskdir,data.header.timestamp,ext);
+% imagename = sprintf('%s%s%s',paths.selectmaskdir,data.header.timestamp,ext);
+print(h,imagename, '-dpng');
 
 mask = ones(256,256);
 
@@ -309,6 +331,9 @@ end
 
 manmask = ~mask;
 
+if not(isfolder([paths.mandir]))
+    mkdir([paths.mandir])
+end
 fileout = sprintf('%s%s.mat',paths.mandir,data.header.timestamp);
 save(fileout,'manmask');
 

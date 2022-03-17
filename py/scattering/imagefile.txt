@@ -1,1 +1,1 @@
-/data/symons/nh_data/regist/selected_data/goodplus/regist_pluto_20160714_033078_lor_0330787618_0x633_sci.fit
+/data/symons/NH_old_data/NH/regist/selected_data/good/regist_cruise_20100623_013958_lor_0139582348_0x633_sci_1.fit

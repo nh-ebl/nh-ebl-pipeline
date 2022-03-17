@@ -25,10 +25,10 @@ durations=[];
 k=1;
 
 % 1st loop over every .fit in the data directory
-for idate= 1:ndata;
+for idate= 1:ndata
     % pass the .fit name to filename
     filename = sprintf('%s%s/data/%s/*fit',path,phase,data(idate).name);
-    files = dir(filename)     ;
+    files = dir(filename);
     
     % 2nd loop over the header keywords
     % to find the exposure time
@@ -48,6 +48,9 @@ end
 duration_array= cell2mat(durations);
 
 % save the extracted information as a matrix for MATLAB to deal with later
+if ~isfolder(sprintf('%smatrix',path))
+    mkdir(sprintf('%smatrix',path));
+end
 save(sprintf('%smatrix/NH_%s_time.mat',path,phase), 'date_array', 'file_array', 'duration_array');
 
 return 

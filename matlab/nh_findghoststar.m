@@ -210,12 +210,16 @@ end
 
 % check for logged physical ghost - requires ghost_analysis to have already
 % been run and saved to data - if no data.ghost yet, can't do this
-if ~isfield(data.ghost,'ghostx')
-    realghostcount = 0;
-elseif strcmp(data.ghost.ghostx , '') == 1 || data.ghost.ghostx == 0
-    realghostcount = 0;
+if isfield(data,'ghost')
+    if ~isfield(data.ghost,'ghostx')
+        realghostcount = 0;
+    elseif strcmp(data.ghost.ghostx , '') == 1 || data.ghost.ghostx == 0
+        realghostcount = 0;
+    else
+        realghostcount = 1;
+    end
 else
-    realghostcount = 1;
+    realghostcount=0;
 end
 % set count to 0 if no logged ghost data
 % realghostcount=0;

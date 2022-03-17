@@ -136,6 +136,9 @@ temp_ref = datastruct.ref.eng(:,1:256);
 datastruct.ref.engmean = mean(temp_ref(~datastruct.mask.onemask));
 datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - median(datastruct.ref.line_old);
 
+% Save jail bar-removed data
+datastruct.image.jailbarrem_data = datastruct.data;
+
 if params.err_on == 1
     % Choose mask dir based on err_flag
     data.(params.err_str) = datastruct;

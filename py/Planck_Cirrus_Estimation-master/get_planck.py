@@ -37,12 +37,16 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
+# Flag to tell make_map if varying parameters by error or not
+FLG_err = 0
+seed = 1776
+
 fieldnum = 1
 lam = 100*u.micron
 nu = (c.to(u.micron/u.s)/lam).to(u.Hz)
 
 #this is a reference image
-# hdul = fits.open('field_1.fit')
+# hdul = fits.open('regist_cruise_20081016_008642_lor_0086422037_0x633_sci_1.fit')
 #<read in the fits image name from a text file made by matlab>
 currentDir = os.path.dirname(os.path.realpath(__file__)) #get current working directory (calling from cmd line python has directory issues)
 os.chdir(currentDir) #change dir to the needed directory
@@ -51,32 +55,36 @@ imagefile = fileID.readlines()[0] #get the imagefile path
 fileID.close() #close the file
 hdul = fits.open(imagefile) #use the imagefile path
 
-
 ref_head = hdul[0].header
 timestamp = ref_head['SPCUTCJD'][3:]
 pixsize = 3600 *  np.mean([abs(ref_head['CD1_1'] + ref_head['CD2_1']), abs(ref_head['CD2_1'] + ref_head['CD2_2'])])
 
-PSW_I_map, ra, dec =  create_map(ref_head, nu=nu.value)
-gridra = ra
-griddec = dec
+# Retrieve image at specified coordinates with image and pixel size
+# ref_head = make_header(4.08, np.array([256,256]), 0.0756, -21.5451)
+# pixsize = 4.08
 
-ra  = ra[:,0]
-dec = dec[0, :]
-mid_ra = np.median(ra)
-mid_dec = np.median(dec)
+PSW_I_map, ra, dec =  create_map(ref_head, FLG_err, seed, nu=nu.value)
+gridra = np.reshape(ra.value,PSW_I_map.shape)
+griddec = np.reshape(dec.value,PSW_I_map.shape)
+
+mid_ra = gridra[np.int(len(gridra)/2),np.int(len(gridra)/2)]
+mid_dec = griddec[np.int(len(griddec)/2),np.int(len(griddec)/2)]
 PSW_header = make_header(pixsize, PSW_I_map.shape, mid_ra, mid_dec)
 
 hdu1 = fits.PrimaryHDU(PSW_I_map, PSW_header)
 hdul1 = fits.HDUList([hdu1])
 hdul1.writeto('planck_' + timestamp + '_fx.fits',overwrite=True)
+# hdul1.writeto('planck_test.fits',overwrite=True)
 
-hdu2 = fits.PrimaryHDU(gridra, PSW_header)
-hdul2 = fits.HDUList([hdu2])
-hdul2.writeto('planck_' + timestamp + '_ra.fits',overwrite=True)
+print('done')
 
-hdu3 = fits.PrimaryHDU(griddec, PSW_header)
-hdul3 = fits.HDUList([hdu3])
-hdul3.writeto('planck_' + timestamp + '_dc.fits',overwrite=True)
+# hdu2 = fits.PrimaryHDU(gridra, PSW_header)
+# hdul2 = fits.HDUList([hdu2])
+# hdul2.writeto('planck_' + timestamp + '_ra.fits',overwrite=True)
+#
+# hdu3 = fits.PrimaryHDU(griddec, PSW_header)
+# hdul3 = fits.HDUList([hdu3])
+# hdul3.writeto('planck_' + timestamp + '_dc.fits',overwrite=True)
 
 # min_dec = np.min(dec)
 # max_dec = np.max(dec)

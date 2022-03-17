@@ -1,4 +1,8 @@
-function catalog_data_gaia(gals,paths)
+function catalog_data_gaia() %gals,paths
+
+% set variables to run manually instead of in pipeline
+paths = get_paths_lauer();
+gals = 0;
 
 %retrieve list of gaia catalog files
 cat_files = dir(fullfile(sprintf('%scatalog_files/',paths.gaiadir),'*.fit'));
@@ -61,13 +65,23 @@ for i=1:n
     end
     
     %save data from field as matlab matrices
+    if not(isfolder([paths.gaiadir,'mat_files']))
+        mkdir([paths.gaiadir,'mat_files'])
+    end
     save(sprintf('%smat_files/field_%d_data', paths.gaiadir,field), 'RA', 'DEC', 'Gmag', 'Gmagerr');
     field_number=[field_number field];
 end
 
 %manually save field ra, dec, and number to cataloginfo mat file
+
+% new fields
 % field_DEC=[field_DEC -9.36002165 4.792341167 -22.82961047 25.90105487 4.828636396 -22.80892287 25.9444605 12.26639126];
 % field_RA=[field_RA 258.746143 220.7927148 191.3474659 259.7907857 220.7621693 191.3286772 259.8207519 235.187082];
-% save(sprintf('%s/mat_files/cataloginfo',paths.gaiadir), 'field_number','field_RA','field_DEC');
+
+% lauer fields
+field_DEC=[field_DEC -17.7780 -41.6360 -50.7529 -0.5183 0.2915 36.2331 35.2979];
+field_RA=[field_RA 1.7790 348.0611 33.4069 358.2428 0.8066 224.9875 226.4865];
+
+save(sprintf('%s/mat_files/cataloginfo',paths.gaiadir), 'field_number','field_RA','field_DEC');
 end
 
