@@ -134,7 +134,14 @@ datastruct.ref.std = std(ref_i(whpl,257));
 temp_ref = datastruct.ref.eng(:,1:256);
 
 datastruct.ref.engmean = mean(temp_ref(~datastruct.mask.onemask));
-datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - median(datastruct.ref.line_old);
+% Determine currently used bias method
+if strcmp(data.ref.biasmthd,'mean of dark column data') == 1
+    datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - mean(datastruct.ref.line_old); % Calculate new bias level - to be used in nh_calibrate
+elseif strcmp(data.ref.biasmthd,'median of dark column data') == 1
+    datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - median(datastruct.ref.line_old); % Calculate new bias level - to be used in nh_calibrate
+else
+    fprintf('Absolute panic: bias method not recognized!')
+end
 
 % Save jail bar-removed data
 datastruct.image.jailbarrem_data = datastruct.data;

@@ -1,7 +1,7 @@
 function select_regist_pipeline(phase1)
 
 % path to main data folder
-path = '/data/symons/nh_data_lauer/';
+path = '/data/symons/nh_data_new/';
 
 phase_array = {phase1};
 size(phase_array);

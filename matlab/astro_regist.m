@@ -37,7 +37,11 @@ if not(isfolder([path,'regist/selected_data/']))
     mkdir([path,'regist/selected_data/'])
 end
 
-for i=17:Ncols
+% Prepare to save list of unregistered images
+losers = [];
+
+% Loop through images
+for i=1:Ncols
     sprintf('Currently on file number %d',i)
     
     nomra = RA_array(i);
@@ -132,10 +136,13 @@ for i=17:Ncols
         
     else
         sprintf('Output file does not exist for %s, skipping to next image %d.',imfile,i+1)
+        % Skip image and save name of unregistered file
+        losers = [losers ; filename];
     end
     
 end
-
+% Save unregistered images list
+writematrix(losers, [path,phase,'/unregistered_files.txt'])
 return
 
 
