@@ -136,7 +136,12 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                     % charge transfer tracks in these images.  These must be masked.  For
                     % sources brighter than V=7, we mask the row the star falls into.
                     if thismag < 7 & xpix >= 1 && xpix <= xdim && ypix >= 1 && ypix <= ydim
-                        linemask(:,round(xpix)) = 1;
+                        linemask(:,round(xpix)) = 1; % this is set to mask column, not row
+                        % so far, this isn't used in testing set or for lauer
+                    end
+
+                    if thismag < 10 & xpix >= 1 && xpix <= xdim && ypix >= 1 && ypix <= ydim
+                        linemask(round(ypix),:) = 1; % this does row
                     end
                     
                     % another little piece of housekeeping; just making sure that we're
@@ -219,7 +224,13 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                     % charge transfer tracks in these images.  These must be masked.  For
                     % sources brighter than V=7, we mask the row the star falls into.
                     if thismag < 7 & xpix >= 1 && xpix <= xdim && ypix >= 1 && ypix <= ydim
-                        linemask(:,round(xpix)) = 1;
+                        linemask(:,round(xpix)) = 1; % this is set to mask column, not row
+                        % so far, this isn't used in testing set or for lauer
+                    end
+                        
+                    % 13 mag seems to catch all stars that have artifacts
+                    if thismag < 13 & xpix >= 1 && xpix <= xdim && ypix >= 1 && ypix <= ydim
+                        linemask(round(ypix),round(xpix):end) = 1; % this does row from only middle of star to right side
                     end
                     
                     % another little piece of housekeeping; just making sure that we're
@@ -365,24 +376,57 @@ end
 %% first, compute the mean and std of the unmasked pixels
 
 if strcmp(flag_method,'new') == 1
-    % 2-round clip mask
-    for iter=1:2
+    % 3-round clip mask
+    for iter=1:3
         if iter == 1
             clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
             clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
             % now find all unmasked pixels > 3 sigma away from the mean
-            whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
+            % This method does +/- 3sig from mean, which could overclip on the negative side since the tail tends to be positive
+%             whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
+%                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+            % This method does + 3sig from mean on abs(data) so neg side not clipped as hard as pos
+            whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
             clipmask(whpl) = 1;
-        elseif iter > 1
+        elseif iter == 2
             clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
             clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
             % now find all unmasked pixels > 3 sigma away from the mean
-            whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
+            whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
+                ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
+            clipmask(whpl) = 1;
+        elseif iter == 3
+            clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+            clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+            % now find all unmasked pixels > 2 sigma away from the mean
+            whpl = (abs(datastruct.data) > clipmean + (nsig-1).*clipstd) &...
                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
             clipmask(whpl) = 1;
         end
     end
+    % 2-round clip mask
+%     for iter=1:2
+%         if iter == 1
+%             clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+%             clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+%             % now find all unmasked pixels > 3 sigma away from the mean
+%             % This method does +/- 3sig from mean, which could overclip on the negative side since the tail tends to be positive
+% %             whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
+% %                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+%             % This method does + 3sig from mean on abs(data) so neg side not clipped as hard as pos
+%             whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
+%                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+%             clipmask(whpl) = 1;
+%         elseif iter > 1
+%             clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+%             clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+%             % now find all unmasked pixels > 3 sigma away from the mean
+%             whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
+%                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
+%             clipmask(whpl) = 1;
+%         end
+%     end
     
 elseif strcmp(flag_method,'old') == 1
     clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
@@ -507,6 +551,7 @@ else
     % and append it to the data structure
     datastruct.mask = mask;
     datastruct.stats.maskmean = datmean;
+    datastruct.stats.maskmean_dns_frommask = datmean;
     % datastruct.stats.mostprob = most_prob_val;
     datastruct.stats.maskstd = datstd;
     datastruct.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
@@ -525,30 +570,30 @@ end
 % caxis([-5,100])
 % caxis(ax1.CLim)
 
-%Plot masked data with optional mouse movement returns value
-% h = figure(1);
-% clf;
-% imagesc(datastruct.data.*~datastruct.mask.onemask)
-% set(h,'visible','off');
-% % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-% a = colorbar;
-% a.Label.String = 'Intensity [DN]';
-% pbaspect([1 1 1]);
-% xlabel('LORRI X Pixels');
-% ylabel('LORRI Y Pixels');
-% caxis([-10,10]);
-% %         title(sprintf('%s',datastruct.header.rawfile));
-% % grid minor;
-% % title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
-% title(sprintf('Field: %d',datastruct.header.fieldnum));
-% set(gca,'YDir','normal');
-% ext = '.png';
-% if not(isfolder([paths.maskdir]))
-%     mkdir([paths.maskdir])
-% end
-% imagename = sprintf('%s%s%s',paths.maskdir,datastruct.header.timestamp,ext);
-% % imagename = sprintf('%s%s%s',paths.selectmaskdir,datastruct.header.timestamp,ext);
-% print(h,imagename, '-dpng');
+% %Plot masked data with optional mouse movement returns value
+h = figure();
+clf;
+imagesc(datastruct.data.*~datastruct.mask.onemask)
+set(h,'visible','off');
+% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+a = colorbar;
+a.Label.String = 'Intensity [DN]';
+pbaspect([1 1 1]);
+xlabel('LORRI X Pixels');
+ylabel('LORRI Y Pixels');
+caxis([-10,10]);
+%         title(sprintf('%s',datastruct.header.rawfile));
+% grid minor;
+% title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
+title(sprintf('Field: %d',datastruct.header.fieldnum));
+set(gca,'YDir','normal');
+ext = '.png';
+if not(isfolder([paths.maskdir]))
+    mkdir([paths.maskdir])
+end
+imagename = sprintf('%s%s%s',paths.maskdir,datastruct.header.timestamp,ext);
+% imagename = sprintf('%s%s%s',paths.selectmaskdir,datastruct.header.timestamp,ext);
+print(h,imagename, '-dpng');
 
 % Plot histogram of masked image using hist fit and overplotting mean +/-
 % sigma
@@ -556,23 +601,33 @@ maskim = datastruct.data.*~datastruct.mask.onemask;
 maskim(maskim==0) = NaN;
 bins = 40;
 
-%     h = figure(1);
-%     clf;
-%     set(h,'visible','on');
-%     histfitCustom(maskim(:),bins,'normal');
-%     title(sprintf('%s',datastruct.header.rawfile));
-%     ylimMax = ylim; %get the ylims (min and max)
-%     ylimMax = ylimMax(2); %get the actual max
-%     ylim( [0.5, ylimMax] ); %force 0
-%     set(gca,'YScale','log');
-%     hold on
+h = figure();
+clf;
+set(h,'visible','off');
+histfitCustom(maskim(:),bins,'normal');
+title(['Mean = ',num2str(mean(maskim(:),'omitnan')),' Median = ',num2str(median(maskim(:),'omitnan'))]);
+ylimMax = ylim; %get the ylims (min and max)
+ylimMax = ylimMax(2); %get the actual max
+ylim( [0.5, ylimMax] ); %force 0
+set(gca,'YScale','log');
+hold on
+% Mean +/- sig
 %     plot( repmat(nanmean(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
 %     plot( repmat(nanmean(maskim(:))+nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
 %     plot( repmat(nanmean(maskim(:))-nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
-%     hold off
-% ext = '.png';
-% imagename = sprintf('%s%s%s',paths.histdir,datastruct.header.timestamp,ext);
-% print(h,imagename, '-dpng');
+% Mean and median
+plot( repmat(mean(maskim(:),'omitnan'),5,1),linspace(0.5,ylimMax,5),'linewidth',1,'color','green');
+plot( repmat(median(maskim(:),'omitnan'),5,1),linspace(0.5,ylimMax,5),'linewidth',1,'color','magenta');
+hold off
+legend('','','Mean','Median')
+xlabel('Unmasked Pixel Intensity [DN]');
+ylabel('N');
+ext = '.png';
+if not(isfolder([paths.histdir]))
+    mkdir([paths.histdir])
+end
+imagename = sprintf('%s%s%s',paths.histdir,datastruct.header.timestamp,ext);
+print(h,imagename, '-dpng');
 
 %Calculate fit to data
 pd = fitdist(maskim(:),'normal');

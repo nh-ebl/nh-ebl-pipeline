@@ -91,7 +91,7 @@ for ifile=1:nfiles
     % corr is later subtracted from data, so this becomes med(ref) is added back,
     % sig_mean(ref) is subtracted, and offset is added
     % Offset determined in nh_dark_analysis_combined from robust fit
-    mynewcorr(ifile) = myref(ifile) - myrefold(ifile) - 0.357; 
+    mynewcorr(ifile) = myref(ifile) - myrefold(ifile) - 0.310; %0.357; new value vs old value
     % Difference between sigma clipped mean and median
     mycrr(ifile) = datastruct.ref.bias;
     

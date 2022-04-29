@@ -23,9 +23,6 @@ datastruct.image.original_data = data.data;
 ref_i = fitsread(sprintf('%s',data.ref.file));
 datastruct.ref.line_old = ref_i(:,257);
 
-% Save old masked mean for comparison to new masked mean
-datastruct.stats.maskmeanold = mean(datastruct.data(~datastruct.mask.mask)./ data.astrom.exptime);
-
 % If not using new method, skip doing jail bar correction
 if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1 || strcmp(flag_method,'old') == 1)
 % if (strcmp(flag_method,'new') == 1)
@@ -65,7 +62,7 @@ if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1 || st
 %         datastruct.header.jailbar_type = 1;
 %     end
     if(evenMinusOdd > 0)
-        %even columns have the jail bars, subtract them off
+        %even columns have the positive jail bars, subtract them off
         datastruct.data(:,2:2:end) = datastruct.data(:,2:2:end) - abs(evenMinusOdd);
         %save jail bar type
         datastruct.header.jailbar_type = 2;
@@ -88,7 +85,7 @@ if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1 || st
         %even columns have the negative jail bars, add them off
         ref_i(:,2:2:end) = ref_i(:,2:2:end) + abs(oddMinusEvenref);
     else
-        %even columns have the jail bars, subtract them off
+        %even columns have the positive jail bars, subtract them off
         ref_i(:,2:2:end) = ref_i(:,2:2:end) - abs(oddMinusEvenref);
     end
 
@@ -121,6 +118,7 @@ datstd = std(datastruct.data(~datastruct.mask.mask)./ data.astrom.exptime);
 
 % and append it to the data structure
 datastruct.stats.maskmean = datmean;
+datastruct.stats.maskmean_dns_fromjb = datmean;
 datastruct.stats.maskstd = datstd;
 datastruct.stats.maskerr = datstd ./ sqrt(256.^2 - sum(datastruct.mask.onemask(:)));
 
@@ -134,13 +132,19 @@ datastruct.ref.std = std(ref_i(whpl,257));
 temp_ref = datastruct.ref.eng(:,1:256);
 
 datastruct.ref.engmean = mean(temp_ref(~datastruct.mask.onemask));
-% Determine currently used bias method
-if strcmp(data.ref.biasmthd,'mean of dark column data') == 1
-    datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - mean(datastruct.ref.line_old); % Calculate new bias level - to be used in nh_calibrate
-elseif strcmp(data.ref.biasmthd,'median of dark column data') == 1
-    datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - median(datastruct.ref.line_old); % Calculate new bias level - to be used in nh_calibrate
+if isfield(data.astrom,'biasmthd')
+    % Determine currently used bias method
+    if strcmp(data.ref.biasmthd,'mean of dark column data') == 1 % If method is mean, add back recorded bias level due to inability to replicate robust mean method
+        datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - datastruct.ref.biaslevl; % Calculate new bias level - to be used in nh_calibrate
+    elseif strcmp(data.ref.biasmthd,'median of dark column data') == 1
+        datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - datastruct.ref.biaslevl; % Calculate new bias level - to be used in nh_calibrate
+    else
+        fprintf('Absolute panic: bias method not recognized!')
+    end
 else
-    fprintf('Absolute panic: bias method not recognized!')
+    % If old version of old data that doesn't have bias info, subtract
+    % median
+    datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - median(datastruct.ref.line);
 end
 
 % Save jail bar-removed data

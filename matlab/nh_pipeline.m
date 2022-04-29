@@ -32,7 +32,7 @@ end
 flag_method = 'new';
 
 %set portion of pipeline to run
-procstepflag = 1; %1 - masking, 2 - add meta & diff ghosts, 3 - jail bars, 4 - calibrate, 5 - isl, 6 - dgl, 7 - extinction
+procstepflag = 4; %1 - masking, 2 - add meta & diff ghosts & scattering, 3 - jail bars, 4 - calibrate, 5 - isl, 6 - dgl, 7 - extinction
 
 % Set error flags - error on means error of this type is being added in
 errflag_mags = 0; %1 is on, 0 is off
@@ -86,6 +86,7 @@ if strcmp(flag_method,old_method) == 1
 elseif strcmp(flag_method,old_method) == 0
     new_star_mask = 1;
 end
+% new_star_mask = 1; %!!!ALWAYS MAKE NEW STAR MASK - TURN OFF FOR BIG RUN!!!
 
 % Save text file per data_type listing most recently run method
 fileID = fopen([data_type,'method.txt'],'w'); 
@@ -190,13 +191,13 @@ for ifile=1:size(datafiles,1)
         
         %
         %manually mask portions of image - not needed for old ghost files
-        data = nh_make_manmask(data,paths);
+%         data = nh_make_manmask(data,paths);
         
         %mask out stars and ghosts in image (also stat and clip mask)
         %may need to redo catalog depending on gals
 %         catalog_data_gaia(gals,paths)
 %         catalog_data_gaia_wide(gals,paths)
-%         data = nh_makemask(data,paths,params,3,use_gaia,new_star_mask, max_mag, save_file, flag_method, errflag_mags);
+        data = nh_makemask(data,paths,params,3,use_gaia,new_star_mask, max_mag, save_file, flag_method, errflag_mags);
         
         %         maskim = data.data.*~data.mask.onemask;
         %         maskim(maskim==0) = NaN;
@@ -207,7 +208,7 @@ for ifile=1:size(datafiles,1)
         %         data.cal.sbconv .* sum(sum(data.data(data.mask.onemask)./ data.astrom.exptime))
         
         %print mask fraction
-        %         data.mask.maskfrac
+        data.mask.maskfrac
         
         %overwrite data file with changes
         save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');

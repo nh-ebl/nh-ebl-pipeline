@@ -92,10 +92,14 @@ if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
     % corr is later subtracted from data, so this becomes med(ref) is added back,
     % sig_mean(ref) is subtracted, and offset is added
         
-    % Offset determined in nh_dark_analysis_combined from robust fit
-    newcorr = datastruct.ref.bias - 0.357;
+    % Reference correction offset determined in get_ref_corr from robust fit
+    % This is sig-clipped mean - recorded biaslevl - ref corr offset in DN/s
+    newcorr = datastruct.ref.bias - (0.036*datastruct.astrom.exptime); % Old number was 0.357 from only old/new data using actual mean (not sig-clip), new version is 0.310 but doesn't account for exp time
     
     % Apply correction to jail bar-removed data and replace data.data
+    % Due to sign, this - sig-clipped mean + recorded biaslevl + ref corr offset
+    % 0.02 DN (Lauer A/D error) must be added to the bias, which means 0.02 must be
+    % subtracted from the data - assume this is part of ref corr above
     datastruct.data = datastruct.image.jailbarrem_data - newcorr;
         
     % recalculate mask mean and std with new datastruct.data
@@ -104,7 +108,8 @@ if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
     
     % and append it to the data structure
     datastruct.stats.maskmean = datmean; % This is the mean of the reference-corrected image in DN/s
-    datastruct.stats.maskmean_dn = datmean.*datastruct.astrom.exptime; % This is the mean of the reference-corrected image in DN
+    datastruct.stats.maskmean_dns_fromcal = datmean; 
+    datastruct.stats.maskmean_dn_fromcal = datmean.*datastruct.astrom.exptime; % This is the mean of the reference-corrected image in DN
     datastruct.stats.maskstd = datstd;
     datastruct.stats.maskerr = datstd ./ sqrt(256.^2 - sum(datastruct.mask.onemask(:)));
     

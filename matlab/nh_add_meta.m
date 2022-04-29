@@ -46,7 +46,7 @@ data.header.arfac = arfac(data.header.fieldnum);
 
 data.cal.nommagoff = data.astrometry.id_photzpt;
 if strcmp(flag_method,'new') == 1
-    data.cal.magoff = 18.88; %18.88 from 2020 calibration paper, old 18.53 from fig S5 of nature paper
+    data.cal.magoff = 18.71; %18.71 is lorri-band converted from 18.88 (v-band) from 2020 calibration paper, old 18.53 from fig S5 of nature paper
 elseif (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'old') == 1)
     data.cal.magoff = 18.53;
 end
@@ -98,15 +98,19 @@ data.coords.sol_elon = data.astrometry.id_sol_elon;
 temp_ref = data.ref.eng(:,1:256);
 
 data.ref.engmean = mean(temp_ref(~data.mask.onemask));
-data.ref.biasmthd = data.astrom.biasmthd; % This is the listed bias method from the header - can be median or mean
-data.ref.biaslevl = data.astrom.biaslevl; % This is the listed bias level from the header
-% Determine currently used bias method
-if strcmp(data.ref.biasmthd,'mean of dark column data') == 1
-    data.ref.bias = nh_sigclip(data.ref.line) - mean(data.ref.line); % Calculate new bias level - to be used in nh_calibrate
-elseif strcmp(data.ref.biasmthd,'median of dark column data') == 1
-    data.ref.bias = nh_sigclip(data.ref.line) - median(data.ref.line); % Calculate new bias level - to be used in nh_calibrate
+if isfield(data.astrom,'biasmthd')
+    data.ref.biasmthd = data.astrom.biasmthd; % This is the listed bias method from the header - can be median or mean
+    data.ref.biaslevl = data.astrom.biaslevl; % This is the listed bias level from the header
+    % Determine currently used bias method
+    if strcmp(data.ref.biasmthd,'mean of dark column data') == 1 % If method is mean, add back recorded bias level due to inability to replicate robust mean method
+        data.ref.bias = nh_sigclip(data.ref.line) - data.ref.biaslevl; % Calculate new bias level - to be used in nh_calibrate
+    elseif strcmp(data.ref.biasmthd,'median of dark column data') == 1
+        data.ref.bias = nh_sigclip(data.ref.line) - data.ref.biaslevl; % Calculate new bias level - to be used in nh_calibrate
+    else
+        fprintf('Absolute panic: bias method not recognized!')
+    end
 else
-    fprintf('Absolute panic: bias method not recognized!')
-end
-
+    % If old version of old data that doesn't have bias info, subtract
+    % median
+    data.ref.bias = nh_sigclip(data.ref.line) - median(data.ref.line);
 end
