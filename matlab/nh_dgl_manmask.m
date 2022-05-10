@@ -27,7 +27,7 @@ if data.header.fieldnum == 5
         bigrad = 65; % radius of masking circle
         circ_x = 105; % x coordinate to center masking circle on
         circ_y = 91; % y coordinate to center masking circle on
-    elseif (str2double(data.header.timestamp) > 2457583.507)
+    elseif (str2double(data.header.timestamp) > 2457583.507) && (str2double(data.header.timestamp) < 2458351.2085071)
         %mask a circle of radius bigrad at [circ_x, circ_y] coords
         bigrad = 65; % radius of masking circle
         circ_x = 88; % x coordinate to center masking circle on
@@ -36,9 +36,9 @@ if data.header.fieldnum == 5
         skip = 1; % Old data field 5 doesn't need masks
     end
     %quick n easy function to mask a circle of radius bigrad at [circ_x, circ_y] coords
-%     [Xr, Yr] = meshgrid(1:1:data.astrom.imagew,1:1:data.astrom.imageh);
-%     mask = sqrt((Xr-circ_x).^2+(Yr-circ_y).^2)>bigrad;
-    
+    %     [Xr, Yr] = meshgrid(1:1:data.astrom.imagew,1:1:data.astrom.imageh);
+    %     mask = sqrt((Xr-circ_x).^2+(Yr-circ_y).^2)>bigrad;
+
     if skip ~= 1
         %create submask of object (create array of 0's and 1's,
         %where the 1's represnt to location of the objects in the
@@ -64,7 +64,7 @@ if data.header.fieldnum == 5
             end
         end
     end
-    
+
 end
 
 % Save masked image
@@ -81,6 +81,9 @@ end
 
 manmask = ~mask;
 
+if not(isfolder([paths.dglmandir]))
+    mkdir([paths.dglmandir])
+end
 fileout = sprintf('%s%s.mat',paths.dglmandir,data.header.timestamp);
 save(fileout,'manmask');
 

@@ -3,10 +3,10 @@ function data = nh_calcdgl(data, paths, flag_method)
 dglparams = nh_get_dgl_params();
 
 % want = 'planck';
-% want = 'planck_mc';
+want = 'planck_mc';
 % want = 'iris';
 % want = 'iris_sfd';
-want = 'nh';
+% want = 'nh';
 
 % if strcmp(flag_method,'new') == 1
 % Planck map
@@ -27,6 +27,9 @@ if strcmp(want,'planck') == 1
         %call python script
         system(['python ',pydir,pyfile]);
         %get the planck files and move them to their data directory
+        if not(isfolder([paths.planckdir]))
+            mkdir([paths.planckdir])
+        end
         movefile([pydir,'planck_',data.header.timestamp,'_fx.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_fx.fits']); %move from pydir to paths.planckdir
 %         movefile([pydir,'planck_',data.header.timestamp,'_ra.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_ra.fits']); %move from pydir to paths.planckdir
 %         movefile([pydir,'planck_',data.header.timestamp,'_dc.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_dc.fits']); %move from pydir to paths.planckdir
@@ -60,6 +63,9 @@ elseif strcmp(want,'planck_mc') == 1
         fclose(fileID); %close file
         %call python script
         system(['python ',pydir,pyfile]);
+        if not(isfolder([paths.planckmcdir]))
+            mkdir([paths.planckmcdir])
+        end
         %get the planck files and move them to their data directory
         movefile([pydir,'planck_',data.header.timestamp,'_errmean.mat'], [paths.planckmcdir,'planck_',data.header.timestamp,'_errmean.mat']); %move from pydir to paths.planckmcdir
 %         movefile([pydir,'planck_',data.header.timestamp,'_ra.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_ra.fits']); %move from pydir to paths.planckdir
@@ -80,61 +86,61 @@ elseif strcmp(want,'planck_mc') == 1
     planck_mc_sem_beta = std(err_means.err_means(3,:))/sqrt(length(planck_mc_100m_beta));
 
     % Plot histfit and calculated fit together - tau
-    h = figure;
-    clf;
-    set(h,'visible','off');
-    % histfit(maskim(:),bins,'normal');
-    g = histfitCustom(planck_mc_100m_tau,15,'normal');
-    ylims =  ylim;
-    hold on
-    plot(ones(5,1)*planck_mc_mean_tau,linspace(ylims(1),ylims(2),5),'linewidth',2,'color','green');
-    ylim(ylims); % make sure old ylims stay
-    hold off
-    xlabel('100 \mum Image Mean w/ Error in \tau');
-    ylabel('N');
-    title(sprintf('\\mu +/- sem: %.2f +/- %.2f',planck_mc_mean_tau,planck_mc_sem_tau));
-    ext = '.png';
-    type = '_tau';
-    imagename = sprintf('%s%s%s%s',paths.planckmchistdir,data.header.timestamp,type,ext);
-    print(h,imagename, '-dpng');
+%     h = figure;
+%     clf;
+%     set(h,'visible','off');
+%     % histfit(maskim(:),bins,'normal');
+%     g = histfitCustom(planck_mc_100m_tau,15,'normal');
+%     ylims =  ylim;
+%     hold on
+%     plot(ones(5,1)*planck_mc_mean_tau,linspace(ylims(1),ylims(2),5),'linewidth',2,'color','green');
+%     ylim(ylims); % make sure old ylims stay
+%     hold off
+%     xlabel('100 \mum Image Mean w/ Error in \tau');
+%     ylabel('N');
+%     title(sprintf('\\mu +/- sem: %.2f +/- %.2f',planck_mc_mean_tau,planck_mc_sem_tau));
+%     ext = '.png';
+%     type = '_tau';
+%     imagename = sprintf('%s%s%s%s',paths.planckmchistdir,data.header.timestamp,type,ext);
+%     print(h,imagename, '-dpng');
     
     % Plot histfit and calculated fit together - temp
-    h = figure;
-    clf;
-    set(h,'visible','off');
-    % histfit(maskim(:),bins,'normal');
-    g = histfitCustom(planck_mc_100m_temp,15,'normal');
-    ylims =  ylim;
-    hold on
-    plot(ones(5,1)*planck_mc_mean_temp,linspace(ylims(1),ylims(2),5),'linewidth',2,'color','green');
-    ylim(ylims); % make sure old ylims stay
-    hold off
-    xlabel('100 \mum Image Mean w/ Error in Temp');
-    ylabel('N');
-    title(sprintf('\\mu +/- sem: %.2f +/- %.2f',planck_mc_mean_temp,planck_mc_sem_temp));
-    ext = '.png';
-    type = '_temp';
-    imagename = sprintf('%s%s%s%s',paths.planckmchistdir,data.header.timestamp,type,ext);
-    print(h,imagename, '-dpng');
+%     h = figure;
+%     clf;
+%     set(h,'visible','off');
+%     % histfit(maskim(:),bins,'normal');
+%     g = histfitCustom(planck_mc_100m_temp,15,'normal');
+%     ylims =  ylim;
+%     hold on
+%     plot(ones(5,1)*planck_mc_mean_temp,linspace(ylims(1),ylims(2),5),'linewidth',2,'color','green');
+%     ylim(ylims); % make sure old ylims stay
+%     hold off
+%     xlabel('100 \mum Image Mean w/ Error in Temp');
+%     ylabel('N');
+%     title(sprintf('\\mu +/- sem: %.2f +/- %.2f',planck_mc_mean_temp,planck_mc_sem_temp));
+%     ext = '.png';
+%     type = '_temp';
+%     imagename = sprintf('%s%s%s%s',paths.planckmchistdir,data.header.timestamp,type,ext);
+%     print(h,imagename, '-dpng');
     
     % Plot histfit and calculated fit together - beta
-    h = figure;
-    clf;
-    set(h,'visible','off');
-    % histfit(maskim(:),bins,'normal');
-    g = histfitCustom(planck_mc_100m_beta,15,'normal');
-    ylims =  ylim;
-    hold on
-    plot(ones(5,1)*planck_mc_mean_beta,linspace(ylims(1),ylims(2),5),'linewidth',2,'color','green');
-    ylim(ylims); % make sure old ylims stay
-    hold off
-    xlabel('100 \mum Image Mean w/ Error in \beta');
-    ylabel('N');
-    title(sprintf('\\mu +/- sem: %.2f +/- %.2f',planck_mc_mean_beta,planck_mc_sem_beta));
-    ext = '.png';
-    type = '_beta';
-    imagename = sprintf('%s%s%s%s',paths.planckmchistdir,data.header.timestamp,type,ext);
-    print(h,imagename, '-dpng');
+%     h = figure;
+%     clf;
+%     set(h,'visible','off');
+%     % histfit(maskim(:),bins,'normal');
+%     g = histfitCustom(planck_mc_100m_beta,15,'normal');
+%     ylims =  ylim;
+%     hold on
+%     plot(ones(5,1)*planck_mc_mean_beta,linspace(ylims(1),ylims(2),5),'linewidth',2,'color','green');
+%     ylim(ylims); % make sure old ylims stay
+%     hold off
+%     xlabel('100 \mum Image Mean w/ Error in \beta');
+%     ylabel('N');
+%     title(sprintf('\\mu +/- sem: %.2f +/- %.2f',planck_mc_mean_beta,planck_mc_sem_beta));
+%     ext = '.png';
+%     type = '_beta';
+%     imagename = sprintf('%s%s%s%s',paths.planckmchistdir,data.header.timestamp,type,ext);
+%     print(h,imagename, '-dpng');
     
     type = 'planck_mc';
 
@@ -168,6 +174,9 @@ elseif (strcmp(want, 'iris') == 1)
         fclose(fileID); %close file
         %call python script
         system(['python ',pydir,pyfile]);
+        if not(isfolder([paths.irisdir]))
+            mkdir([paths.irisdir])
+        end
         %get the iris files and move them to their data directory
         movefile([pydir,'iris_',data.header.timestamp,'_fx.fits'], [paths.irisdir,'iris_',data.header.timestamp,'_fx.fits']); %move from pydir to paths.irisdir
     end
@@ -199,6 +208,9 @@ elseif strcmp(want,'iris_sfd') == 1
         fclose(fileID); %close file
         %call python script
         system(['python ',pydir,pyfile]);
+        if not(isfolder([paths.irissfddir]))
+            mkdir([paths.irissfddir])
+        end
         %get the planck files and move them to their data directory
         movefile([pydir,'iris_sfd_',data.header.timestamp,'_fx.fits'], [paths.irissfddir,'iris_sfd_',data.header.timestamp,'_fx.fits']); %move from pydir to paths.irissfddir
 %         movefile([pydir,'planck_',data.header.timestamp,'_ra.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_ra.fits']); %move from pydir to paths.planckdir
@@ -233,6 +245,9 @@ elseif strcmp(want,'nh') == 1
         fclose(fileID); %close file
         %call python script
         system(['python ',pydir,pyfile]);
+        if not(isfolder([paths.nhdir]))
+            mkdir([paths.nhdir])
+        end
         %get the planck files and move them to their data directory
         movefile([pydir,'nh_',data.header.timestamp,'_fx.fits'], [paths.nhdir,'nh_',data.header.timestamp,'_fx.fits']); %move from pydir to paths.nhdir
 %         movefile([pydir,'planck_',data.header.timestamp,'_ra.fits'], [paths.planckdir,'planck_',data.header.timestamp,'_ra.fits']); %move from pydir to paths.planckdir
@@ -252,13 +267,13 @@ elseif strcmp(want,'nh') == 1
 end
 
 %Plot DGL image
-% h = figure(1);
+% h = figure();
 % clf;
 % set(h,'visible','off');
 % x = linspace((-256/2)*4.1/60,(256/2)*4.1/60,257);
 % y = linspace((-256/2)*4.1/60,(256/2)*4.1/60,257);
 % % imagesc(x,y,(1-((data.dgl.ohmim_iris-dglparams.cib(1))./(data.dgl.ohmim_planck)))); % 1 - IRIS/Planck
-% imagesc(x,y,(data.dgl.ohmim_iris-0.48)); % IRIS 100m - CIB
+% imagesc(x,y,(irisim-0.48)); % IRIS 100m - CIB
 % % imagesc(x,y,(irisim)); % 100m or NHI
 % % caxis([0 0.4])
 % axis('xy')
@@ -273,6 +288,9 @@ end
 % % a.Label.String = '1 - IRIS/Planck';
 % title('IRIS');
 % ext = '.png';
+% if not(isfolder([paths.dgldir]))
+%     mkdir([paths.dgldir])
+% end
 % imagename = sprintf('%s%s%s',paths.dgldir,data.header.timestamp,ext);
 % print(h,imagename, '-dpng');
 

@@ -17,7 +17,7 @@ if params.err_mags == 1
 else
     ghostdir = data.ghost;
 end
-    
+
 % Calculate number of potential bright stars contributing to ghost
 numstars = size(ghostdir.brightmag,1);
 
@@ -48,7 +48,7 @@ end
 [M,I] = min(stardistcent);
 
 % If star is in range to cause a ghost, mask ghost
-if M <= 268 %18.22 arcmin
+if M <= 274.5 %18.67 arcmin, old value was 268 pix or 18.22 arcmin
     
     % Save the star x and y coords for the closest
     % star to ghost and adjust for origin at center of FOV

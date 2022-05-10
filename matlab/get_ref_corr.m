@@ -38,6 +38,10 @@ lauergoodfields = [1,2,3,4,5,6,7];
 lauer_exlude_enable = true; %enables skipping of new sequences
 
 %Check for old light files
+parpoolobj = gcp('nocreate'); % check for thread pool, which can't use the load call
+if isa(parpoolobj,'parallel.ThreadPool')
+    delete(parpoolobj); %threads can't use load and will error out
+end
 parfor ifile=1:numel(lightfiles)
     datatemp = load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
     data = datatemp.data; %allows parallel to work

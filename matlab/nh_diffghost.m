@@ -66,10 +66,10 @@ ybox = 199 + boxypix;
 % distance from star pixel to ghost pixel
 stardistcentbox = sqrt((xbox-(199+128)).^2 + (ybox-(199+128)).^2);
 
-% Cut down list to stars in range to cause ghost - 18.22 arcmin
-boxxpixcut = boxxpix(stardistcentbox <= 268);
-boxypixcut = boxypix(stardistcentbox <= 268);
-boxmagcut = boxmag(stardistcentbox <= 268);
+% Cut down list to stars in range to cause ghost - 18.67 arcmin, old value was 268 pix or 18.22 arcmin
+boxxpixcut = boxxpix(stardistcentbox <= 274.5);
+boxypixcut = boxypix(stardistcentbox <= 274.5);
+boxmagcut = boxmag(stardistcentbox <= 274.5);
 
 % Calculate number of pixels in masked ghost area and number of pixels in
 % image

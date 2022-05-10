@@ -379,7 +379,7 @@ function b = zbrent(x1, x2, tol, xx, yy, sx, sy, offs)
     end
     fc = fb;
     for iter = 1:1:itmax
-        disp(iter)
+        %disp(iter)
         if ((fb > 0) && (fc > 0)) || ((fa < 0) && (fb < 0))
             % rename a, b, c and adjust bounting interval d
             c = a;

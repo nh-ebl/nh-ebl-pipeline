@@ -15,6 +15,9 @@ if( ~(isfile(sprintf('%sext_%s.fits',paths.extdir,data.header.timestamp))))
     fclose(fileID); %close file
     %call python script
     system(['python ',pydir,pyfile]);
+    if not(isfolder([paths.extdir]))
+        mkdir([paths.extdir])
+    end
     %get the ext files and move them to their data directory
     movefile([pydir,'ext_',data.header.timestamp,'.fits'], [paths.extdir,'ext_',data.header.timestamp,'.fits']); %move from pydir to paths.extdir
 end

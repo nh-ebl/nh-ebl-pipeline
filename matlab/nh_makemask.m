@@ -570,30 +570,30 @@ end
 % caxis([-5,100])
 % caxis(ax1.CLim)
 
-% %Plot masked data with optional mouse movement returns value
-h = figure();
-clf;
-imagesc(datastruct.data.*~datastruct.mask.onemask)
-set(h,'visible','off');
-% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-a = colorbar;
-a.Label.String = 'Intensity [DN]';
-pbaspect([1 1 1]);
-xlabel('LORRI X Pixels');
-ylabel('LORRI Y Pixels');
-caxis([-10,10]);
-%         title(sprintf('%s',datastruct.header.rawfile));
-% grid minor;
-% title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
-title(sprintf('Field: %d',datastruct.header.fieldnum));
-set(gca,'YDir','normal');
-ext = '.png';
-if not(isfolder([paths.maskdir]))
-    mkdir([paths.maskdir])
-end
-imagename = sprintf('%s%s%s',paths.maskdir,datastruct.header.timestamp,ext);
-% imagename = sprintf('%s%s%s',paths.selectmaskdir,datastruct.header.timestamp,ext);
-print(h,imagename, '-dpng');
+%Plot masked data with optional mouse movement returns value
+% h = figure();
+% clf;
+% imagesc(datastruct.data.*~datastruct.mask.onemask)
+% set(h,'visible','off');
+% % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+% a = colorbar;
+% a.Label.String = 'Intensity [DN]';
+% pbaspect([1 1 1]);
+% xlabel('LORRI X Pixels');
+% ylabel('LORRI Y Pixels');
+% caxis([-10,10]);
+% %         title(sprintf('%s',datastruct.header.rawfile));
+% % grid minor;
+% % title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
+% title(sprintf('Field: %d',datastruct.header.fieldnum));
+% set(gca,'YDir','normal');
+% ext = '.png';
+% if not(isfolder([paths.maskdir]))
+%     mkdir([paths.maskdir])
+% end
+% imagename = sprintf('%s%s%s',paths.maskdir,datastruct.header.timestamp,ext);
+% % imagename = sprintf('%s%s%s',paths.selectmaskdir,datastruct.header.timestamp,ext);
+% print(h,imagename, '-dpng');
 
 % Plot histogram of masked image using hist fit and overplotting mean +/-
 % sigma
@@ -601,33 +601,33 @@ maskim = datastruct.data.*~datastruct.mask.onemask;
 maskim(maskim==0) = NaN;
 bins = 40;
 
-h = figure();
-clf;
-set(h,'visible','off');
-histfitCustom(maskim(:),bins,'normal');
-title(['Mean = ',num2str(mean(maskim(:),'omitnan')),' Median = ',num2str(median(maskim(:),'omitnan'))]);
-ylimMax = ylim; %get the ylims (min and max)
-ylimMax = ylimMax(2); %get the actual max
-ylim( [0.5, ylimMax] ); %force 0
-set(gca,'YScale','log');
-hold on
-% Mean +/- sig
-%     plot( repmat(nanmean(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
-%     plot( repmat(nanmean(maskim(:))+nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
-%     plot( repmat(nanmean(maskim(:))-nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
-% Mean and median
-plot( repmat(mean(maskim(:),'omitnan'),5,1),linspace(0.5,ylimMax,5),'linewidth',1,'color','green');
-plot( repmat(median(maskim(:),'omitnan'),5,1),linspace(0.5,ylimMax,5),'linewidth',1,'color','magenta');
-hold off
-legend('','','Mean','Median')
-xlabel('Unmasked Pixel Intensity [DN]');
-ylabel('N');
-ext = '.png';
-if not(isfolder([paths.histdir]))
-    mkdir([paths.histdir])
-end
-imagename = sprintf('%s%s%s',paths.histdir,datastruct.header.timestamp,ext);
-print(h,imagename, '-dpng');
+% h = figure();
+% clf;
+% set(h,'visible','off');
+% histfitCustom(maskim(:),bins,'normal');
+% title(['Mean = ',num2str(mean(maskim(:),'omitnan')),' Median = ',num2str(median(maskim(:),'omitnan'))]);
+% ylimMax = ylim; %get the ylims (min and max)
+% ylimMax = ylimMax(2); %get the actual max
+% ylim( [0.5, ylimMax] ); %force 0
+% set(gca,'YScale','log');
+% hold on
+% % Mean +/- sig
+% %     plot( repmat(nanmean(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
+% %     plot( repmat(nanmean(maskim(:))+nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
+% %     plot( repmat(nanmean(maskim(:))-nanstd(maskim(:)),5,1),linspace(0.5,ylimMax,5),'linewidth',5,'color','green');
+% % Mean and median
+% plot( repmat(mean(maskim(:),'omitnan'),5,1),linspace(0.5,ylimMax,5),'linewidth',1,'color','green');
+% plot( repmat(median(maskim(:),'omitnan'),5,1),linspace(0.5,ylimMax,5),'linewidth',1,'color','magenta');
+% hold off
+% legend('','','Mean','Median')
+% xlabel('Unmasked Pixel Intensity [DN]');
+% ylabel('N');
+% ext = '.png';
+% if not(isfolder([paths.histdir]))
+%     mkdir([paths.histdir])
+% end
+% imagename = sprintf('%s%s%s',paths.histdir,datastruct.header.timestamp,ext);
+% print(h,imagename, '-dpng');
 
 %Calculate fit to data
 pd = fitdist(maskim(:),'normal');

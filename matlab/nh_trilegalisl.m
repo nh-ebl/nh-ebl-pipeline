@@ -21,12 +21,19 @@ elseif strcmp(paths.datadir,'/data/symons/nh_data/mat/') == 1
     new = 1;
     old = 0;
     ghost = 0;
+elseif strcmp(paths.datadir,'/data/symons/nh_data_lauer/mat/') == 1
+    new = 0;
+    old = 0;
+    ghost = 0;
+    lauer = 1;
 end
 % load the appropriate trilegal catalog files
 if new == 1
-    load(sprintf('/home/symons/nh_ebl_pipeline/matlab/lookup/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
+    load(sprintf('/home/symons/nh_ebl_pipeline/matlab/lookup/trilegal/new_data/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
 elseif old == 1
     load(sprintf('/home/symons/isl_trilegal/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
+elseif lauer == 1
+    load(sprintf('/home/symons/nh_ebl_pipeline/matlab/lookup/trilegal/lauer_data/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
 end
 
 nfiles = numel(V);
@@ -36,7 +43,7 @@ islmasked = zeros(nfiles,1);
 islghost = zeros(nfiles,1);
 
 for jfile=1:nfiles
-    
+
     % If using trilegal catalog based on UBVRI magnitudes
     if strcmp(tri_type,'ubvri')
         mag = V(jfile).mlf;
@@ -60,9 +67,9 @@ for jfile=1:nfiles
         elseif tri_gaia == 1
             whpl = V(jfile).V > tri_mag;
         end
-    % If using trilegal catalog based on G magnitudes
+        % If using trilegal catalog based on G magnitudes
     elseif strcmp(tri_type,'gaia')
-            mag = V(jfile).G;
+        mag = V(jfile).G;
         % save trilegal mags to text file
         %     dlmwrite(['trimag',num2str(jfile),'.txt'],mag,'delimiter','\n','precision',8)
 
@@ -84,21 +91,21 @@ for jfile=1:nfiles
             whpl = V(jfile).G > tri_mag;
         end
     end
-    
+
     % Select only stars with Gaia mag > 8 (used for diffuse ghost calc)
-%     diffghoststars = (V(jfile).mlf-data.cal.gaia2lorrimag) > 8;
-    
+    %     diffghoststars = (V(jfile).mlf-data.cal.gaia2lorrimag) > 8;
+
     magcat = mag(whpl);
-    
+
     % step 5: convert to surface brightness
     lIltot = 1e-26.*1e9.*data.cal.nu.*Fcat./(surveyarea .* (pi./180).^2);
     lIlcat = 1e-26.*1e9.*data.cal.nu.*Fcat(whpl)./(surveyarea .* (pi./180).^2); %this one is ISL - per radian squared
-%     lIlghost = 1e-26.*1e9.*data.cal.nu.*Fcat(diffghoststars)./(surveyarea .* (pi./180).^2); %diffuse ghost stars only
-    
+    %     lIlghost = 1e-26.*1e9.*data.cal.nu.*Fcat(diffghoststars)./(surveyarea .* (pi./180).^2); %diffuse ghost stars only
+
     isltot(jfile) = sum(lIltot);
     islmasked(jfile) = sum(lIlcat); %this is ISL
-%     islghost(jfile) = sum(lIlghost);%total diffuse ghost star ISL
-    
+    %     islghost(jfile) = sum(lIlghost);%total diffuse ghost star ISL
+
 end
 
 % star_list = horzcat(magcat,(lIlcat.*(data.astrom.imagew.*data.astrom.imageh)));

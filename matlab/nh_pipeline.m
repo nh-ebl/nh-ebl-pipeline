@@ -32,7 +32,7 @@ end
 flag_method = 'new';
 
 %set portion of pipeline to run
-procstepflag = 4; %1 - masking, 2 - add meta & diff ghosts & scattering, 3 - jail bars, 4 - calibrate, 5 - isl, 6 - dgl, 7 - extinction
+procstepflag = 6; %1 - masking, 2 - add meta & diff ghosts & scattering, 3 - jail bars, 4 - calibrate, 5 - isl, 6 - dgl, 7 - extinction
 
 % Set error flags - error on means error of this type is being added in
 errflag_mags = 0; %1 is on, 0 is off
@@ -182,12 +182,12 @@ for ifile=1:size(datafiles,1)
         fprintf('Masking and ghost analysis');
         %% Masking and optical ghosts
         
-%         if strcmp(flag_method,'new') == 1 !!!NEED TO TURN BACK ON!!!
-%             %save ra, dec, pix, and mag of stars in image that could be causing ghosts
-%             [data, ghostcount, realghostcount] = nh_findghoststar(data,paths,params,use_gaia,errflag_mags);
-%             totalghosts = totalghosts + ghostcount;
-%             totalrealghosts = totalrealghosts + realghostcount;
-%         end
+        if strcmp(flag_method,'new') == 1 %!!!NEED TO TURN BACK ON!!!
+            %save ra, dec, pix, and mag of stars in image that could be causing ghosts
+            [data, ghostcount, realghostcount] = nh_findghoststar(data,paths,params,use_gaia,errflag_mags);
+            totalghosts = totalghosts + ghostcount;
+            totalrealghosts = totalrealghosts + realghostcount;
+        end
         
         %
         %manually mask portions of image - not needed for old ghost files
@@ -208,7 +208,7 @@ for ifile=1:size(datafiles,1)
         %         data.cal.sbconv .* sum(sum(data.data(data.mask.onemask)./ data.astrom.exptime))
         
         %print mask fraction
-        data.mask.maskfrac
+%         data.mask.maskfrac
         
         %overwrite data file with changes
         save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
@@ -227,9 +227,8 @@ for ifile=1:size(datafiles,1)
             %Calculate diffuse contribution from all stars in range to cause a
             %ghost. List of stars from nh_findghoststar. Later subtracted from
             %image mean.
-%             data = nh_diffghost(data,paths,params); !!!NEED TO TURN THIS
-%             BACK ON !!!
-%             data = nh_scattering(data, paths, errflag_mags, params);
+            data = nh_diffghost(data,paths,params); %!!!NEED TO TURN THIS BACK ON !!!
+            data = nh_scattering(data, paths, errflag_mags, params);
         end
         
         %overwrite data file with changes
@@ -268,6 +267,7 @@ for ifile=1:size(datafiles,1)
         %calculate ISL from USNOB1 and Trilegal
         %may need to redo catalog depending on gals
         %         catalog_data_gaia(gals,paths)
+        % Need to run nh_stack_psf() first to save psf to data
         data = nh_calcisl(data, paths, params, use_gaia, tri_gaia, tri_mag, wing_mag, max_mag, save_file, flag_method, errflag_psf, tri_type);
         
         %         wing = data.isl.usnowing
@@ -302,7 +302,7 @@ for ifile=1:size(datafiles,1)
         data = nh_extinction(data, paths);
         
         %overwrite data file with changes
-%         save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+        save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
         
     end
         

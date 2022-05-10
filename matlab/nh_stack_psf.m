@@ -8,8 +8,8 @@ psfx = ceil(pdim/2)-1;
 psfy = ceil(pdim/2)-1;
 
 % paths = get_paths_new();
-paths = get_paths_old();
-
+% paths = get_paths_old();
+paths = get_paths_lauer();
 
 datafiles = dir(sprintf('%s*.mat',paths.datadir));
 

@@ -27,6 +27,9 @@ if( ~(isfile(sprintf('%s%s.mat',paths.scatteringdir,data.header.timestamp))))
     %call python script
     system(['python ',pydir,pyfile]);
     %get the scattering files and move them to their data directory
+    if not(isfolder([paths.scatteringdir]))
+        mkdir([paths.scatteringdir])
+    end
     movefile([pydir,data.header.timestamp,'.mat'], [paths.scatteringdir,data.header.timestamp,'.mat']); %move from pydir to paths.scatteringdir
 end
 
@@ -81,22 +84,22 @@ if isempty(gcp('nocreate')) % Check if parpool is active
 end
 astrom = data.astrom; % Create variable for data.astrom so parfor doesn't copy data to each core's process
 parfor row = 1:ncat % Parallel for
-    
+
     %mags don't seem to have any wild values, so we'll use all of
     %them without restriction
     thismag = Gmag_par(row); %+ randn(1) .* 0.25; %need to know what is possible gaia mag error to change this value
-    
+
     %find x/y coordinate of the object
     [ypix, xpix] = radec2pix(RA_par(row),DEC_par(row), astrom);
-    
+
     % Calculate distance from center pixel to star pixel and
     % distance from star pixel to ghost pixel
     stardistcentbox(row) = sqrt((xpix-(128)).^2 + (ypix-(128)).^2);
-    
-    % If star between ghost range 18.22 arcmin (268 pix) and 5 degrees
+
+    % If star between ghost range 18.67 arcmin (274.5 pix) and 5 degrees
     % (4411.76 pix) - 4.08''/pix
     % include in calculation
-    if stardistcentbox(row) > 268 && stardistcentbox(row) <= 4411.76
+    if stardistcentbox(row) > 274.5 && stardistcentbox(row) <= 4411.76
         boxxpix(row) = xpix;
         boxypix(row) = ypix;
         boxmag(row) = thismag;

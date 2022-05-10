@@ -1,1 +1,1 @@
-/data/symons/NH_old_data/NH/regist/selected_data/good/regist_cruise_20100623_013958_lor_0139582348_0x633_sci_1.fit
+/data/symons/nh_data_lauer/regist/selected_data/regist_ZL138_20190904_042993_lor_0429933358_0x633_sci.fit
