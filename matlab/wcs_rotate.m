@@ -26,28 +26,28 @@
 function wcsparams=wcs_rotate(wcsparams)
 
   % define angle constants 
-  pi2 = pi./2.d0;
+%   pi2 = pi./2.d0;
   radeg = 1.8d2./pi;
 
   % check that the input fields make sense
   if isfield(wcsparams,'phi') || isfield(wcsparams,'theta')
     if ~isfield(wcsparams,'phi') || ~isfield(wcsparams,'theta')
-      disp(sprintf(['wcs_rotate error: theta and phi are' ...
-		    ' not set correctly!  Aborting.']));
+      fprintf(sprintf(['wcs_rotate error: theta and phi are' ...
+		    ' not set correctly!  Aborting.\n']));
       return
     end
     reverseme = 1;
   else 
     if ~isfield(wcsparams,'longitude') || ~isfield(wcsparams,'latitude')
-      disp(sprintf(['wcs_rotate error: longitude and latitude are' ...
-		    ' not set correctly!  Aborting.']));
+      fprintf(sprintf(['wcs_rotate error: longitude and latitude are' ...
+		    ' not set correctly!  Aborting.\n']));
       return
     end
     reverseme = 0;
   end
 
   if ~isfield(wcsparams,'theta0')
-    disp(sprintf('wcs_rotate error: theta0 not set!  Aborting.'));
+    fprintf(sprintf('wcs_rotate error: theta0 not set!  Aborting.\n'));
   end
   
   % Longpole is the longitude in the native system of the North Pole in the

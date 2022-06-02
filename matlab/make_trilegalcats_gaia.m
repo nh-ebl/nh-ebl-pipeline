@@ -2,7 +2,8 @@ function make_trilegalcats_gaia()
 
 % paths = get_paths_new();
 % paths = get_paths_old();
-paths = get_paths_lauer();
+% paths = get_paths_lauer();
+paths = get_paths_newest();
 
 if strcmp(paths.datadir,'/data/symons/NH_old_data/mat/good/') == 1
     old = 1;
@@ -22,11 +23,18 @@ elseif strcmp(paths.datadir,'/data/symons/nh_data_lauer/mat/') == 1
     lauer = 1;
     smallfields = [1,2,3,4,5,6,7]; % New files
     nfields = 7;
+elseif strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') == 1
+    new = 0;
+    old = 0;
+    lauer = 0;
+    newest = 1;
+    smallfields = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]; % New files
+    nfields = 23;
 end
 
 %% read in trilegal dat files
 
-for ifield=1:7 %nfields % Make this be any set of numerically sequential fields - otherwise do one at a time
+for ifield=1:nfields %nfields % Make this be any set of numerically sequential fields - otherwise do one at a time
 
     disp(sprintf('On field %d of %d.',ifield,nfields));
 
@@ -74,6 +82,8 @@ for ifield=1:7 %nfields % Make this be any set of numerically sequential fields 
         save(sprintf('/home/symons/isl_trilegal/gaia/isltrilegal_%02d.mat',ifield),'V','-v7.3'); % Save location for old files
     elseif lauer == 1
         save(sprintf('lookup/trilegal/lauer_data/gaia/isltrilegal_%02d.mat',ifield),'V','-v7.3'); % Save location for lauer files
+    elseif newest == 1
+        save(sprintf('lookup/trilegal/newest_data/gaia/isltrilegal_%02d.mat',ifield),'V','-v7.3'); % Save location for newest files
     end
 
 end

@@ -7,19 +7,30 @@
 % Thayer, June 2019
 %added the RA and DEC variables and recorded their values
 
-function [data, ghostcount, realghostcount] = nh_findghoststar(data, paths, params, use_gaia, errflag_mags)
+function [data, ghostcount, realghostcount] = nh_findghoststar(data, paths, params, use_gaia, errflag_mags, mc)
 
-% load up the corresponding catalog file
-if use_gaia == 1
-    load(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum));
-    
-    % figure out the length of the catalog
-    [ncat,~] = size(RA);
-elseif use_gaia == 0
-    load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
-    
-    % figure out the length of the catalog
-    [~,ncat] = size(RA);
+% If doing err gals MC, load appropriate catalog, if not, load regular catalog
+if params.err_gals == 0
+    % load up the corresponding catalog file
+    if use_gaia == 1
+        load(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum));
+        
+        % figure out the length of the catalog
+        [ncat,~] = size(RA);
+    elseif use_gaia == 0
+        load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
+        
+        % figure out the length of the catalog
+        [~,ncat] = size(RA);
+    end
+elseif params.err_gals == 1
+    % load up the corresponding catalog file
+    if use_gaia == 1
+        load(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc));
+        
+        % figure out the length of the catalog
+        [ncat,~] = size(RA);
+    end
 end
 
 % figure out the size the mask arrays need to be
@@ -50,6 +61,44 @@ decc=zeros(ncat,1);
 boxxpix = zeros(ncat,1);
 boxypix = zeros(ncat,1);
 boxmag = zeros(ncat,1);
+
+if ~exist('xpix','var') || ~exist('ypix','var')
+    %only run if need to make xpix/ypix (should not run since makemask made them)
+    ypix = zeros(ncat,1);
+    xpix = zeros(ncat,1);
+    % convert radec2pix parallel now since will be required (later loop
+    % can't be paralleled w/o work)
+    parpoolobj = gcp('nocreate'); % check for thread pool
+    if isempty(parpoolobj)
+        maxNumCompThreads(7); % Declare number of threads to use
+        parpool('threads');
+    else
+        if ~isa(parpoolobj,'parallel.ThreadPool')
+            delete(parpoolobj); %want threads here
+            maxNumCompThreads(7); % Declare number of threads to use
+            parpool('threads');
+        end
+    end
+    RApar = RA;
+    DECpar = DEC; %parfor was mad about these not ever being declared officially
+    parfor row = 1:ncat
+        %parallel for speed, later loop needs work to parallize
+        [ypix(row), xpix(row)] = radec2pix(RApar(row),DECpar(row), data.astrom);
+    end
+    if params.err_gals == 0
+        % save the calc'd ypix/xpix the corresponding catalog file
+        if use_gaia == 1
+            save(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum),'xpix','ypix','-append');
+        elseif use_gaia == 0
+            save(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum),'xpix','ypix','-append');
+        end
+    elseif params.err_gals == 1
+        % save the calc'd ypix/xpix the corresponding catalog file
+        if use_gaia == 1
+            save(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc),'xpix','ypix','-append');
+        end
+    end
+end
 
 % loop over each catalog entry;
 for row = 1:ncat
@@ -82,27 +131,27 @@ for row = 1:ncat
         end
         
         %find x/y coordinate of the object
-        [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
+        % [ypix(row), xpix(row)] = radec2pix(RA(row),DEC(row), data.astrom); %par now
         
         % check if the object is in the target zone
         check = 0;
         % quad 1
-        if xpix >= 1-199 && xpix <= 1 && ypix >= 1-199 && ypix <= ydim+199
+        if xpix(row) >= 1-199 && xpix(row) <= 1 && ypix(row) >= 1-199 && ypix(row) <= ydim+199
             quad1 = quad1 + 1;
             check = 1;
         end
         % quad 2
-        if xpix >= xdim && xpix <= xdim + 199 && ypix >= 1-199 && ypix <= ydim+199
+        if xpix(row) >= xdim && xpix(row) <= xdim + 199 && ypix(row) >= 1-199 && ypix(row) <= ydim+199
             quad2 = quad2 + 1;
             check = 1;
         end
         % quad 3
-        if xpix >= 1 && xpix <= xdim && ypix >= ydim && ypix <= ydim+199
+        if xpix(row) >= 1 && xpix(row) <= xdim && ypix(row) >= ydim && ypix(row) <= ydim+199
             quad3 = quad3 + 1;
             check = 1;
         end
         % quad 4
-        if xpix >= 1 && xpix <= xdim && ypix >= 1-199 && ypix <= 1
+        if xpix(row) >= 1 && xpix(row) <= xdim && ypix(row) >= 1-199 && ypix(row) <= 1
             quad4 = quad4 + 1;
             check = 1;
         end
@@ -113,8 +162,8 @@ for row = 1:ncat
                 numinbnds = numinbnds + 1;
                 
                 % save x/y location of star and magnitude
-                quadxpix(row) = xpix;
-                quadypix(row) = ypix;
+                quadxpix(row) = xpix(row);
+                quadypix(row) = ypix(row);
                 quadmag(row) = thismag;
                 
                 % checks to see how many stars excluded for which criteria
@@ -141,35 +190,35 @@ for row = 1:ncat
         decc=DEC(row);
         
         %find x/y coordinate of the object
-        [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
+        % [ypix(row), xpix(row)] = radec2pix(RA(row),DEC(row), data.astrom); %par now
         
         % check if the object is in the target zone
         check = 0;
         % quad 1
-        if xpix >= 1-199 && xpix <= 1 && ypix >= 1-199 && ypix <= ydim+199
+        if xpix(row) >= 1-199 && xpix(row) <= 1 && ypix(row) >= 1-199 && ypix(row) <= ydim+199
             quad1 = quad1 + 1;
             check = 1;
         end
         % quad 2
-        if xpix >= xdim && xpix <= xdim + 199 && ypix >= 1-199 && ypix <= ydim+199
+        if xpix(row) >= xdim && xpix(row) <= xdim + 199 && ypix(row) >= 1-199 && ypix(row) <= ydim+199
             quad2 = quad2 + 1;
             check = 1;
         end
         % quad 3
-        if xpix >= 1 && xpix <= xdim && ypix >= ydim && ypix <= ydim+199
+        if xpix(row) >= 1 && xpix(row) <= xdim && ypix(row) >= ydim && ypix(row) <= ydim+199
             quad3 = quad3 + 1;
             check = 1;
         end
         % quad 4
-        if xpix >= 1 && xpix <= xdim && ypix >= 1-199 && ypix <= 1
+        if xpix(row) >= 1 && xpix(row) <= xdim && ypix(row) >= 1-199 && ypix(row) <= 1
             quad4 = quad4 + 1;
             check = 1;
         end
         
         if check == 1
             % save star to list of stars in ghost box
-            boxxpix(row) = xpix;
-            boxypix(row) = ypix;
+            boxxpix(row) = xpix(row);
+            boxypix(row) = ypix(row);
             boxmag(row) = thismag;
             
             % require that the magnitude is within sensible bounds
@@ -177,8 +226,8 @@ for row = 1:ncat
                 numinbnds = numinbnds + 1;
                 
                 % save x/y location of star and magnitude
-                quadxpix(row) = xpix;
-                quadypix(row) = ypix;
+                quadxpix(row) = xpix(row);
+                quadypix(row) = ypix(row);
                 quadmag(row) = thismag;
                 
                 % checks to see how many stars excluded for which criteria
@@ -228,7 +277,7 @@ end
 
 % If error is on, write to error substruct
 % load('run_params.mat','params')
-if params.err_mags == 1
+if params.err_mags == 1 || params.err_gals == 1
     % save bright star info to data
     data.(params.err_str).ghost.brightmag = quadmag;
     data.(params.err_str).ghost.brightxpix = quadxpix;

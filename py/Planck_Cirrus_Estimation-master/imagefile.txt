@@ -1,1 +1,1 @@
-/data/symons/nh_data_lauer/regist/selected_data/regist_ZL138_20190904_042993_lor_0429933358_0x633_sci.fit
+/data/symons/nh_data_new/regist/selected_data/good/regist_kem_20190309_041442_lor_0414427258_0x633_sci.fit

@@ -1,4 +1,8 @@
-function catalog_data_gaia_wide(gals,paths)
+function catalog_data_gaia_wide() %gals,paths
+
+% set variables to run manually instead of in pipeline
+paths = get_paths_newest();
+gals = 0;
 
 %retrieve list of gaia catalog files
 cat_files = dir(fullfile(sprintf('%swide_files/',paths.gaiadir),'*.fit'));

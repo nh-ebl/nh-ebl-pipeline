@@ -41,6 +41,44 @@ myflux = zeros(ncat,1);
 ypixlist = zeros(ncat,1);
 xpixlist = zeros(ncat,1);
 
+if ~exist('xpix','var') || ~exist('ypix','var')
+    %only run if need to make xpix/ypix (should not run since makemask made them)
+    ypix = zeros(ncat,1);
+    xpix = zeros(ncat,1);
+    % convert radec2pix parallel now since will be required (later loop
+    % can't be paralleled w/o work)
+    parpoolobj = gcp('nocreate'); % check for thread pool
+    if isempty(parpoolobj)
+        maxNumCompThreads(7); % Declare number of threads to use
+        parpool('threads');
+    else
+        if ~isa(parpoolobj,'parallel.ThreadPool')
+            delete(parpoolobj); %want threads here
+            maxNumCompThreads(7); % Declare number of threads to use
+            parpool('threads');
+        end
+    end
+    RApar = RA;
+    DECpar = DEC; %parfor was mad about these not ever being declared officially
+    parfor row = 1:ncat
+        %parallel for speed, later loop needs work to parallize
+        [ypix(row), xpix(row)] = radec2pix(RApar(row),DECpar(row), data.astrom);
+    end
+    % if params.err_gals == 0
+        % save the calc'd ypix/xpix the corresponding catalog file
+        if use_gaia == 1
+            save(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum),'xpix','ypix','-append');
+        elseif use_gaia == 0
+            save(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum),'xpix','ypix','-append');
+        end
+    % elseif params.err_gals == 1
+    %     % save the calc'd ypix/xpix the corresponding catalog file
+    %     if use_gaia == 1
+    %         save(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc),'xpix','ypix','-append');
+    %     end
+    % end
+end
+
 % loop over each catalog entry;
 for row = 1:ncat
     
@@ -66,22 +104,22 @@ for row = 1:ncat
     end
     
     %find x/y coordinate of the object
-    [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
+    % [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom); %par now
     
-    if ypix >= 1 & ypix <= 256 & xpix >= 1 & xpix <= 256 & ~isnan(thismag)
+    if ypix(row) >= 1 & ypix(row) <= 256 & xpix(row) >= 1 & xpix(row) <= 256 & ~isnan(thismag)
         
         thisflux = data.cal.vzero .* 10^(-thismag./2.5);
         
-        starimage(round(ypix.*resize),round(xpix.*resize)) = ...
-            starimage(round(ypix.*resize),round(xpix.*resize)) + thisflux;
+        starimage(round(ypix(row).*resize),round(xpix(row).*resize)) = ...
+            starimage(round(ypix(row).*resize),round(xpix(row).*resize)) + thisflux;
         
         if thismag < wing_mag
-            wingimage(round(ypix.*resize),round(xpix.*resize)) = ...
-                wingimage(round(ypix.*resize),round(xpix.*resize)) + thisflux;
+            wingimage(round(ypix(row).*resize),round(xpix(row).*resize)) = ...
+                wingimage(round(ypix(row).*resize),round(xpix(row).*resize)) + thisflux;
             mymag(row) = thismag;
-            myflux(row) = sum(sum(wingimage(round(ypix.*resize),round(xpix.*resize))));
-            xpixlist(row) = xpix;
-            ypixlist(row) = ypix;
+            myflux(row) = sum(sum(wingimage(round(ypix(row).*resize),round(xpix(row).*resize))));
+            xpixlist(row) = xpix(row);
+            ypixlist(row) = ypix(row);
         end
         
     end
@@ -139,11 +177,23 @@ usnoisl.islwing = mean(wingimage_cal(~maskdir.mask.onemask)); %this one gets use
 usnoisl.wingimage = wingimage_cal;
 usnoisl.islfaint = usnoisl.isltot - usnoisl.islwing;
 
-%   figure(4); clf
-%   imagesc(wingimage_cal.*~data.mask.onemask)
-%   title(sprintf('%8.3f',usnoisl.islwing));
-%   colorbar
-%   caxis([0,10])
-%   drawnow
+% h = figure();
+% clf;
+% imagesc(wingimage_cal.*~maskdir.mask.onemask)
+% set(h,'visible','off');
+% a = colorbar;
+% a.Label.String = 'Intensity [nW]';
+% pbaspect([1 1 1]);
+% xlabel('LORRI X Pixels');
+% ylabel('LORRI Y Pixels');
+% caxis([0,10]);
+% title(sprintf('%8.3f',usnoisl.islwing));
+% set(gca,'YDir','normal');
+% ext = '.png';
+% if not(isfolder([paths.wingdir]))
+%     mkdir([paths.wingdir])
+% end
+% imagename = sprintf('%s%s%s',paths.wingdir,data.header.timestamp,ext);
+% print(h,imagename, '-dpng');
 
 end

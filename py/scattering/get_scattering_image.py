@@ -20,6 +20,10 @@ os.chdir(currentDir) #change dir to the needed directory
 fileID = open("imagefile.txt","r") #open the file
 imagefile = fileID.readlines()[0] #get the imagefile path
 fileID.close() #close the file
+# Read in saved conversion factor
+fileID = open("/home/symons/nh_ebl_pipeline/matlab/conv.txt","r") #open the file
+sbconv = np.float64(fileID.readlines()[0])
+fileID.close() #close the file
 hdul = fits.open(imagefile) #use the imagefile path
 
 # Read in header info
@@ -125,11 +129,11 @@ L_G_scattered_new_psfmaxerr = L_G_rad_new/vega_flux*psf_rad_bins_max
 L_G_scattered_new_psfminerr = L_G_rad_new/vega_flux*psf_rad_bins_min
 
 # Convert from DN/s to nW m^-2 sr^-1
-L_G_scattered_new_nW = L_G_scattered_new*406.5386
-L_G_scattered_new_nW_psfmaxerr = L_G_scattered_new_psfmaxerr*406.5386
-L_G_scattered_new_nW_psfminerr = L_G_scattered_new_psfminerr*406.5386
-L_G_scattered_new_nW_fluxmaxerr = L_G_scattered_new_fluxmaxerr*406.5386
-L_G_scattered_new_nW_fluxminerr = L_G_scattered_new_fluxminerr*406.5386
+L_G_scattered_new_nW = L_G_scattered_new*sbconv
+L_G_scattered_new_nW_psfmaxerr = L_G_scattered_new_psfmaxerr*sbconv
+L_G_scattered_new_nW_psfminerr = L_G_scattered_new_psfminerr*sbconv
+L_G_scattered_new_nW_fluxmaxerr = L_G_scattered_new_fluxmaxerr*sbconv
+L_G_scattered_new_nW_fluxminerr = L_G_scattered_new_fluxminerr*sbconv
 
 # Save important data to .mat file to read in with matlab
 savemat(timestamp+'.mat', mdict={'scattered_nW': L_G_scattered_new_nW, 'rad_bins_cent' : rad_bins_cent,

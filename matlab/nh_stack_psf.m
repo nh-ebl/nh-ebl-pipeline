@@ -9,7 +9,8 @@ psfy = ceil(pdim/2)-1;
 
 % paths = get_paths_new();
 % paths = get_paths_old();
-paths = get_paths_lauer();
+% paths = get_paths_lauer();
+paths = get_paths_newest();
 
 datafiles = dir(sprintf('%s*.mat',paths.datadir));
 
@@ -46,6 +47,44 @@ for ifile=1:nfiles
     halfshits2 = zeros(pdim);
     
     mymags = NaN.*ones(ncat,1);
+
+    if ~exist('xpix','var') || ~exist('ypix','var')
+        %only run if need to make xpix/ypix (should not run since makemask made them)
+        ypix = zeros(ncat,1);
+        xpix = zeros(ncat,1);
+        % convert radec2pix parallel now since will be required (later loop
+        % can't be paralleled w/o work)
+        parpoolobj = gcp('nocreate'); % check for thread pool
+        if isempty(parpoolobj)
+            maxNumCompThreads(7); % Declare number of threads to use
+            parpool('threads');
+        else
+            if ~isa(parpoolobj,'parallel.ThreadPool')
+                delete(parpoolobj); %want threads here
+                maxNumCompThreads(7); % Declare number of threads to use
+                parpool('threads');
+            end
+        end
+        RApar = RA;
+        DECpar = DEC; %parfor was mad about these not ever being declared officially
+        parfor row = 1:ncat
+            %parallel for speed, later loop needs work to parallize
+            [ypix(row), xpix(row)] = radec2pix(RApar(row),DECpar(row), data.astrom);
+        end
+        % if params.err_gals == 0
+            % save the calc'd ypix/xpix the corresponding catalog file
+            if use_gaia == 1 %NOTE! here doesn't have params.err_gals
+                save(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum),'xpix','ypix','-append');
+            elseif use_gaia == 0
+                save(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum),'xpix','ypix','-append');
+            end
+        % elseif params.err_gals == 1
+        %     % save the calc'd ypix/xpix the corresponding catalog file
+        %     if use_gaia == 1
+        %         save(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc),'xpix','ypix','-append');
+        %     end
+        % end
+    end
     
     % loop over each catalog entry;
     for row = 1:ncat
@@ -72,10 +111,10 @@ for ifile=1:nfiles
         end
         
         %find x/y coordinate of the object
-        [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom);
+        % [ypix, xpix] = radec2pix(RA(row),DEC(row), data.astrom); %par now
         
-        pixx = round(resize*xpix) - 9;
-        pixy = round(resize*ypix) - 9;
+        pixx = round(resize*xpix(row)) - 9;
+        pixy = round(resize*ypix(row)) - 9;
         
         if ~isnan(thismag) & thismag < 16 & ...
                 round(pixx-psfx) >= 1 & round(pixx+psfx) <= 2560 & ...

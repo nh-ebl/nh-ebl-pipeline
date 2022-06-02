@@ -37,10 +37,10 @@ data.header.cover_jd = 2453976.500000;
 data.header.cover_date = '2006-08-29T00:00:00';
 data.header.ccdtemp = data.astrometry.id_ccdtemp;
 data.header.exptime = data.astrometry.id_exptime;
-data.header.A_V = A_V(data.header.fieldnum);
-data.header.avfac = avfac(data.header.fieldnum);
-data.header.A_R = A_R(data.header.fieldnum);
-data.header.arfac = arfac(data.header.fieldnum);
+% data.header.A_V = A_V(data.header.fieldnum);
+% data.header.avfac = avfac(data.header.fieldnum);
+% data.header.A_R = A_R(data.header.fieldnum);
+% data.header.arfac = arfac(data.header.fieldnum);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -97,7 +97,7 @@ data.coords.sol_elon = data.astrometry.id_sol_elon;
 
 temp_ref = data.ref.eng(:,1:256);
 
-data.ref.engmean = mean(temp_ref(~data.mask.onemask));
+data.ref.engmean = mean(temp_ref(~data.mask.onemask)); % Used in ref corr calculation, doesn't need to change with error unless changing ref corr
 if isfield(data.astrom,'biasmthd')
     data.ref.biasmthd = data.astrom.biasmthd; % This is the listed bias method from the header - can be median or mean
     data.ref.biaslevl = data.astrom.biaslevl; % This is the listed bias level from the header

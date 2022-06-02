@@ -8,12 +8,12 @@ want_errdgl = 0;
 
 % Set desired source of DGL calculation
 % dgl_type = 'planck';
-dgl_type = 'iris';
-% dgl_type = 'iris_sfd';
+% dgl_type = 'iris';
+dgl_type = 'iris_sfd';
 
 % paths = get_paths_old();
 % paths = get_paths_new();
-paths = get_paths_lauer();
+% paths = get_paths_lauer();
 
 load('run_params.mat','params')
 

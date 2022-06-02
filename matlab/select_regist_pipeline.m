@@ -36,7 +36,7 @@ for i=1:1
 %     png_img_cust(phase,-5,50,path);
 %     sprintf('PNG construction task completed.')
     %retrieve header info and create png images with info annotated
-%     add_info(phase, path)
+    add_info(phase, path)
 %     
     % extract distance information
     sprintf('Extracting trajectory information...')
@@ -49,7 +49,7 @@ for i=1:1
     sprintf('Performing astrometric registration...')
 %     ra_dec(phase,path)
 %     ra_dec_mat_to_dat(phase,path)
-    astro_regist(phase,path)
+%     astro_regist(phase,path)
     sprintf('Registration task completed')
     
     % mask_pipeline(sprintf('regist'),path)

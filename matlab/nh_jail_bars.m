@@ -135,9 +135,9 @@ datastruct.ref.engmean = mean(temp_ref(~datastruct.mask.onemask));
 if isfield(data.astrom,'biasmthd')
     % Determine currently used bias method
     if strcmp(data.ref.biasmthd,'mean of dark column data') == 1 % If method is mean, add back recorded bias level due to inability to replicate robust mean method
-        datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - datastruct.ref.biaslevl; % Calculate new bias level - to be used in nh_calibrate
+        datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - data.ref.biaslevl; % Calculate new bias level - to be used in nh_calibrate
     elseif strcmp(data.ref.biasmthd,'median of dark column data') == 1
-        datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - datastruct.ref.biaslevl; % Calculate new bias level - to be used in nh_calibrate
+        datastruct.ref.bias = nh_sigclip(datastruct.ref.line) - data.ref.biaslevl; % Calculate new bias level - to be used in nh_calibrate
     else
         fprintf('Absolute panic: bias method not recognized!')
     end

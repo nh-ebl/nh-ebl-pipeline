@@ -22,7 +22,7 @@ function [alpha_p,delta_p] = wcs_getpole(wcsparams)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
   %% DEFINE ANGLE CONSTANTS 
-  pi2 = pi ./ 2.0d0;
+%   pi2 = pi ./ 2.0d0;
   radeg = 1.8d2 ./ pi;
   alpha_0 = wcsparams.crval(1) ./ radeg;
   delta_0 = wcsparams.crval(2) ./ radeg;
@@ -49,12 +49,12 @@ function [alpha_p,delta_p] = wcs_getpole(wcsparams)
   %% Greisen & Calabretta with theta0 = 0) to give the coordinates
   %% of the North pole (alpha_p, delta_p) 
   if (wcsparams.theta0 == 0)  %% for theta0=0
-    if ( (delta_0 == 0) & (abs(wcsparams.lonpole) == 90.0d0) )
+    if ( (delta_0 == 0) && (abs(wcsparams.lonpole) == 90.0d0) )
       delta_p = theta_p; 
     else 
       delta_p = acos(sd./cp);
     end
-    if ( wcsparams.latpole ~= 90 & ...
+    if ( wcsparams.latpole ~= 90 && ...
         abs(theta_p + delta_p) < abs(theta_p - delta_p) )
 	delta_p = -delta_p; 
     end
@@ -75,16 +75,16 @@ function [alpha_p,delta_p] = wcs_getpole(wcsparams)
       delta_p1 = abs( (term1 + term2) .* radeg);
       delta_p2 = abs( (term1 - term2) .* radeg);
 	
-      if (delta_p1 > 90) & (delta_p2 > 90)
-        disp(sprintf('wcs_getpole: No valid solution!'));
+      if (delta_p1 > 90) && (delta_p2 > 90)
+        fprintf(sprintf('wcs_getpole: No valid solution!\n'));
       end
-      if (delta_p1 <= 90) & (delta_p2 > 90)
+      if (delta_p1 <= 90) && (delta_p2 > 90)
         delta_p = term1 + term2;
       end
-      if (delta_p1 > 90) & (delta_p2 <= 90)
+      if (delta_p1 > 90) && (delta_p2 <= 90)
         delta_p = term1 - term2;
       end
-      if (delta_p1 <= 90) & (delta_p2 <= 90)
+      if (delta_p1 <= 90) && (delta_p2 <= 90)
         %%Oh no, there are two valid solutions
         delta_p1 = (term1 + term2) .* radeg;
         delta_p2 = (term1 - term2) .* radeg;

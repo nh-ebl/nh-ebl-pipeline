@@ -34,4 +34,5 @@ function npaths=get_paths_lauer()
    npaths.gaiadir = '/data/symons/nh_data_lauer/gaia/';
    npaths.simgaiadir = '/data/symons/nh_data_lauer/sims_gaia/';
    npaths.simusnobdir = '/data/symons/nh_data_lauer/sims_usnob/';
+  npaths.wingdir = '/data/symons/nh_data_lauer/psf_wings/';
 end

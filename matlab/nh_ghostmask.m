@@ -8,15 +8,21 @@
 
 %Symons 2019
 
-function [ghostmask,data] = nh_ghostmask(data,paths)
+function [ghostmask,datastruct] = nh_ghostmask(data,datastruct,paths)
+%note that nh_ghostmask outputs within nh_makemask that is using the
+%datastruct sub-structure abstraction for error so data is not directly
+%outputted (unlike nh_diffghost)
 
 load('run_params.mat','params')
-if params.err_mags == 1
-    % Choose ghost dir based on err_flag
-    ghostdir = data.(params.err_str).ghost;
-else
-    ghostdir = data.ghost;
-end
+% if params.err_mags == 1
+%     % Choose ghost dir based on err_flag
+%     ghostdir = data.(params.err_str).ghost;
+%     datastruct = data.(params.err_str); %if err_on, output should be targeting filling in data.(params.err_str) - this makes that work seamlessly
+% else
+%     ghostdir = data.ghost;
+%     datastruct = data;
+% end
+ghostdir = datastruct.ghost; %keeps datastruct up to date and not using a possibly old version of data
 
 % Calculate number of potential bright stars contributing to ghost
 numstars = size(ghostdir.brightmag,1);
@@ -88,11 +94,11 @@ else
     ghostdir.ghostdistcent = 0;
 end
 
-if params.err_mags == 1
-    % Choose ghost dir based on err_flag
-    data.(params.err_str).ghost = ghostdir;
-else
-    data.ghost = ghostdir;
-end
+% if params.err_mags == 1
+%     % Choose ghost dir based on err_flag
+datastruct.ghost = ghostdir; %datastruct usage prevents recursive (params.err_str) structures
+% else
+%     datastruct.ghost = ghostdir;
+% end
 
 end

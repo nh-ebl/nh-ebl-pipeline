@@ -77,10 +77,56 @@ boxmag_errmax = zeros(ncat,1);
 boxmag_errmin = zeros(ncat,1);
 stardistcentbox = zeros(ncat,1);
 
+if ~exist('xpix','var') || ~exist('ypix','var')
+    %only run if need to make xpix/ypix (should not run since makemask made them)
+    ypix = zeros(ncat,1);
+    xpix = zeros(ncat,1);
+    % convert radec2pix parallel now since will be required (later loop
+    % can't be paralleled w/o work)
+    parpoolobj = gcp('nocreate'); % check for thread pool
+    if isempty(parpoolobj)
+        maxNumCompThreads(7); % Declare number of threads to use
+        parpool('threads');
+    else
+        if ~isa(parpoolobj,'parallel.ThreadPool')
+            delete(parpoolobj); %want threads here
+            maxNumCompThreads(7); % Declare number of threads to use
+            parpool('threads');
+        end
+    end
+    RApar = RA;
+    DECpar = DEC; %parfor was mad about these not ever being declared officially
+    parfor row = 1:ncat
+        %parallel for speed, later loop needs work to parallize
+        [ypix(row), xpix(row)] = radec2pix(RApar(row),DECpar(row), data.astrom);
+    end
+    save(sprintf('%smat_files/field_%d_data_wide.mat',paths.gaiadir,data.header.fieldnum),'xpix','ypix','-append');
+%     if params.err_gals == 0
+%         % save the calc'd ypix/xpix the corresponding catalog file
+%         if use_gaia == 1
+%             save(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum),'xpix','ypix','-append');
+%         elseif use_gaia == 0
+%             save(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum),'xpix','ypix','-append');
+%         end
+%     elseif params.err_gals == 1
+%         % save the calc'd ypix/xpix the corresponding catalog file
+%         if use_gaia == 1
+%             save(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc),'xpix','ypix','-append');
+%         end
+%     end
+end
+
 % loop over each catalog entry;
-if isempty(gcp('nocreate')) % Check if parpool is active
+parpoolobj = gcp('nocreate'); % check for thread pool
+if isempty(parpoolobj)
     maxNumCompThreads(7); % Declare number of threads to use
     parpool('threads'); % Fire up threaded parfor for 7 threads
+else
+    if ~isa(parpoolobj,'parallel.ThreadPool')
+        delete(parpoolobj); %want threads here
+        maxNumCompThreads(7); % Declare number of threads to use
+        parpool('threads'); % Fire up threaded parfor for 7 threads
+    end
 end
 astrom = data.astrom; % Create variable for data.astrom so parfor doesn't copy data to each core's process
 parfor row = 1:ncat % Parallel for
@@ -90,18 +136,18 @@ parfor row = 1:ncat % Parallel for
     thismag = Gmag_par(row); %+ randn(1) .* 0.25; %need to know what is possible gaia mag error to change this value
 
     %find x/y coordinate of the object
-    [ypix, xpix] = radec2pix(RA_par(row),DEC_par(row), astrom);
+    % [ypix, xpix] = radec2pix(RA_par(row),DEC_par(row), astrom); %par and cached now
 
     % Calculate distance from center pixel to star pixel and
     % distance from star pixel to ghost pixel
-    stardistcentbox(row) = sqrt((xpix-(128)).^2 + (ypix-(128)).^2);
+    stardistcentbox(row) = sqrt((xpix(row)-(128)).^2 + (ypix(row)-(128)).^2);
 
     % If star between ghost range 18.67 arcmin (274.5 pix) and 5 degrees
     % (4411.76 pix) - 4.08''/pix
     % include in calculation
     if stardistcentbox(row) > 274.5 && stardistcentbox(row) <= 4411.76
-        boxxpix(row) = xpix;
-        boxypix(row) = ypix;
+        boxxpix(row) = xpix(row);
+        boxypix(row) = ypix(row);
         boxmag(row) = thismag;
     end
 end
@@ -131,11 +177,11 @@ L_G_scattered_fluxerrmax = F_box_errmax.*psf_star;
 L_G_scattered_fluxerrmin = F_box_errmin.*psf_star;
 L_G_scattered_psferrmax = F_box.*psf_star_max;
 L_G_scattered_psferrmin = F_box.*psf_star_min;
-L_G_scattered_nW = L_G_scattered.*406.5386; % Convert from DN/s to nW m^-2 sr^-1
-L_G_scattered_nW_fluxerrmax = L_G_scattered_fluxerrmax.*406.5386; % Convert from DN/s to nW m^-2 sr^-1
-L_G_scattered_nW_fluxerrmin = L_G_scattered_fluxerrmin.*406.5386; % Convert from DN/s to nW m^-2 sr^-1
-L_G_scattered_nW_psferrmax = L_G_scattered_psferrmax.*406.5386; % Convert from DN/s to nW m^-2 sr^-1
-L_G_scattered_nW_psferrmin = L_G_scattered_psferrmin.*406.5386; % Convert from DN/s to nW m^-2 sr^-1
+L_G_scattered_nW = L_G_scattered.*data.cal.sbconv; % Convert from DN/s to nW m^-2 sr^-1
+L_G_scattered_nW_fluxerrmax = L_G_scattered_fluxerrmax.*data.cal.sbconv; % Convert from DN/s to nW m^-2 sr^-1
+L_G_scattered_nW_fluxerrmin = L_G_scattered_fluxerrmin.*data.cal.sbconv; % Convert from DN/s to nW m^-2 sr^-1
+L_G_scattered_nW_psferrmax = L_G_scattered_psferrmax.*data.cal.sbconv; % Convert from DN/s to nW m^-2 sr^-1
+L_G_scattered_nW_psferrmin = L_G_scattered_psferrmin.*data.cal.sbconv; % Convert from DN/s to nW m^-2 sr^-1
 
 % Calculate total summed contribution from gaia
 gaia_tot = sum(L_G_scattered_nW);
@@ -172,8 +218,8 @@ gaia_tot_fluxerrmin = sum(L_G_scattered_nW_fluxerrmin);
 %     L_G_scattered_new = L_G_rad_new/vega_flux*psf_rad_bins;
 %     % L_G_scattered = L_G_vegas*bright_range
 %     % L_G_scattered_new = L_G_vegas_new*bright_range
-%     L_G_scattered_nW = L_G_scattered*406.5386; % Convert from DN/s to nW m^-2 sr^-1
-%     L_G_scattered_new_nW = L_G_scattered_new*406.5386;
+%     L_G_scattered_nW = L_G_scattered*data.cal.sbconv; % Convert from DN/s to nW m^-2 sr^-1
+%     L_G_scattered_new_nW = L_G_scattered_new*data.cal.sbconv;
 %
 %     % Scale lIl by lauer psf
 % end

@@ -5,6 +5,8 @@
 
 function add_info(phase,path)
 
+FLG_overwrite = false; %if set to false will skip already made images, set to true to overwrite
+
 % Rescale axes CLim based on displayed image portion's CData
 function rescaleAxesClim(hImage, threshold)
     % Get the displayed image portion's CData
@@ -94,45 +96,51 @@ end %end for i
 
 %Iterate through fits files and create pngs
 for idate= 1:length(fitsfiles)
-    
-    fitsfile = fitsfiles(idate).name;%Get file name
-    
-    data1=fitsread(sprintf('%s%s/selected_data/%s',path,phase,fitsfile)); %Read fits file
-    
-    %Retrieve exposure time, date of exposure, and target info
-    exptime = dataArray{idate, 2};
-    date = dataArray{idate, 3};
-    trg = dataArray{idate, 4};
-    numtrg = dataArray{idate, 5};
-    acttrg = '';
-    
-    %Create string of actual targets in FOV
-    for j = 1:numtrg
-        acttrg = [acttrg,' ', dataArray{idate,j+5}];
-    end
-    
-    %Create png image
-    h = figure(1);
-    set(gcf,'PaperUnits','inches','PaperPosition',[0 0 15.2 11.4]) %Define image resolution
-    clf;
-    himage = imagesc((data1));
-    set(h,'visible','off');
-    colormap(flipud(gray));
-    colorbar;
-    rescaleAxesClim(himage, 0.01)
-    %caxis('auto'); %Automatic color scaling
-    t2 = annotation('textbox',[0.13,0.075,0,0],'string',acttrg,'FitBoxToText','on'); %Create annotation with target info
-    t2.LineStyle = 'none';
-    title(['Date Taken: ',date,'; Exp Time: ',num2str(exptime),'; Intended Target: ',trg,'; Num Targets in FOV: ',num2str(numtrg),]); %Put info in title
-
-    
-    %save as .png file
+    %for saving the image later
     filename = dataArray{idate,1};
     newfilename = strrep(filename,'.fit','.png'); %Replace .fit extension with .png
     imagename = sprintf('%s%s/png_images/%s',path,phase,newfilename);
-    print(h,imagename, '-dpng', '-r100'); %Save as png file with 100x resolution
     
-    pause(1);
+    if( (FLG_overwrite == true) || ~isfile(imagename) )
+        fitsfile = fitsfiles(idate).name;%Get file name
+        
+        data1=fitsread(sprintf('%s%s/selected_data/%s',path,phase,fitsfile)); %Read fits file
+        
+        %Retrieve exposure time, date of exposure, and target info
+        exptime = dataArray{idate, 2};
+        date = dataArray{idate, 3};
+        trg = dataArray{idate, 4};
+        numtrg = dataArray{idate, 5};
+        acttrg = '';
+        
+        %Create string of actual targets in FOV
+        for j = 1:numtrg
+            acttrg = [acttrg,' ', dataArray{idate,j+5}];
+        end
+        
+        %Create png image
+        h = figure(1);
+        set(gcf,'PaperUnits','inches','PaperPosition',[0 0 15.2 11.4]) %Define image resolution
+        clf;
+        himage = imagesc((data1));
+        set(h,'visible','off');
+        colormap(flipud(gray));
+        colorbar;
+        rescaleAxesClim(himage, 0.01)
+        %caxis('auto'); %Automatic color scaling
+        t2 = annotation('textbox',[0.13,0.075,0,0],'string',acttrg,'FitBoxToText','on'); %Create annotation with target info
+        t2.LineStyle = 'none';
+        title(['Date Taken: ',date,'; Exp Time: ',num2str(exptime),'; Intended Target: ',trg,'; Num Targets in FOV: ',num2str(numtrg),]); %Put info in title
+    
+        
+        %save as .png file
+        if not(isfolder(sprintf('%s%s/png_images/',path,phase)))
+            mkdir(sprintf('%s%s/png_images/',path,phase))
+        end
+        print(h,imagename, '-dpng', '-r100'); %Save as png file with 100x resolution
+        
+        pause(1);
+    end
     
 end
 

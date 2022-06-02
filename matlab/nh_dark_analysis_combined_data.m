@@ -303,7 +303,7 @@ for ifile=1:numoldlightfiles+numnewlightfiles
 end
 
 % Convert dark current in e/s/pix to DN/s/pix
-darkcurrdn = darkcurrnew/22; % New gain value from Lauer is 19.4 e/DN
+darkcurrdn = darkcurrnew/19.4; % New gain value from Lauer is 19.4 e/DN, old value 22
 % Convert dark current in DN/s/pix to nW/m2/sr
 darkcurrnw = darkcurrdn*data.cal.sbconv;
 % Calculate mean dark current (few new files) in nW/m2/sr

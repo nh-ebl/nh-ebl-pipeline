@@ -7,10 +7,10 @@
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [data,mu] = nh_makemask(data,paths,params,nsig,use_gaia,new_star_mask,max_mag,save_file,flag_method,errflag_mags)
+function [data,mu] = nh_makemask(data,paths,params,nsig,use_gaia,new_star_mask,max_mag,save_file,flag_method,errflag_mags,mc)
 
 % load('run_params.mat','params')
-if params.err_mags == 1
+if params.err_mags == 1 || params.err_gals == 1
     % Choose data dir based on err_flag
     datastruct = data.(params.err_str);
 else
@@ -18,7 +18,7 @@ else
 end
 
 % read in the .fits data for the calibrated image file
-imagename = ['regist_',datastruct.header.rawfile];
+imagename = ['regist_',data.header.rawfile];
 image_i = fitsread(sprintf('%s%s',paths.imagedir,imagename));
 
 % read in datastruct.data to replace possibly modified version from earlier run
@@ -26,22 +26,33 @@ datastruct.data = image_i;
 
 %% here begins the star catalog masking
 
-% load up the corresponding catalog file
-if use_gaia == 1
-    load(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,datastruct.header.fieldnum));
-    
-    % figure out the length of the catalog
-    [ncat,~] = size(RA);
-elseif use_gaia == 0
-    load(sprintf('%sfield_%d_data.mat',paths.catdir,datastruct.header.fieldnum));
-    
-    % figure out the length of the catalog
-    [~,ncat] = size(RA);
+% If doing err gals MC, load appropriate catalog, if not, load regular catalog
+if params.err_gals == 0
+    % load up the corresponding catalog file
+    if use_gaia == 1
+        load(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum));
+        
+        % figure out the length of the catalog
+        [ncat,~] = size(RA);
+    elseif use_gaia == 0
+        load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
+        
+        % figure out the length of the catalog
+        [~,ncat] = size(RA);
+    end
+elseif params.err_gals == 1
+    % load up the corresponding catalog file
+    if use_gaia == 1
+        load(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc));
+        
+        % figure out the length of the catalog
+        [ncat,~] = size(RA);
+    end
 end
 
 % figure out the size the mask arrays need to be
-xdim = datastruct.astrom.imagew;
-ydim = datastruct.astrom.imageh;
+xdim = data.astrom.imagew;
+ydim = data.astrom.imageh;
 
 % make the empty mask arrays
 fullmask = zeros(xdim,ydim);
@@ -58,7 +69,7 @@ if strcmp(flag_method,'new') == 1
 elseif strcmp(flag_method, 'old') == 1
     max_mag = 17.75;
 elseif strcmp(flag_method, 'old_corr') == 1
-    max_mag = 16.5 + 2.5 * log10(sqrt(datastruct.astrometry.id_exptime));
+    max_mag = 16.5 + 2.5 * log10(sqrt(data.astrometry.id_exptime));
 end
 
 %%%%%%%%%%%%%%%% old stuff
@@ -85,8 +96,47 @@ numsgover = 0;
 nummagnan = 0;
 nansgcnt = 0;
 
+
+
 if new_star_mask == 1 || ~isfield(datastruct,'mask')
-    
+    %only run if need to make xpix/ypix (should not run since makemask made them)
+    if ~exist('xpix','var') || ~exist('ypix','var')
+        ypix = zeros(ncat,1);
+        xpix = zeros(ncat,1);
+        % convert radec2pix parallel now since will be required (later loop
+        % can't be paralleled w/o work)
+        parpoolobj = gcp('nocreate'); % check for thread pool
+        if isempty(parpoolobj)
+            maxNumCompThreads(7); % Declare number of threads to use
+            parpool('threads');
+        else
+            if ~isa(parpoolobj,'parallel.ThreadPool')
+                delete(parpoolobj); %want threads here
+                maxNumCompThreads(7); % Declare number of threads to use
+                parpool('threads');
+            end
+        end
+        RApar = RA;
+        DECpar = DEC; %parfor was mad about these not ever being declared officially
+        parfor row = 1:ncat
+            %parallel for speed, later loop needs work to parallize
+            [ypix(row), xpix(row)] = radec2pix(RApar(row),DECpar(row), data.astrom);
+        end
+        if params.err_gals == 0
+            % save the calc'd ypix/xpix the corresponding catalog file
+            if use_gaia == 1
+                save(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum),'xpix','ypix','-append');
+            elseif use_gaia == 0
+                save(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum),'xpix','ypix','-append');
+            end
+        elseif params.err_gals == 1
+            % save the calc'd ypix/xpix the corresponding catalog file
+            if use_gaia == 1
+                save(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc),'xpix','ypix','-append');
+            end
+        end
+    end
+
     % Create star mask - takes very long and can skip if already saved
     % loop over each catalog entry
     for row = 1:ncat
@@ -122,10 +172,10 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
             end
             
             %find x/y coordinate of the object
-            [ypix, xpix] = radec2pix(RA(row),DEC(row), datastruct.astrom);
+            % [ypix(row), xpix(row)] = radec2pix(RA(row),DEC(row), datastruct.astrom); %done previously for speed (datastruct usage should prob be data instead)
             
             % check if the object is in the image
-            if xpix >= 1-20 && xpix <= xdim+20 && ypix >= 1-20 && ypix <= ydim+20
+            if xpix(row) >= 1-20 && xpix(row) <= xdim+20 && ypix(row) >= 1-20 && ypix(row) <= ydim+20
                 numinimg = numinimg + 1;
                 
                 % require that the magnitude is within sensible bounds
@@ -135,20 +185,20 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                     % this is responding to the observation that bright sources leave
                     % charge transfer tracks in these images.  These must be masked.  For
                     % sources brighter than V=7, we mask the row the star falls into.
-                    if thismag < 7 & xpix >= 1 && xpix <= xdim && ypix >= 1 && ypix <= ydim
-                        linemask(:,round(xpix)) = 1; % this is set to mask column, not row
+                    if thismag < 7 & xpix(row) >= 1 && xpix(row) <= xdim && ypix(row) >= 1 && ypix(row) <= ydim
+                        linemask(:,round(xpix(row))) = 1; % this is set to mask column, not row
                         % so far, this isn't used in testing set or for lauer
                     end
 
-                    if thismag < 10 & xpix >= 1 && xpix <= xdim && ypix >= 1 && ypix <= ydim
-                        linemask(round(ypix),:) = 1; % this does row
+                    if thismag < 10 & xpix(row) >= 1 && xpix(row) <= xdim && ypix(row) >= 1 && ypix(row) <= ydim
+                        linemask(round(ypix(row)),:) = 1; % this does row
                     end
                     
                     % another little piece of housekeeping; just making sure that we're
                     % keeping track of the magnitudes of stars that have made it this far.
                     mymag(row) = thismag;
-                    myxpix(row) = xpix;
-                    myypix(row) = ypix;
+                    myxpix(row) = xpix(row);
+                    myypix(row) = ypix(row);
                     
                     %determine radius of object
                     %             radius = round(-alpha.*(thismag - max_mag) + min_r) + -beta.*(thismag-bright_mag));
@@ -169,12 +219,12 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                     %combined the submask (C) and mask (Z) where xpix, ypix is
                     %the center of the object
                     for i = 1:(2*radius+1)
-                        xcurr = round(xpix-radius-1+i);
+                        xcurr = round(xpix(row)-radius-1+i);
                         if xcurr < 1 || xcurr > xdim;
                             continue;
                         end
                         for j = 1:(2*radius+1)
-                            ycurr = round(ypix-radius-1+j);
+                            ycurr = round(ypix(row)-radius-1+j);
                             if ycurr < 1 || ycurr > ydim;
                                 continue;
                             end
@@ -208,36 +258,36 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
             allmags(row) = thismag;
             
             %find x/y coordinate of the object
-            [ypix, xpix] = radec2pix(RA(row),DEC(row), datastruct.astrom);
+            % [ypix(row), xpix(row)] = radec2pix(RA(row),DEC(row), data.astrom); %done previously for speed
             
             % prepare to sum flux of object being masked
             fluxsum = 0;
             % check if the object is in the image
-            if xpix >= 1-20 && xpix <= xdim+20 && ypix >= 1-20 && ypix <= ydim+20
+            if xpix(row) >= 1-20 && xpix(row) <= xdim+20 && ypix(row) >= 1-20 && ypix(row) <= ydim+20
                 numinimg = numinimg + 1;
                 
                 % require that the magnitude is within sensible bounds
-                if thismag < max_mag & ~isnan(thismag)
+                if thismag < max_mag && ~isnan(thismag)
                     numinbnds = numinbnds + 1;
                     
                     % this is responding to the observation that bright sources leave
                     % charge transfer tracks in these images.  These must be masked.  For
                     % sources brighter than V=7, we mask the row the star falls into.
-                    if thismag < 7 & xpix >= 1 && xpix <= xdim && ypix >= 1 && ypix <= ydim
-                        linemask(:,round(xpix)) = 1; % this is set to mask column, not row
+                    if thismag < 7 && xpix(row) >= 1 && xpix(row) <= xdim && ypix(row) >= 1 && ypix(row) <= ydim
+                        linemask(:,round(xpix(row))) = 1; % this is set to mask column, not row
                         % so far, this isn't used in testing set or for lauer
                     end
                         
                     % 13 mag seems to catch all stars that have artifacts
-                    if thismag < 13 & xpix >= 1 && xpix <= xdim && ypix >= 1 && ypix <= ydim
-                        linemask(round(ypix),round(xpix):end) = 1; % this does row from only middle of star to right side
+                    if thismag < 13 && xpix(row) >= 1 && xpix(row) <= xdim && ypix(row) >= 1 && ypix(row) <= ydim
+                        linemask(round(ypix(row)),round(xpix(row)):end) = 1; % this does row from only middle of star to right side
                     end
                     
                     % another little piece of housekeeping; just making sure that we're
                     % keeping track of the magnitudes of stars that have made it this far.
                     %                     mymag(row) = thismag;
-                    %                     myxpix(row) = xpix;
-                    %                     myypix(row) = ypix;
+                    %                     myxpix(row) = xpix(row);
+                    %                     myypix(row) = ypix(row);
                     
                     %determine radius of object
                     %             radius = round(-alpha.*(thismag - max_mag) + min_r) + -beta.*(thismag-bright_mag));
@@ -258,26 +308,26 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                     %combined the submask (C) and mask (Z) where xpix, ypix is
                     %the center of the object
                     for i = 1:(2*radius+1)
-                        xcurr = round(xpix-radius-1+i);
+                        xcurr = round(xpix(row)-radius-1+i);
                         if xcurr < 1 || xcurr > xdim;
                             continue;
                         end
                         for j = 1:(2*radius+1)
-                            ycurr = round(ypix-radius-1+j);
+                            ycurr = round(ypix(row)-radius-1+j);
                             if ycurr < 1 || ycurr > ydim;
                                 continue;
                             end
                             if Circle(i,j) == 1
                                 starmask(ycurr,xcurr) = 1;
-                                fluxsum = fluxsum + datastruct.data(ycurr,xcurr)./ datastruct.astrom.exptime;
+                                fluxsum = fluxsum + datastruct.data(ycurr,xcurr)./ data.astrom.exptime;
                             end
                         end
                     end
                     
                     if fluxsum ~= 0
                         mymag(row) = thismag;
-                        myxpix(row) = xpix;
-                        myypix(row) = ypix;
+                        myxpix(row) = xpix(row);
+                        myypix(row) = ypix(row);
                         myflux(row) = fluxsum;
                     end
                     
@@ -326,7 +376,7 @@ end
 if strcmp(paths.datadir,'/data/symons/NH_old_data/mat/ghosts/') == 1
     manmask = zeros(size(datastruct.data));
 else
-    filein = sprintf('%s%s.mat',paths.mandir,datastruct.header.timestamp);
+    filein = sprintf('%s%s.mat',paths.mandir,data.header.timestamp);
     % If man mask files exists, create the mask, otherwise no man mask
     if numel(dir(filein))
         load(filein);
@@ -342,7 +392,7 @@ end
 if strcmp(flag_method,'new') == 1
     % If image has a star > mag 8 in range of causing a ghost, mask the ghost
     if ~isempty(datastruct.ghost.brightmag) %datastruct.ghost.brightmag(1,1) > 0
-        [ghostmask,datastruct] = nh_ghostmask(datastruct,paths);
+        [ghostmask,datastruct] = nh_ghostmask(data,datastruct,paths);
     else
         ghostmask = zeros(256);
     end
@@ -490,8 +540,8 @@ whpl = ghostmask == 1;
 fullmask(whpl) = fullmask(whpl) + 32;
 
 % and so that we have it to hand, compute the mean of the fully masked pixels
-datmean = mean(datastruct.data(~fullmask)./ datastruct.astrom.exptime); %DN/s
-datstd = std(datastruct.data(~fullmask)./ datastruct.astrom.exptime);
+datmean = mean(datastruct.data(~fullmask)./ data.astrom.exptime); %DN/s
+datstd = std(datastruct.data(~fullmask)./ data.astrom.exptime);
 
 % create a mask which is just 1 everywhere there is a bad pixel, no matter
 % the reason
@@ -541,21 +591,13 @@ mask.onemask = onemask;
 mask.maskfrac = maskfrac;
 mask.maxmag = max_mag;
 
-% If error is on, write to error substruct
-if params.err_mags == 1
-    datastruct.(params.err_str).mask = mask;
-    datastruct.(params.err_str).stats.maskmean = datmean;
-    datastruct.(params.err_str).stats.maskstd = datstd;
-    datastruct.(params.err_str).stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
-else
-    % and append it to the data structure
-    datastruct.mask = mask;
-    datastruct.stats.maskmean = datmean;
-    datastruct.stats.maskmean_dns_frommask = datmean;
-    % datastruct.stats.mostprob = most_prob_val;
-    datastruct.stats.maskstd = datstd;
-    datastruct.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
-end
+% and append it to the data structure
+datastruct.mask = mask;
+datastruct.stats.maskmean = datmean;
+datastruct.stats.maskmean_dns_frommask = datmean;
+% datastruct.stats.mostprob = most_prob_val;
+datastruct.stats.maskstd = datstd;
+datastruct.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 
 %Plot masked data and non-masked data on same plot
 % ax1 = subplot(1,2,1);
@@ -571,29 +613,29 @@ end
 % caxis(ax1.CLim)
 
 %Plot masked data with optional mouse movement returns value
-% h = figure();
-% clf;
-% imagesc(datastruct.data.*~datastruct.mask.onemask)
-% set(h,'visible','off');
-% % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-% a = colorbar;
-% a.Label.String = 'Intensity [DN]';
-% pbaspect([1 1 1]);
-% xlabel('LORRI X Pixels');
-% ylabel('LORRI Y Pixels');
-% caxis([-10,10]);
-% %         title(sprintf('%s',datastruct.header.rawfile));
-% % grid minor;
-% % title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
-% title(sprintf('Field: %d',datastruct.header.fieldnum));
-% set(gca,'YDir','normal');
-% ext = '.png';
-% if not(isfolder([paths.maskdir]))
-%     mkdir([paths.maskdir])
-% end
-% imagename = sprintf('%s%s%s',paths.maskdir,datastruct.header.timestamp,ext);
-% % imagename = sprintf('%s%s%s',paths.selectmaskdir,datastruct.header.timestamp,ext);
-% print(h,imagename, '-dpng');
+h = figure();
+clf;
+imagesc(datastruct.data.*~datastruct.mask.starmask)
+set(h,'visible','off');
+% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+a = colorbar;
+a.Label.String = 'Intensity [DN]';
+pbaspect([1 1 1]);
+xlabel('LORRI X Pixels');
+ylabel('LORRI Y Pixels');
+caxis([-10,10]);
+%         title(sprintf('%s',datastruct.header.rawfile));
+% grid minor;
+% title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
+title(sprintf('Field: %d',datastruct.header.fieldnum));
+set(gca,'YDir','normal');
+ext = '.png';
+if not(isfolder([paths.maskdir]))
+    mkdir([paths.maskdir])
+end
+imagename = sprintf('%s%s%s',paths.maskdir,datastruct.header.timestamp,ext);
+% imagename = sprintf('%s%s%s',paths.selectmaskdir,datastruct.header.timestamp,ext);
+print(h,imagename, '-dpng');
 
 % Plot histogram of masked image using hist fit and overplotting mean +/-
 % sigma
@@ -697,7 +739,7 @@ mu = nanmean(maskim(:));
 %scaled results
 
 
-if params.err_mags == 1
+if params.err_mags == 1 || params.err_gals == 1
     % Choose data dir based on err_flag
     data.(params.err_str) = datastruct;
 else

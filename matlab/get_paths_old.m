@@ -30,4 +30,5 @@ function paths=get_paths_old()
    paths.extdir = '/data/symons/NH_old_data/ext/';
    paths.simgaiadir = '/data/symons/NH_old_data/sims_gaia/';
    paths.simusnobdir = '/data/symons/NH_old_data/sims_usnob/';
+   paths.wingdir = '/data/symons/NH_old_data/psf_wings/';
 end

@@ -9,6 +9,8 @@
 %Symons 2021
 
 function [data] = nh_diffghost(data,paths,params)
+%note that nh_diffghost outputs data directly to the pipeline,
+%so it does not use datastruct since the full data is expected back out
 
 % load('run_params.mat','params')
 if params.err_mags == 1
@@ -84,10 +86,10 @@ ghostsberrpos = ((10.^((-0.3248.*boxmagcut + 6.4991)+0.0733))./image_pix) - ((10
 ghostsberrneg = ((10.^((-0.3248.*boxmagcut + 6.4991)))./image_pix) - ((10.^((-0.3248.*boxmagcut + 6.4991)-0.0733))./image_pix); % These values determined in ghost_analysis.m from fit
 
 % Calculate surface brightness from stars that cause ghosts
-Fcat = (data.cal.vzero) .* 10.^(-(boxmagcut+data.cal.gaia2lorrimag)./2.5);
-surveyarea = data.astrom.imagew.*data.astrom.imageh.*...
-    data.cal.pixsize_arcsec.^2 ./ 3600.^2;
-starsb = 1e-26.*1e9.*data.cal.nu.*Fcat./(surveyarea .* (pi./180).^2);
+% Fcat = (data.cal.vzero) .* 10.^(-(boxmagcut+data.cal.gaia2lorrimag)./2.5);
+% surveyarea = data.astrom.imagew.*data.astrom.imageh.*...
+%     data.cal.pixsize_arcsec.^2 ./ 3600.^2;
+% starsb = 1e-26.*1e9.*data.cal.nu.*Fcat./(surveyarea .* (pi./180).^2);
 
 % Save summed diffuse ghost surface brightness to data
 ghostdir.diffusesub = sum(ghostsb);
@@ -95,13 +97,13 @@ ghostdir.diffusesuberrpos = sqrt(sum(ghostsberrpos.^2));
 ghostdir.diffusesuberrneg = sqrt(sum(ghostsberrneg.^2));
 
 % Calculate slope of ghost sb vs. star sb
-fitter = linear_fit(log10(starsb),log10(ghostsb));
-starfit=linspace(min(log10(starsb)),max(log10(starsb)));
-fitterlin = linear_fit(10.^(starfit)',10.^(fitter.m*starfit' + fitter.b));
-ghostfit=(fitter.m*starfit + fitter.b);
+% fitter = linear_fit(log10(starsb),log10(ghostsb));
+% starfit=linspace(min(log10(starsb)),max(log10(starsb)));
+% fitterlin = linear_fit(10.^(starfit)',10.^(fitter.m*starfit' + fitter.b));
+% ghostfit=(fitter.m*starfit + fitter.b);
 
 % Save slope to data to compare to ISL
-ghostdir.diffuseslope = fitterlin.m;
+% ghostdir.diffuseslope = fitterlin.m;
 
 % Plot ghost sb vs. star sb with linear fit
 % h = figure(1);

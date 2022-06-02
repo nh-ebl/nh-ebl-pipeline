@@ -1,6 +1,6 @@
 function [ field ] = get_field(ra,dec,paths)
 % Get the field number for a fits file.
-%   Returns the number of the corresponding catalog field based on the ra 
+%   Returns the number of the corresponding catalog field based on the ra
 %   and dec of the input file. The values for each field are based on the
 %   output values of ra_dec_reduce.m and the catalog fields were manully
 %   retrieved and converted to matrices using catalog_data.m
@@ -10,29 +10,33 @@ function [ field ] = get_field(ra,dec,paths)
 %
 % OUTPUT:
 %        field = the number of the correspoding catalog field based on the
-%                ra and dec of the input file. 
+%                ra and dec of the input file.
 %
 % author: Poppy Immel
 % date: May 3, 2016
 % email: pgi8114@rit.edu
 % modified: MZ, Jun 16 2016
 
-  load(sprintf('%scataloginfo.mat',paths.catdir)); 
-  [~,n] = size(field_number);
+load(sprintf('%scataloginfo.mat',paths.catdir));
+[~,n] = size(field_number);
 
-  arcminutes = 15; %maximum value given by catalog 
-  degrees = arcminutes/60 - .07; % 0.18 degree tolerance
+if strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') == 1
+    degrees = 1; % Just for newest data, set tolerance to 1 deg
+else
+    arcminutes = 15; %maximum value given by catalog
+    degrees = arcminutes/60 - .07; % 0.18 degree tolerance
+end
 
-  for i = 1:n
+for i = 1:n
     if ra < field_RA(i) + degrees  && ra > field_RA(i) - degrees && dec < field_DEC(i) + degrees  && dec > field_DEC(i) - degrees
         field = field_number(i);
     end
-  end
-  
-  if isempty(field)
+end
+
+if isempty(field)
     warn('There is no corresponding field.');
     field = NaN;
-  end
-    
+end
+
 end
 

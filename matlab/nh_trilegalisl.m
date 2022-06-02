@@ -26,6 +26,12 @@ elseif strcmp(paths.datadir,'/data/symons/nh_data_lauer/mat/') == 1
     old = 0;
     ghost = 0;
     lauer = 1;
+elseif strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') == 1
+    new = 0;
+    old = 0;
+    ghost = 0;
+    lauer = 0;
+    newest = 1;
 end
 % load the appropriate trilegal catalog files
 if new == 1
@@ -34,6 +40,8 @@ elseif old == 1
     load(sprintf('/home/symons/isl_trilegal/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
 elseif lauer == 1
     load(sprintf('/home/symons/nh_ebl_pipeline/matlab/lookup/trilegal/lauer_data/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
+elseif newest == 1
+    load(sprintf('/home/symons/nh_ebl_pipeline/matlab/lookup/trilegal/newest_data/%s/isltrilegal_%02d.mat',tri_type,fieldnum));
 end
 
 nfiles = numel(V);

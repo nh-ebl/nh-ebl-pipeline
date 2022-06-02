@@ -10,11 +10,11 @@ close all
 %==================User Settings==================
 %Linux Path
 
-% path = '/data/symons/nh_data/'
-% phase = 'pluto'
-
-path = '/data/symons/NH_old_data/NH/';
+path = '/data/symons/nh_data_new/';
 phase = '';
+
+% path = '/data/symons/NH_old_data/NH/';
+% phase = '';
 
 
 %Windows Path
@@ -25,7 +25,7 @@ phase = '';
 %fitsDataFileName = '0FITsDataSummary.txt'; %set the file name for the dataArray of the FITs file keywords (0 makes it at the top!)
 %fitsDataFileDelimiter = '\t'; %sets the delimiter between value entries
 %-----csv file (Excel opens it nicely! - also csv stands for comma seperated value)-----
-fitsDataFileName = '0exp_time_data_old.csv'; %set the file name for the dataArray of the FITs file keywords (0 makes it at the top!)
+fitsDataFileName = '0exp_time_data_new.csv'; %set the file name for the dataArray of the FITs file keywords (0 makes it at the top!)
 fitsDataFileDelimiter = ','; %sets the delimiter between value entries
 
 %Make a list of all of the needed keywords in FITs file
@@ -44,11 +44,13 @@ fitsKeywordList = {... %start this off
 
 %==================Read the FITs Files==================
 %Get the names of the FITs files in the directory
-filename = sprintf('%s%s/regist/selected_data/good/*fit',path,phase); %prep the file name looking system
+filename = sprintf('%s%s/regist/selected_data/*fit',path,phase); %prep the file name looking system - newest data
+% filename = sprintf('%s%s/regist/selected_data/good/*fit',path,phase); %prep the file name looking system - new data
 files = dir(filename); %get list of all FITs files in the directory
 
 %Preallocate arrays
-dataArray{length(files),length(fitsKeywordList)+1} = []; %preallocate cell array with data (+1 for file name)
+dataArray_extraColumns = 3; %extra columns for the data array at the start
+dataArray{length(files),length(fitsKeywordList)+dataArray_extraColumns} = []; %preallocate cell array with data (+1 for file name)
 %these are used with TRARGFOVN etc.
 fitsKeywordListOrig = fitsKeywordList; %record original list
 trgNumMax = 1; %start off with a max of 1 targets in FOV
@@ -56,8 +58,9 @@ FLG_fitsKeywordListEdited = 0; %flag that denotes that the fits keyword list was
 
 %1st - loop through each FITs file found in the directory
 for( i = 1:length(files) )
-    i
-    info= fitsinfo(sprintf('%s%s/regist/selected_data/good/%s',path,phase,files(i).name)); %get FITs file header info
+%     i
+    info= fitsinfo(sprintf('%s%s/regist/selected_data/%s',path,phase,files(i).name)); %get FITs file header info - newest data
+%     info= fitsinfo(sprintf('%s%s/regist/selected_data/good/%s',path,phase,files(i).name)); %get FITs file header info - new data
 
     dataArray{i,1} = files(i).name; %record the file name in the first entry
     
@@ -67,8 +70,8 @@ for( i = 1:length(files) )
         fitsKeywordIndex =  find(strcmp(info.PrimaryData.Keywords(:,1),fitsKeywordList{j})); %find the index of the keyword
         
         if( ~isempty(fitsKeywordIndex) ) %keeps this from running if the keyword wasn't found
-            dataArray(i,j+1) = info.PrimaryData.Keywords(fitsKeywordIndex,2); %record the value of the keyword
-            %+1 for file name in 1 spot
+            dataArray(i,j+dataArray_extraColumns) = info.PrimaryData.Keywords(fitsKeywordIndex,2); %record the value of the keyword
+            %+dataArray_extraColumns for file name in 1 spot and extra data
         end %end if
         
         %Special check for the number of targets in the FITs file
@@ -97,6 +100,16 @@ for( i = 1:length(files) )
     
 end %end for i
 
+%3rd - loop through each FITs file found in the directory
+loc_ra = find(contains(fitsKeywordList,'SPCBRRA'))+dataArray_extraColumns; %get index of RA for dataArray (+1 for extra data columns)
+loc_dec = find(contains(fitsKeywordList,'SPCBRDEC'))+dataArray_extraColumns; %get index of DEC for dataArray (+1 for extra data columns)
+for( i = 1:length(files) )
+    gacoords = coco([dataArray{i,loc_ra},dataArray{i,loc_dec}],'j2000.0','g','d','d'); %calculate galactic coords
+    dataArray{i,2} = gacoords(1);
+    dataArray{i,3} = gacoords(2);
+end
+fitsKeywordList = ['L','B',fitsKeywordList]; %add on new galactic coordinates
+
 
 %==================Create the Line Formats for the Output File==================
 %create the format spec for the header
@@ -121,7 +134,7 @@ for( j = 1:length(fitsKeywordList) )
         
     formatSpec = [formatSpec,dataAbrev]; %tack on the format spec
 end
-formatSpec = [formatSpec,'\r\n']; %tack on a line end (\r\n order makes Windows' Notepad happy!)
+formatSpec = [formatSpec,'\r\n']; %tack on galactic coords & a line end (\r\n order makes Windows' Notepad happy!)
 
 
 %==================Write the FITs Data Summary File==================
@@ -132,6 +145,10 @@ for( i = 1:length(files) )
     fprintf(fileID,formatSpec,dataArray{i,:}); %write the data lines
     
 end %end i
+
+
 fclose(fileID); %close file
+
+
 
 

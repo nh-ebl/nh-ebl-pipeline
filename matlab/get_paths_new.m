@@ -34,4 +34,5 @@ function npaths=get_paths_new()
    npaths.gaiadir = '/data/symons/nh_data/gaia/';
    npaths.simgaiadir = '/data/symons/nh_data/sims_gaia/';
    npaths.simusnobdir = '/data/symons/nh_data/sims_usnob/';
+   npaths.wingdir = '/data/symons/nh_data/psf_wings/';
 end

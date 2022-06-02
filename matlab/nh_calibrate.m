@@ -8,7 +8,7 @@
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function data = nh_calibrate(data,paths,params,flag_method)
+function data = nh_calibrate(data,paths,params,flag_method,mc)
 
 % load('run_params.mat','params')
 
@@ -27,7 +27,7 @@ elseif strcmp(params.data_type,'new') == 1
     ghost = 0;
 end
 
-if params.err_mags == 1
+if params.err_mags == 1 || params.err_gals == 1
     datastruct = data.(params.err_str);
 else
     datastruct = data;
@@ -41,7 +41,7 @@ datastruct.const.nW = 1e9; % nW per W
 datastruct.cal.pixperbeam = 2.640; %solid angle of PSF in pix^2
 
 % multiplicative zero point of the conversion
-datastruct.cal.szero = 10.^(datastruct.cal.magoff ./ -2.5);
+datastruct.cal.szero = 10.^(data.cal.magoff ./ -2.5);
 
 % zero point of the vega system in R_L band
 datastruct.cal.vzero = 3050; % Jy at R_L=0.
@@ -60,7 +60,7 @@ datastruct.cal.omega = datastruct.cal.pixperbeam .* datastruct.cal.pixsize.^2;
 datastruct.cal.omega_pix = (datastruct.cal.pixsize_arcsec./3600.).^2 * (pi./180.).^2;
 
 % compute the frequency in Hz
-datastruct.cal.nu = 3e8 ./ (datastruct.header.lambda .* 1e-9);
+datastruct.cal.nu = 3e8 ./ (data.header.lambda .* 1e-9);
 
 % so this becomes the conversion from DN/s to nW m^-2 sr^-1
 datastruct.cal.sbconv = datastruct.cal.Jyperbit * datastruct.const.Jy .* datastruct.const.nW .* ...
@@ -94,7 +94,7 @@ if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
         
     % Reference correction offset determined in get_ref_corr from robust fit
     % This is sig-clipped mean - recorded biaslevl - ref corr offset in DN/s
-    newcorr = datastruct.ref.bias - (0.036*datastruct.astrom.exptime); % Old number was 0.357 from only old/new data using actual mean (not sig-clip), new version is 0.310 but doesn't account for exp time
+    newcorr = datastruct.ref.bias - (0.036*data.astrom.exptime); % Old number was 0.357 from only old/new data using actual mean (not sig-clip), new version is 0.310 but doesn't account for exp time
     
     % Apply correction to jail bar-removed data and replace data.data
     % Due to sign, this - sig-clipped mean + recorded biaslevl + ref corr offset
@@ -103,19 +103,24 @@ if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
     datastruct.data = datastruct.image.jailbarrem_data - newcorr;
         
     % recalculate mask mean and std with new datastruct.data
-    datmean = mean(datastruct.data(~datastruct.mask.mask)./ datastruct.astrom.exptime);
-    datstd = std(datastruct.data(~datastruct.mask.mask)./ datastruct.astrom.exptime);
+    datmean = mean(datastruct.data(~datastruct.mask.mask)./ data.astrom.exptime);
+    datstd = std(datastruct.data(~datastruct.mask.mask)./ data.astrom.exptime);
     
     % and append it to the data structure
     datastruct.stats.maskmean = datmean; % This is the mean of the reference-corrected image in DN/s
     datastruct.stats.maskmean_dns_fromcal = datmean; 
-    datastruct.stats.maskmean_dn_fromcal = datmean.*datastruct.astrom.exptime; % This is the mean of the reference-corrected image in DN
+    datastruct.stats.maskmean_dn_fromcal = datmean.*data.astrom.exptime; % This is the mean of the reference-corrected image in DN
     datastruct.stats.maskstd = datstd;
     datastruct.stats.maskerr = datstd ./ sqrt(256.^2 - sum(datastruct.mask.onemask(:)));
     
     % calculate some of the stats to take account of the calibration factor
     datastruct.stats.calmean = datastruct.cal.sbconv .* datastruct.stats.maskmean;
     datastruct.stats.calerr = datastruct.cal.sbconv .* datastruct.stats.maskerr;
+end
+
+% If running err gals MC, save cal mean to vector
+if params.err_gals == 1
+    datastruct.stats.calmean_mc(mc,1) = datastruct.stats.calmean;
 end
 
 % Reference bias correction used to be added, but seems wrong and now is
@@ -143,10 +148,10 @@ rawimage = datastruct.data;
 
 % and make calibrated versions of that as well. - if new method, ref corr
 % already subtracted from data, if old method, ref corr not applied to calimage
-datastruct.image.rawimage = rawimage ./ datastruct.header.exptime; % This is the reference-corrected data in DN/s
-datastruct.image.calimage = ((rawimage./ datastruct.header.exptime)).* datastruct.cal.sbconv; % This is the reference-corrected data in nW
+datastruct.image.rawimage = rawimage ./ data.header.exptime; % This is the reference-corrected data in DN/s
+datastruct.image.calimage = ((rawimage./ data.header.exptime)).* datastruct.cal.sbconv; % This is the reference-corrected data in nW
 
-if params.err_mags == 1
+if params.err_mags == 1 || params.err_gals == 1
     data.(params.err_str) = datastruct;
 else
     data = datastruct;

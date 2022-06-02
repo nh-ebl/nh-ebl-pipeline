@@ -15,6 +15,7 @@ clc
 paths = get_paths_old();
 npaths = get_paths_new();
 lpaths = get_paths_lauer();
+wpaths = get_paths_newest();
 
 %old light data
 lightfiles = dir(sprintf('%s*.mat',paths.datadir));
@@ -22,11 +23,15 @@ lightfiles = dir(sprintf('%s*.mat',paths.datadir));
 nlightfiles = dir(sprintf('%s*.mat',npaths.datadir));
 %lauer light data
 llightfiles = dir(sprintf('%s*.mat',lpaths.datadir));
+%newest light data
+wlightfiles = dir(sprintf('%s*.mat',wpaths.datadir));
 
 %Determine which light files correspond to 'good' fields
 isgoodold = zeros(numel(lightfiles),1);
 isgoodnew = zeros(numel(nlightfiles),1);
 isgoodlauer = zeros(numel(llightfiles),1);
+isgoodnewest = zeros(numel(wlightfiles),1);
+
 %These field numbers were previously determined by going through all the
 %files
 oldgoodfields = [3,5,6,7];
@@ -36,6 +41,9 @@ newgoodfields = [5,6,7,8];
 lauergoodfields = [1,2,3,4,5,6,7];
 % lauergoodfields = [];
 lauer_exlude_enable = true; %enables skipping of new sequences
+newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,22,23];
+% newestgoodfields = [];
+newest_exlude_enable = true; %enables skipping of new sequences
 
 %Check for old light files
 parpoolobj = gcp('nocreate'); % check for thread pool, which can't use the load call
@@ -62,7 +70,7 @@ end
 %Check for lauer light files
 reqIDChange = ''; %detects reqID change
 fieldChange_fileCntr = 1; %counter for file skip
-fieldChange_fileSkip = 5; %number of files to skip
+fieldChange_fileSkip_time = 150; %s, time to skip at start of sequence
 lauer_exclude = zeros(numel(llightfiles),1); %will fill up with new sequences to ignore
 for ifile=1:numel(llightfiles)
     load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
@@ -70,6 +78,9 @@ for ifile=1:numel(llightfiles)
         isgoodlauer(ifile) = 1;
     end
     if lauer_exlude_enable
+        if( ifile == 1 )
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %get how many files to skip dynamically
+        end
         %skip a # of files at the start
         if( strcmp(data.astrom.reqid, reqIDChange) && (fieldChange_fileCntr < fieldChange_fileSkip) )
             fieldChange_fileCntr = fieldChange_fileCntr + 1; %increment
@@ -78,25 +89,56 @@ for ifile=1:numel(llightfiles)
             reqIDChange = data.astrom.reqid; %record reqID
             fieldChange_fileCntr = 1; %reset
             lauer_exclude(ifile) = 1; %set this to exlude
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %recalc how many fields to skip
         end
     end
 end
 lauer_exclude = find(lauer_exclude); %get it into indexes
 
+%Check for newest light files
+reqIDChange = ''; %detects reqID change
+fieldChange_fileCntr = 1; %counter for file skip
+fieldChange_fileSkip_time = 150; %s, time to skip at start of sequence
+newest_exclude = zeros(numel(wlightfiles),1); %will fill up with new sequences to ignore
+for ifile=1:numel(wlightfiles)
+    load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+    if sum(data.header.fieldnum == newestgoodfields)
+        isgoodnewest(ifile) = 1;
+    end
+    if newest_exlude_enable
+        if( ifile == 1 )
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %get how many files to skip dynamically
+        end
+        %skip a # of files at the start
+        if( strcmp(data.astrom.reqid, reqIDChange) && (fieldChange_fileCntr < fieldChange_fileSkip) )
+            fieldChange_fileCntr = fieldChange_fileCntr + 1; %increment
+            newest_exclude(ifile) = 1; %set this to exlude
+        elseif( ~strcmp(data.astrom.reqid, reqIDChange) )
+            reqIDChange = data.astrom.reqid; %record reqID
+            fieldChange_fileCntr = 1; %reset
+            newest_exclude(ifile) = 1; %set this to exlude
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %recalc how many fields to skip
+        end
+    end
+end
+newest_exclude = find(newest_exclude); %get it into indexes
+
 %Number of old and new light files corresponding to good fields
 numoldlightfiles = sum(isgoodold);
 numnewlightfiles = sum(isgoodnew);
 numlauerlightfiles = sum(isgoodlauer);
+numnewestlightfiles = sum(isgoodnewest);
 
 %Preallocate
-lightref = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles),1);
-lightref_dns = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles),1);
-lightsig = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles),1);
-lightsig_dns = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles),1);
-lightdate = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles),1);
-lightbad = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles),1);
-lightref_mean = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles),1); 
-lightbias = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles),1); 
+lightref = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightref_dns = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightsig = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightsig_dns = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightdate = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightbad = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightref_mean = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1); 
+lightbias = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1); 
+lightexptime = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 
 %For old data files
 fprintf('Loading old data \n');
@@ -114,6 +156,7 @@ for ifile=1:numel(lightfiles)
         lightdate(jfile,1) = data.header.date_jd - data.header.launch_jd;
         lightref_mean(jfile,1) = mean(data.ref.line);
         lightbias(jfile,1) = median(data.ref.line);
+        lightexptime(jfile,1) = data.header.exptime;
         jfile = jfile + 1;
     end
 end
@@ -135,6 +178,7 @@ for ifile=1:numel(nlightfiles)
         lightbad(jfile+numoldlightfiles,1) = data.header.bad;
         lightref_mean(jfile+numoldlightfiles,1) = mean(data.ref.line);
         lightbias(jfile+numoldlightfiles,1) = data.astrom.biaslevl;
+        lightexptime(jfile+numoldlightfiles,1) = data.header.exptime;
         jfile = jfile + 1;
     end
 end
@@ -162,9 +206,39 @@ for ifile=1:numel(llightfiles)
         end
         lightref_mean(jfile+numoldlightfiles+numnewlightfiles,1) = mean(data.ref.line);
         lightbias(jfile+numoldlightfiles+numnewlightfiles,1) = data.ref.biaslevl;
+        lightexptime(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.exptime;
         jfile = jfile + 1;
     end
 end
+
+%For newest data files
+fprintf('Loading newest data \n');
+jfile = 1;
+for ifile=1:numel(wlightfiles)
+    %If file is for a good field, load and save values
+    if isgoodnewest(ifile) == 1
+        %Load data files
+        load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+        %Save mean of raw data and reference data
+        lightsig(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.ref.engmean;
+        lightsig_dns(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.ref.engmean/data.header.exptime;
+        lightref(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = nh_sigclip(data.ref.line);
+        lightref_dns(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = nh_sigclip(data.ref.line)/data.header.exptime;
+        lightdate(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.date_jd - data.header.launch_jd;
+        if isfield(data.header,'bad')
+            lightbad(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.bad;
+        else
+            if( any(newest_exclude == ifile) )
+                lightbad(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = 1;
+            end
+        end
+        lightref_mean(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = mean(data.ref.line);
+        lightbias(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.ref.biaslevl;
+        lightexptime(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.exptime;
+        jfile = jfile + 1;
+    end
+end
+
 
 % Plot mean of masked raw image (light data) vs. mean of reference pixels
 % (also light data) - with x=y line overplotted
@@ -304,15 +378,17 @@ ylabel('(Sigma-Clipped Mean of Reference Pixels - 538)/Exp. Time [DN/s]')
 % ylabel('Median/Robust Mean of Reference Pixels - 538 [DN]')
 % X data
 lightsigsub = lightsig-538; % Mean of Unmasked Raw Image Pixels
-lightsigsub(1:26,1) = lightsigsub(1:26,1)/9.967;
-lightsigsub(27:329,1) = lightsigsub(27:329,1)/9.967;
-lightsigsub(330:649,1) = lightsigsub(330:649,1)/29.9676;
+% lightsigsub(1:26,1) = lightsigsub(1:26,1)/9.967;
+% lightsigsub(27:329,1) = lightsigsub(27:329,1)/9.967;
+% lightsigsub(330:649,1) = lightsigsub(330:649,1)/29.9676;
+lightsigsub = lightsigsub./lightexptime; %divide by exposure time automagically
 goodlightsig = lightsigsub(lightbad<1,1);
 % Y data
 lightrefsub = lightref-538; % Sigma-clipped mean of ref pix
-lightrefsub(1:26,1) = lightrefsub(1:26,1)/9.967;
-lightrefsub(27:329,1) = lightrefsub(27:329,1)/9.967;
-lightrefsub(330:649,1) = lightrefsub(330:649,1)/29.9676;
+% lightrefsub(1:26,1) = lightrefsub(1:26,1)/9.967;
+% lightrefsub(27:329,1) = lightrefsub(27:329,1)/9.967;
+% lightrefsub(330:649,1) = lightrefsub(330:649,1)/29.9676;
+lightrefsub = lightrefsub./lightexptime; %divide by exposure time automagically
 goodlightref = lightrefsub(lightbad<1,1);
 % goodlightref = lightref_mean(lightbad<1,1)-538; % Actual mean
 % goodlightref = lightbias(lightbad<1,1)-538; % Recorded bias (median or robust mean)

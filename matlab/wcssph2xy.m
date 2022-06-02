@@ -27,7 +27,7 @@ function [xpix,ypix]=wcsxy2sph(longitude,latitude,wcsparams)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    %% define angle constants 
-   pi2 = pi ./ 2;
+%    pi2 = pi ./ 2;
    radeg = 180 ./ pi;
    
    %% find the number of elements in each of the data arrays
@@ -36,27 +36,27 @@ function [xpix,ypix]=wcsxy2sph(longitude,latitude,wcsparams)
 
    %% error checking
    if (n_long ~= n_lat)
-     disp(sprintf(['wcssph2xy.m: longitude and latitude inputs must'...
-                   'have the same number of elements.'])); 
+     fprintf(sprintf(['wcssph2xy.m: longitude and latitude inputs must'...
+                   'have the same number of elements.\n'])); 
    end
    if ~isfield(wcsparams,'lonpole')
-     disp(sprintf(['wcssph2xy.m: wcsparams structure field lonpole ' ...
-                   'missing!']));
+     fprintf(sprintf(['wcssph2xy.m: wcsparams structure field lonpole ' ...
+                   'missing!\n']));
      return
    end
    if ~isfield(wcsparams,'latpole')
-     disp(sprintf(['wcssph2xy.m: wcsparams structure field latpole ' ...
-                   'missing!']));
+     fprintf(sprintf(['wcssph2xy.m: wcsparams structure field latpole ' ...
+                   'missing!\n']));
      return
    end 
    if ~isfield(wcsparams,'crval')
-     disp(sprintf(['wcssph2xy.m: wcsparams structure field crval ' ...
-                   'missing!']));
+     fprintf(sprintf(['wcssph2xy.m: wcsparams structure field crval ' ...
+                   'missing!\n']));
      return
    else
      if (numel(wcsparams.crval) ~= 2)
-       disp(sprintf(['wcssph2xy.m: wcsparams structre field crval must ' ...
-                     'have 2 elements!']));
+       fprintf(sprintf(['wcssph2xy.m: wcsparams structre field crval must ' ...
+                     'have 2 elements!\n']));
        return
      end
    end
