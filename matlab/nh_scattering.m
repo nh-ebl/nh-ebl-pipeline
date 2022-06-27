@@ -61,8 +61,8 @@ lauer_psf = readmatrix('lookup/lauer_psf.csv');
 % load up the corresponding catalog file
 load(sprintf('%smat_files/field_%d_data_wide.mat',paths.gaiadir,data.header.fieldnum));
 Gmag_par = Gmag;
-RA_par = RA;
-DEC_par = DEC;
+% RA_par = RA;
+% DEC_par = DEC;
 
 % figure out the length of the catalog
 [ncat,~] = size(RA);
@@ -77,44 +77,32 @@ boxmag_errmax = zeros(ncat,1);
 boxmag_errmin = zeros(ncat,1);
 stardistcentbox = zeros(ncat,1);
 
-if ~exist('xpix','var') || ~exist('ypix','var')
-    %only run if need to make xpix/ypix (should not run since makemask made them)
-    ypix = zeros(ncat,1);
-    xpix = zeros(ncat,1);
-    % convert radec2pix parallel now since will be required (later loop
-    % can't be paralleled w/o work)
-    parpoolobj = gcp('nocreate'); % check for thread pool
-    if isempty(parpoolobj)
+% if ~isfield(data.scattered,'xpix') || ~isfield(data.scattered,'ypix') %these are not saved intentionally since used only here
+%only run if need to make xpix/ypix (should not run since makemask made them)
+ypix = zeros(ncat,1);
+xpix = zeros(ncat,1);
+% convert radec2pix parallel now since will be required (later loop
+% can't be paralleled w/o work)
+parpoolobj = gcp('nocreate'); % check for thread pool
+if isempty(parpoolobj)
+    maxNumCompThreads(7); % Declare number of threads to use
+    parpool('threads');
+else
+    if ~isa(parpoolobj,'parallel.ThreadPool')
+        delete(parpoolobj); %want threads here
         maxNumCompThreads(7); % Declare number of threads to use
         parpool('threads');
-    else
-        if ~isa(parpoolobj,'parallel.ThreadPool')
-            delete(parpoolobj); %want threads here
-            maxNumCompThreads(7); % Declare number of threads to use
-            parpool('threads');
-        end
     end
-    RApar = RA;
-    DECpar = DEC; %parfor was mad about these not ever being declared officially
-    parfor row = 1:ncat
-        %parallel for speed, later loop needs work to parallize
-        [ypix(row), xpix(row)] = radec2pix(RApar(row),DECpar(row), data.astrom);
-    end
-    save(sprintf('%smat_files/field_%d_data_wide.mat',paths.gaiadir,data.header.fieldnum),'xpix','ypix','-append');
-%     if params.err_gals == 0
-%         % save the calc'd ypix/xpix the corresponding catalog file
-%         if use_gaia == 1
-%             save(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum),'xpix','ypix','-append');
-%         elseif use_gaia == 0
-%             save(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum),'xpix','ypix','-append');
-%         end
-%     elseif params.err_gals == 1
-%         % save the calc'd ypix/xpix the corresponding catalog file
-%         if use_gaia == 1
-%             save(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc),'xpix','ypix','-append');
-%         end
-%     end
 end
+RApar = RA;
+DECpar = DEC; %parfor was mad about these not ever being declared officially
+parfor row = 1:ncat
+    %parallel for speed, later loop needs work to parallize
+    [ypix(row), xpix(row)] = radec2pix(RApar(row),DECpar(row), data.astrom);
+end
+%     data.scattered.xpix = xpix; %don't record since used once
+%     data.scattered.xpix = ypix;
+% end
 
 % loop over each catalog entry;
 parpoolobj = gcp('nocreate'); % check for thread pool

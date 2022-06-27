@@ -83,10 +83,10 @@ mag = -2.5*log10(flux)+20;
 info = '';
 info = [info,'Background-subtracted counts: ',num2str(skysub_apsum),' Flux: ',num2str(flux),' Mag: ',num2str(mag)];
 
-%Plot actual histogram of ghost
+% Plot actual histogram of ghost
 % h = figure(1);
 % clf;
-% set(h,'visible','off');
+% set(h,'visible','on');
 % g = histogram(ghost(idx));
 % hold on;
 % xl1 = xline(median(ghost(idx)),'r');

@@ -15,8 +15,8 @@ close all
 % paths = get_paths_old_ghosts();
 % paths = get_paths_old();
 % paths = get_paths_new();
-% paths = get_paths_lauer();
-paths = get_paths_newest();
+paths = get_paths_lauer();
+% paths = get_paths_newest();
 
 datadir = paths.datadir;
 % Save which data we're looking at
@@ -39,12 +39,12 @@ end
 flag_method = 'new';
 
 %set portion of pipeline to run
-procstepflag = 1; %1 - masking, 2 - add meta, 3 - jail bars, 4 - calibrate, 5 - diff ghosts & scattering, 6 - isl, 7 - dgl, 8 - extinction
+procstepflag = 4; %1 - masking, 2 - add meta, 3 - jail bars, 4 - calibrate, 5 - diff ghosts & scattering, 6 - isl, 7 - dgl, 8 - extinction
 
 % Set error flags - error on means error of this type is being added in
 errflag_mags = 0; %1 is on, 0 is off - run 1-5
 errflag_psf = 0; % - run 6
-errflag_gals = 0; % - run 1-4
+errflag_gals = 1; % - run 1-4
 % Set number of MC iterations for gal error
 if errflag_gals == 1
     mc_it = 100;
@@ -105,7 +105,7 @@ end
 if strcmp(flag_method,old_method) == 0 || errflag_mags == 1 || errflag_gals == 1
     new_star_mask = 1;
 end
-% new_star_mask = 1; %!!!ALWAYS MAKE NEW STAR MASK - TURN OFF FOR BIG RUN!!!
+new_star_mask = 1; %!!!ALWAYS MAKE NEW STAR MASK - TURN OFF FOR BIG RUN!!!
 
 % Save text file per data_type listing most recently run method
 fileID = fopen([data_type,'method.txt'],'w');
@@ -169,7 +169,7 @@ end
 %loop through all images
 timePerSum = 0; %for time estimating
 timeCntr = 0;
-for ifile=start:size(datafiles,1)
+for ifile=start:size(datafiles,1) % !!!NEED TO CHANGE BACK!!!
     tic
     fprintf('\nOn file %d of %d\n',ifile,size(datafiles,1));
     if( timeCntr ~= 0 )
@@ -191,13 +191,28 @@ for ifile=start:size(datafiles,1)
     end
 
     % Stop on a certain file
-    if ifile == 41  %55
-        %     if ifile == 65 | ifile == 139 | ifile == 252 | ifile == 281 | ifile == 341
-        fprintf('ahhhh')
-        %         data.header.bad = 1;
-    else
-        %         data.header.bad = 0;
-    end
+%     if (strcmp(data.header.timestamp,'2458057.5833880') == 1) || (strcmp(data.header.timestamp,'2458057.5835037') == 1)...
+%             || (strcmp(data.header.timestamp,'2458057.5836195') == 1) || (strcmp(data.header.timestamp,'2458057.5837352') == 1)...
+%             || (strcmp(data.header.timestamp,'2458057.5838509') == 1) || (strcmp(data.header.timestamp,'2458057.5839667') == 1)...
+%             || (strcmp(data.header.timestamp,'2458057.5840824') == 1) || (strcmp(data.header.timestamp,'2458057.5841982') == 1)...
+%             || (strcmp(data.header.timestamp,'2458057.5843139') == 1) || (strcmp(data.header.timestamp,'2458057.5844296') == 1)...
+%             || (strcmp(data.header.timestamp,'2458057.5845454') == 1) || (strcmp(data.header.timestamp,'2458057.5846611') == 1)...
+%             || (strcmp(data.header.timestamp,'2458057.5847769') == 1) || (strcmp(data.header.timestamp,'2458057.5848926') == 1)...
+%             || (strcmp(data.header.timestamp,'2458057.5850083') == 1) || (strcmp(data.header.timestamp,'2458057.5851241') == 1)...
+%             || (strcmp(data.header.timestamp,'2458057.5852398') == 1) || (strcmp(data.header.timestamp,'2458057.5853556') == 1)...
+%             || (strcmp(data.header.timestamp,'2458057.5854713') == 1) || (strcmp(data.header.timestamp,'2458057.5855870') == 1)...
+%             || (strcmp(data.header.timestamp,'2458348.3333913') == 1) || (strcmp(data.header.timestamp,'2458348.3750580') == 1)...
+%             || (strcmp(data.header.timestamp,'2458381.1945028') == 1) || (strcmp(data.header.timestamp,'2458381.2361695') == 1)...
+%             || (strcmp(data.header.timestamp,'2458444.9028369') == 1) || (strcmp(data.header.timestamp,'2458444.9445035') == 1)...
+%             || (strcmp(data.header.timestamp,'2458445.5486702') == 1) || (strcmp(data.header.timestamp,'2458445.5695036') == 1)...
+%             || (strcmp(data.header.timestamp,'2458445.5903369') == 1) % newest files that are bad
+        %ifile == 41  %55
+        %     if ifile == 65 | ifile == 139 | ifile == 252 | ifile == 281 | ifile == 341 % new files that are bad
+%         fprintf('ahhhh')
+%         data.header.bad = 1;
+%     else
+%         data.header.bad = 0;
+%     end
 
     % Stop on a certain field
     %     if data.header.fieldnum == 3
@@ -205,10 +220,11 @@ for ifile=start:size(datafiles,1)
     %     end
 
     % Analyze just one specific file
-%     if strcmp(data.header.timestamp,'2458731.2935809') == 1
+%     if strcmp(data.header.timestamp,'2458551.8661483') == 1 %old: '2457486.2917262'
+%     if ifile == 52
 
     % Restrict newest data to only good fields
-    if (strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') == 1) && any(data.header.fieldnum == [2,4,5,6,7,12,15,16,17,19,20,22,23])
+%     if (strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') == 1) && any(data.header.fieldnum == [2,4,5,6,7,12,15,16,17,19,20,23])
     
     % If running err_gals MC, do more than one iteration
     for mc = 1:mc_it
@@ -371,7 +387,7 @@ for ifile=start:size(datafiles,1)
     end % END FOR MC it
 
 % end % END IF running one file
-    end % END IF excluding bad newest fields
+%     end % END IF excluding bad newest fields
 
     %     mydate(ifile) = data.header.date_jd;
     %     mytemp(ifile) = data.header.ccdtemp;

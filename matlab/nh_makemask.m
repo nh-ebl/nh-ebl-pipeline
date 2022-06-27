@@ -100,7 +100,7 @@ nansgcnt = 0;
 
 if new_star_mask == 1 || ~isfield(datastruct,'mask')
     %only run if need to make xpix/ypix (should not run since makemask made them)
-    if ~exist('xpix','var') || ~exist('ypix','var')
+    if ~isfield(data.mask,'xpix') || ~isfield(data.mask,'ypix')
         ypix = zeros(ncat,1);
         xpix = zeros(ncat,1);
         % convert radec2pix parallel now since will be required (later loop
@@ -122,18 +122,9 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
             %parallel for speed, later loop needs work to parallize
             [ypix(row), xpix(row)] = radec2pix(RApar(row),DECpar(row), data.astrom);
         end
-        if params.err_gals == 0
-            % save the calc'd ypix/xpix the corresponding catalog file
-            if use_gaia == 1
-                save(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum),'xpix','ypix','-append');
-            elseif use_gaia == 0
-                save(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum),'xpix','ypix','-append');
-            end
-        elseif params.err_gals == 1
-            % save the calc'd ypix/xpix the corresponding catalog file
-            if use_gaia == 1
-                save(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc),'xpix','ypix','-append');
-            end
+        if( params.err_gals == 0 )
+            datastruct.mask.xpix = xpix; %record if error off (because error on is data.err and don't want to save to data.err.mask.xpix as a duplicate)
+            datastruct.mask.xpix = ypix;
         end
     end
 
@@ -613,29 +604,43 @@ datastruct.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 % caxis(ax1.CLim)
 
 %Plot masked data with optional mouse movement returns value
-h = figure();
-clf;
-imagesc(datastruct.data.*~datastruct.mask.starmask)
-set(h,'visible','off');
-% set (gcf, 'WindowButtonMotionFcn', @mouseMove);
-a = colorbar;
-a.Label.String = 'Intensity [DN]';
-pbaspect([1 1 1]);
-xlabel('LORRI X Pixels');
-ylabel('LORRI Y Pixels');
-caxis([-10,10]);
-%         title(sprintf('%s',datastruct.header.rawfile));
-% grid minor;
-% title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
-title(sprintf('Field: %d',datastruct.header.fieldnum));
-set(gca,'YDir','normal');
-ext = '.png';
-if not(isfolder([paths.maskdir]))
-    mkdir([paths.maskdir])
-end
-imagename = sprintf('%s%s%s',paths.maskdir,datastruct.header.timestamp,ext);
-% imagename = sprintf('%s%s%s',paths.selectmaskdir,datastruct.header.timestamp,ext);
-print(h,imagename, '-dpng');
+% h = findobj(allchild(groot), 'flat', 'type', 'figure', 'Name', 'masked image'); %reuses same figure for speed/less figure windows
+% if( isempty(h) )
+%     h = figure('Name','masked image');
+% end
+% clf;
+% set(h, 'InvertHardCopy', 'off'); %makes saved plot have custom background color
+% set(h,'visible','off'); %hides window (faster)
+% %--- this plots perula with 0 as masked values ---
+% % imagesc(datastruct.data.*~datastruct.mask.onemask)
+% %--- this plots B&W with masked values blue ---
+% dataPlotter = datastruct.data;
+% dataPlotter(datastruct.mask.onemask) = nan;
+% p1 = pcolor(dataPlotter);
+% set(p1, 'EdgeColor', 'none');
+% set(gca,'Color',[0 0.4470 0.7410]) %make nans matlab-blue
+% set(h,'Color',[1 1 1]) %make background pure white (good for editing)
+% colormap(gca,'gray')
+% 
+% % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+% a = colorbar;
+% a.Label.String = 'Intensity [DN]';
+% pbaspect([1 1 1]);
+% xlabel('LORRI X Pixels');
+% ylabel('LORRI Y Pixels');
+% % caxis([-10,10]);
+% %         title(sprintf('%s',datastruct.header.rawfile));
+% % grid minor;
+% % title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
+% title(sprintf('Field: %d',datastruct.header.fieldnum));
+% set(gca,'YDir','normal');
+% ext = '.png';
+% if not(isfolder([paths.maskdir]))
+%     mkdir([paths.maskdir])
+% end
+% imagename = sprintf('%s%s%s',paths.maskdir,datastruct.header.timestamp,ext);
+% % imagename = sprintf('%s%s%s',paths.selectmaskdir,datastruct.header.timestamp,ext);
+% print(h,imagename, '-dpng');
 
 % Plot histogram of masked image using hist fit and overplotting mean +/-
 % sigma
@@ -645,12 +650,14 @@ bins = 40;
 
 % h = figure();
 % clf;
-% set(h,'visible','off');
-% histfitCustom(maskim(:),bins,'normal');
+% set(h,'visible','on');
+% % histfitCustom(maskim(:),bins,'normal');
+% histogram(maskim(:),7);
 % title(['Mean = ',num2str(mean(maskim(:),'omitnan')),' Median = ',num2str(median(maskim(:),'omitnan'))]);
 % ylimMax = ylim; %get the ylims (min and max)
 % ylimMax = ylimMax(2); %get the actual max
 % ylim( [0.5, ylimMax] ); %force 0
+% xlim([-25,25])
 % set(gca,'YScale','log');
 % hold on
 % % Mean +/- sig
@@ -661,7 +668,7 @@ bins = 40;
 % plot( repmat(mean(maskim(:),'omitnan'),5,1),linspace(0.5,ylimMax,5),'linewidth',1,'color','green');
 % plot( repmat(median(maskim(:),'omitnan'),5,1),linspace(0.5,ylimMax,5),'linewidth',1,'color','magenta');
 % hold off
-% legend('','','Mean','Median')
+% legend('','Mean','Median')
 % xlabel('Unmasked Pixel Intensity [DN]');
 % ylabel('N');
 % ext = '.png';

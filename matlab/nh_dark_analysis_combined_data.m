@@ -10,6 +10,8 @@ clearvars idx;
 %Import paths for data location
 paths = get_paths_old();
 npaths = get_paths_new();
+lpaths = get_paths_lauer();
+wpaths = get_paths_newest();
 
 fprintf('Parsing dark files.\n');
 
@@ -21,6 +23,10 @@ ndarkfiles = dir(sprintf('%s*.mat',npaths.darkdir));
 lightfiles = dir(sprintf('%s*.mat',paths.datadir));
 %new light data
 nlightfiles = dir(sprintf('%s*.mat',npaths.datadir));
+%lauer light data
+llightfiles = dir(sprintf('%s*.mat',lpaths.datadir));
+%newest light data
+wlightfiles = dir(sprintf('%s*.mat',wpaths.datadir));
 
 %Preallocate space for variables dark
 darktemp = zeros(size(ndarkfiles,1),1);
@@ -36,10 +42,15 @@ darkfield = zeros(size(ndarkfiles,1),1);
 %Determine which light files correspond to 'good' fields
 isgoodold = zeros(numel(lightfiles),1);
 isgoodnew = zeros(numel(nlightfiles),1);
+isgoodlauer = zeros(numel(llightfiles),1);
+isgoodnewest = zeros(numel(wlightfiles),1);
+
 %These field numbers were previously determined by going through all the
 %files
 oldgoodfields = [3,5,6,7];
 newgoodfields = [5,6,7,8];
+lauergoodfields = [1,2,3,4,5,6,7];
+newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,23];
 
 %Check for old light files
 for ifile=1:numel(lightfiles)
@@ -57,34 +68,52 @@ for ifile=1:numel(nlightfiles)
     end
 end
 
+%Check for lauer light files
+for ifile=1:numel(llightfiles)
+    load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
+    if sum(data.header.fieldnum == lauergoodfields)
+        isgoodlauer(ifile) = 1;
+    end
+end
+
+%Check for newest light files
+for ifile=1:numel(wlightfiles)
+    load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+    if sum(data.header.fieldnum == newestgoodfields)
+        isgoodnewest(ifile) = 1;
+    end
+end
+
 %Number of old and new light files corresponding to good fields
 numoldlightfiles = sum(isgoodold);
 numnewlightfiles = sum(isgoodnew);
+numlauerlightfiles = sum(isgoodlauer);
+numnewestlightfiles = sum(isgoodnewest);
 
 %Preallocate space for variables light
-lighttemp = zeros((numoldlightfiles+numnewlightfiles),1);
-lightfpubtemp = zeros((numoldlightfiles+numnewlightfiles),1);
-lightdate = zeros((numoldlightfiles+numnewlightfiles),1);
-lightsig = zeros((numoldlightfiles+numnewlightfiles),2);
-lightref = zeros((numoldlightfiles+numnewlightfiles),2);
-lightref_med = zeros((numoldlightfiles+numnewlightfiles),2);
-lightref_sig = zeros((numoldlightfiles+numnewlightfiles),2);
-lightexp = zeros((numoldlightfiles+numnewlightfiles),1);
-lightfield = zeros((numoldlightfiles+numnewlightfiles),1);
-lightlIl = zeros((numoldlightfiles+numnewlightfiles),2);
-lightbad = zeros((numoldlightfiles+numnewlightfiles),1);
-photcurr = zeros((numoldlightfiles+numnewlightfiles),1);
-gall = zeros((numoldlightfiles+numnewlightfiles),1);
-galb = zeros((numoldlightfiles+numnewlightfiles),1);
-helidist = zeros((numoldlightfiles+numnewlightfiles),1);
+lighttemp = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightfpubtemp = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightdate = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightsig = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),2);
+lightref = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),2);
+lightref_med = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),2);
+lightref_sig = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),2);
+lightexp = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightfield = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightlIl = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),2);
+lightbad = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+photcurr = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+gall = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+galb = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+helidist = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 %Preallocate space for variables light colorcoded
-lightdatenew = zeros((numoldlightfiles+numnewlightfiles),1);
-lightdateold = zeros((numoldlightfiles+numnewlightfiles),1);
-lighttempnew = zeros((numoldlightfiles+numnewlightfiles),1);
-lighttempold = zeros((numoldlightfiles+numnewlightfiles),1);
+lightdatenew = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lightdateold = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lighttempnew = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+lighttempold = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 %Preallocate space for variables light colorcoded dark current
-darkcurrnew = zeros((numoldlightfiles+numnewlightfiles),1);
-darkcurrold = zeros((numoldlightfiles+numnewlightfiles),1);
+darkcurrnew = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+darkcurrold = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 
 %For dark data files
 for ifile=1:size(ndarkfiles)
@@ -119,6 +148,7 @@ end
 
 fprintf('Parsing light files.\n');
 
+fprintf('Reading in old data.\n');
 %For old data files
 jfile = 1;
 for ifile=1:numel(lightfiles)
@@ -156,6 +186,7 @@ darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(li
 
 end
 
+fprintf('Reading in new data.\n');
 %For new data files
 jfile = 1;
 for ifile=1:numel(nlightfiles)
@@ -193,6 +224,81 @@ darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(li
 % end
 end
 
+fprintf('Reading in lauer data.\n');
+%For lauer data files
+jfile = 1;
+for ifile=1:numel(llightfiles)
+    %If file is for a good field, load and save values
+    if isgoodlauer(ifile) == 1
+        load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
+
+        lighttemp(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.ccdtemp;
+        lightfpubtemp(jfile+numoldlightfiles+numnewlightfiles,1) = data.astrom.fpubtemp;
+        lightdate(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.date_jd - data.header.launch_jd;
+        lightsig(jfile+numoldlightfiles+numnewlightfiles,1) = data.ref.engmean;
+        lightsig(jfile+numoldlightfiles+numnewlightfiles,2) = sqrt(data.ref.engmean);
+        lightref(jfile+numoldlightfiles+numnewlightfiles,1) = mean(data.ref.line);
+        lightref_med(jfile+numoldlightfiles+numnewlightfiles,1) = median(data.ref.line);
+        lightref_sig(jfile+numoldlightfiles+numnewlightfiles,1) = nh_sigclip(data.ref.line);
+        lightref(jfile+numoldlightfiles+numnewlightfiles,2) = std(data.ref.line);
+        lightexp(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.exptime;
+        lightfield(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.fieldnum;
+        lightlIl(jfile+numoldlightfiles+numnewlightfiles,1) = data.stats.maskmean./data.header.exptime;
+        lightlIl(jfile+numoldlightfiles+numnewlightfiles,2) = data.stats.maskstd;
+        lightbad(jfile+numoldlightfiles+numnewlightfiles,1) = 0;
+        
+        maskim = data.image.calimage.*~data.mask.onemask;
+        maskim(maskim==0) = NaN;
+        photcurr(jfile+numoldlightfiles+numnewlightfiles,1) = nanmean(nanmean(maskim));
+        [l,b]=RA_Dec_to_Gal(data.astrom.spcbrra,data.astrom.spcbrdec);
+        gall(jfile+numoldlightfiles+numnewlightfiles,1) = l;
+        galb(jfile+numoldlightfiles+numnewlightfiles,1) = b;
+        helidist(jfile+numoldlightfiles+numnewlightfiles,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
+        
+        jfile = jfile + 1;
+    end
+darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+
+% end
+end
+
+fprintf('Reading in newest data.\n');
+%For newest data files
+jfile = 1;
+for ifile=1:numel(wlightfiles)
+    %If file is for a good field, load and save values
+    if isgoodnewest(ifile) == 1
+        load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+
+        lighttemp(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.ccdtemp;
+        lightfpubtemp(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.astrom.fpubtemp;
+        lightdate(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.date_jd - data.header.launch_jd;
+        lightsig(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.ref.engmean;
+        lightsig(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,2) = sqrt(data.ref.engmean);
+        lightref(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = mean(data.ref.line);
+        lightref_med(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = median(data.ref.line);
+        lightref_sig(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = nh_sigclip(data.ref.line);
+        lightref(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,2) = std(data.ref.line);
+        lightexp(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.exptime;
+        lightfield(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.fieldnum;
+        lightlIl(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.stats.maskmean./data.header.exptime;
+        lightlIl(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,2) = data.stats.maskstd;
+        lightbad(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = 0;
+        
+        maskim = data.image.calimage.*~data.mask.onemask;
+        maskim(maskim==0) = NaN;
+        photcurr(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = nanmean(nanmean(maskim));
+        [l,b]=RA_Dec_to_Gal(data.astrom.spcbrra,data.astrom.spcbrdec);
+        gall(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = l;
+        galb(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = b;
+        helidist(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
+        
+        jfile = jfile + 1;
+    end
+darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+
+% end
+end
 %Prepare to save mean values for like fields
 nfieldsdark = 4; %Dark data previously divided into 4 fields by date
 darktempm = zeros(nfieldsdark,1);
@@ -213,7 +319,7 @@ for jfield=1:nfieldsdark
 end
 
 %Prepare to save mean values for like fields
-nfieldslight = length(oldgoodfields)+length(newgoodfields); %Light data currently comes from 8 different fields
+nfieldslight = length(oldgoodfields)+length(newgoodfields)+length(lauergoodfields)+length(newestgoodfields); %Light data currently comes from 8 different fields
 lighttempm = zeros(nfieldslight,1);
 lighterrm = zeros(nfieldslight,1);
 lightdatem = zeros(nfieldslight,1);
@@ -254,6 +360,44 @@ for jfield=1:numel(newgoodfields)
     lightlIlm(jfield+numel(oldgoodfields),2) = std(lightlIl(whpl,1));
 end
 
+%Create logical vector of zeros to pad for the length of the number of
+%good, old light fields
+extra = logical(zeros(numnewlightfiles,1));
+%For each new field number, take mean of only values corresponding to that
+%field 
+for jfield=1:numel(lauergoodfields)
+    whpl = lightfield(numnewlightfiles+1:numlauerlightfiles) == lauergoodfields(jfield);
+    whpl = vertcat(extra,whpl);
+    lighttempm(jfield+numel(oldgoodfields)+numel(newgoodfields)) = mean(lighttemp(whpl));
+    lighterrm(jfield+numel(oldgoodfields)+numel(newgoodfields)) = std(lighttemp(whpl));
+    lightdatem(jfield+numel(oldgoodfields)+numel(newgoodfields)) = mean(lightdate(whpl));
+    lightrefm(jfield+numel(oldgoodfields)+numel(newgoodfields),1) = sum(lightref(whpl,1) ./ lightref(whpl,2).^2) ./ ...
+        sum(1./lightref(whpl,2).^2);
+    lightrefm(jfield+numel(oldgoodfields)+numel(newgoodfields),2) = sqrt(1./256 + std(lightref(whpl,1)).^2);%sqrt(1./sum(1./lightref(whpl,2).^2));
+    lightlIlm(jfield+numel(oldgoodfields)+numel(newgoodfields),1) = sum(lightlIl(whpl,1) ./ lightlIl(whpl,2).^2) ./ ...
+        sum(1./lightlIl(whpl,2).^2);
+    lightlIlm(jfield+numel(oldgoodfields)+numel(newgoodfields),2) = std(lightlIl(whpl,1));
+end
+
+%Create logical vector of zeros to pad for the length of the number of
+%good, old light fields
+extra = logical(zeros(numlauerlightfiles,1));
+%For each new field number, take mean of only values corresponding to that
+%field 
+for jfield=1:numel(newestgoodfields)
+    whpl = lightfield(numlauerlightfiles+1:numnewestlightfiles) == newestgoodfields(jfield);
+    whpl = vertcat(extra,whpl);
+    lighttempm(jfield+numel(oldgoodfields)+numel(newgoodfields)+numel(newestgoodfields)) = mean(lighttemp(whpl));
+    lighterrm(jfield+numel(oldgoodfields)+numel(newgoodfields)+numel(newestgoodfields)) = std(lighttemp(whpl));
+    lightdatem(jfield+numel(oldgoodfields)+numel(newgoodfields)+numel(newestgoodfields)) = mean(lightdate(whpl));
+    lightrefm(jfield+numel(oldgoodfields)+numel(newgoodfields)+numel(newestgoodfields),1) = sum(lightref(whpl,1) ./ lightref(whpl,2).^2) ./ ...
+        sum(1./lightref(whpl,2).^2);
+    lightrefm(jfield+numel(oldgoodfields)+numel(newgoodfields)+numel(newestgoodfields),2) = sqrt(1./256 + std(lightref(whpl,1)).^2);%sqrt(1./sum(1./lightref(whpl,2).^2));
+    lightlIlm(jfield+numel(oldgoodfields)+numel(newgoodfields)+numel(newestgoodfields),1) = sum(lightlIl(whpl,1) ./ lightlIl(whpl,2).^2) ./ ...
+        sum(1./lightlIl(whpl,2).^2);
+    lightlIlm(jfield+numel(oldgoodfields)+numel(newgoodfields)+numel(newestgoodfields),2) = std(lightlIl(whpl,1));
+end
+
 %Ignore any data that are nan
 whpl = ~isnan(lighttempm);
 lighttempm = lighttempm(whpl);
@@ -267,9 +411,10 @@ lightlIlmq = lightlIlm(whpl,2);
 lightlIlm = [lightlIlmp,lightlIlmq];
 
 %Calculate dark current for temperatures we already have - in e/s/pix
-% New gain value from Lauer is 19.4 e/DN
-darkcurrlight = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273.15).^3.*exp(-6400./(lighttemp+273.15));
-darkcurrdark = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(darktemp+273.15).^3.*exp(-6400./(darktemp+273.15));
+% New gain value from Lauer is 19.4 e/DN, old gain 22 e/DN
+% 1e4 e/s/pix, 122 is some constant, 6400 is some constant, 2.545 is mike's fudge factor
+darkcurrlight = 2.545.*1e4.*122.*(lighttemp+273.15).^3.*exp(-6400./(lighttemp+273.15));
+darkcurrdark = 2.545.*1e4.*122.*(darktemp+273.15).^3.*exp(-6400./(darktemp+273.15));
 %Load and save dark current
 % for ifile=1:numoldlightfiles
 %     load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name),'data');
@@ -283,7 +428,7 @@ darkcurrdark = 2.2.*2.545.*10.*(1./22).*1e4.*122.*(darktemp+273.15).^3.*exp(-640
 % end
 
 %Colorcoding dark current for plotting purposes
-for ifile=1:numoldlightfiles+numnewlightfiles
+for ifile=1:numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles
     if ifile > numoldlightfiles
        lightdatenew(ifile,1)=lightdate(ifile,1);
        lighttempnew(ifile,1)=lighttemp(ifile,1)+273.15;
@@ -294,7 +439,7 @@ for ifile=1:numoldlightfiles+numnewlightfiles
 
     end
 end
-for ifile=1:numoldlightfiles+numnewlightfiles
+for ifile=1:numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles
     if ifile > numoldlightfiles
        darkcurrnew(ifile,1)=darkcurrlight(ifile,1);
     elseif ifile <= numoldlightfiles
@@ -303,7 +448,7 @@ for ifile=1:numoldlightfiles+numnewlightfiles
 end
 
 % Convert dark current in e/s/pix to DN/s/pix
-darkcurrdn = darkcurrnew/19.4; % New gain value from Lauer is 19.4 e/DN, old value 22
+darkcurrdn = darkcurrlight/19.4; % New gain value from Lauer is 19.4 e/DN, old value 22
 % Convert dark current in DN/s/pix to nW/m2/sr
 darkcurrnw = darkcurrdn*data.cal.sbconv;
 % Calculate mean dark current (few new files) in nW/m2/sr
@@ -609,35 +754,35 @@ figcnt = figcnt + 1;
 %           'sigvref','tccd','modelone','modeltwo','lighttempm',...
 % 	  'lightrefm','darktempm','darkrefm');
 
-figure(figcnt); clf
-plot(lightrefm(:,1),lightlIlm(:,1),'ro');
-%errorbar(lightrefm(:,1),lightlIlm(:,1),lightlIlm(:,2),'ro');
-hold on;
-for ifield=1:numel(lighttempm)
-    plot([lightrefm(ifield,1)-lightrefm(ifield,2),...
-        lightrefm(ifield,1)+lightrefm(ifield,2)],...
-        [lightlIlm(ifield,1),lightlIlm(ifield,1)],'r');
-end
-
-ylabel('Mean of Masked Flight Image (DN)')
-xlabel('Mean of Reference Pixels (DN)')
-
-plot(lighttemp,lightref(:,1),'ro');
-hold on;
-
-fitx = [darkdate;lightdate];
-fity = [darktemp;lighttemp];
-thismean = median(lighttemp);
-fity = fity - thismean;
-f = fit(fitx,fity,'exp1','StartPoint',[219,-0.000036]);
-mydates = [80:4000];
-myfunc = f.a * exp(f.b .* mydates) + thismean;
-semilogx(mydates,myfunc,'b');
-ylim([-85,570]);
-
-cover = data.header.cover_jd - data.header.launch_jd;
-cover = [cover,cover];
-plot(cover,ylim,'k:');
+% figure(figcnt); clf
+% plot(lightrefm(:,1),lightlIlm(:,1),'ro');
+% %errorbar(lightrefm(:,1),lightlIlm(:,1),lightlIlm(:,2),'ro');
+% hold on;
+% for ifield=1:numel(lighttempm)
+%     plot([lightrefm(ifield,1)-lightrefm(ifield,2),...
+%         lightrefm(ifield,1)+lightrefm(ifield,2)],...
+%         [lightlIlm(ifield,1),lightlIlm(ifield,1)],'r');
+% end
+% 
+% ylabel('Mean of Masked Flight Image (DN)')
+% xlabel('Mean of Reference Pixels (DN)')
+% 
+% plot(lighttemp,lightref(:,1),'ro');
+% hold on;
+% 
+% fitx = [darkdate;lightdate];
+% fity = [darktemp;lighttemp];
+% thismean = median(lighttemp);
+% fity = fity - thismean;
+% f = fit(fitx,fity,'exp1','StartPoint',[219,-0.000036]);
+% mydates = [80:4000];
+% myfunc = f.a * exp(f.b .* mydates) + thismean;
+% semilogx(mydates,myfunc,'b');
+% ylim([-85,570]);
+% 
+% cover = data.header.cover_jd - data.header.launch_jd;
+% cover = [cover,cover];
+% plot(cover,ylim,'k:');
 
 fprintf('done')
 

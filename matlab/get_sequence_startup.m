@@ -38,7 +38,7 @@ newgoodfields = [5,6,7,8];
 lauergoodfields = [1,2,3,4,5,6,7];
 % lauergoodfields = [];
 lauer_exlude_enable = false; %enables skipping of new sequences
-newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,22,23];
+newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,23];
 % newestgoodfields = [];
 newest_exlude_enable = false; %enables skipping of new sequences
 
@@ -301,7 +301,7 @@ for i = 1:length(curr_seqs)
 end
 hLeg = legend(curr_lines,curr_legend); %make a legend
 % set(hLeg,'visible','off'); %turn off legend, just needed it for names
-ylim([0 0.11])
+ylim([0 0.15])
 xlabel('Time Since Sequence Start (s)');
 ylabel('Mean Sky Level [DN/s]');
 title(curr_title);
@@ -321,7 +321,7 @@ for i = 1:length(curr_seqs)
 end
 hLeg = legend(curr_lines,curr_legend); %make a legend
 % set(hLeg,'visible','off'); %turn off legend, just needed it for names
-ylim([0 0.11])
+ylim([0 0.15])
 xlabel('Time Since Sequence Start (s)');
 ylabel('Mean Sky Level [DN/s]');
 title(curr_title);
@@ -344,7 +344,7 @@ for i = 1:length(curr_seqs)
 end
 hLeg = legend(curr_lines,curr_legend); %make a legend
 set(hLeg,'visible','off'); %turn off legend, just needed it for names
-ylim([0 0.11])
+ylim([0 0.15])
 xlabel('Time Since Sequence Start (s)');
 ylabel('Mean Sky Level [DN/s]');
 title(curr_title);
@@ -367,7 +367,7 @@ for i = 1:length(curr_seqs)
 end
 hLeg = legend(curr_lines,curr_legend); %make a legend
 set(hLeg,'visible','off'); %turn off legend, just needed it for names
-% ylim([0 0.11])
+ylim([0 0.15])
 xlabel('Time Since Sequence Start (s)');
 ylabel('Mean Sky Level [DN/s]');
 title(curr_title);

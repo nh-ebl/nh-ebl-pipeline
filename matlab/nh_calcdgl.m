@@ -2,8 +2,8 @@ function data = nh_calcdgl(data, paths, flag_method)
 
 dglparams = nh_get_dgl_params();
 
-% want = 'planck';
-want = 'planck_mc';
+want = 'planck';
+% want = 'planck_mc';
 % want = 'iris';
 % want = 'iris_sfd';
 % want = 'nh';
@@ -273,8 +273,8 @@ end
 % x = linspace((-256/2)*4.1/60,(256/2)*4.1/60,257);
 % y = linspace((-256/2)*4.1/60,(256/2)*4.1/60,257);
 % % imagesc(x,y,(1-((data.dgl.ohmim_iris-dglparams.cib(1))./(data.dgl.ohmim_planck)))); % 1 - IRIS/Planck
-% imagesc(x,y,(irisim-0.48)); % IRIS 100m - CIB
-% % imagesc(x,y,(irisim)); % 100m or NHI
+% % imagesc(x,y,(irisim-0.48)); % IRIS 100m - CIB
+% imagesc(x,y,(irisim)); % 100m or NHI
 % % caxis([0 0.4])
 % axis('xy')
 % axis image
@@ -456,7 +456,7 @@ end
 
 % Plot DGL image
 % IRIS
-% h = figure(1);
+% h = figure();
 % clf;
 % set(h,'visible','off');
 % x = linspace((-256/2)*4.1/60,(256/2)*4.1/60,257);
@@ -476,7 +476,7 @@ end
 % print(h,imagename, '-dpng');
 
 % Planck
-% h = figure(1);
+% h = figure();
 % clf;
 % set(h,'visible','off');
 % x = linspace((-256/2)*4.1/60,(256/2)*4.1/60,257);

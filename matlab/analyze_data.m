@@ -214,8 +214,8 @@ for ifile=1:size(datafiles,1)
     im_ref(ifile) = data.ref.bias;
     im_mean(ifile) = data.stats.corrmean;
     im_mostprob(ifile) = data.stats.corrmostprob;
-    maskmeanold(ifile) = data.stats.maskmeanold;
-    maskmean(ifile) = data.stats.maskmean;
+    maskmeanold(ifile) = data.stats.maskmean_dns_frommask;
+    maskmean(ifile) = data.stats.maskmean_dns_fromjb;
     jailbar_type(ifile) = data.header.jailbar_type;
     exposure_time(ifile) = data.header.exptime;
 
@@ -319,8 +319,10 @@ end
 % plot(xunit,yunit);
 % set(gca,'YDir','normal');
 
+figcnt = 1;
+
 % Plot CCD temp vs. julian date to see if bad images are first in sequence
-% figure(1)
+% figure(figcnt)
 % colormap(jet)
 % scatter(date_jd(field>1 & bad<1),ccdtemp(field>1 & bad < 1),[],field(field>1 & bad < 1))
 % hold on
@@ -329,9 +331,10 @@ end
 % ylabel(g,'Field number')
 % xlabel('Julian Date')
 % ylabel('CCD Temp [K]')
+% figcnt = figcnt + 1;
 
 % Plot FPUB temp vs. julian date to see if bad images are first in sequence
-% figure(2)
+% figure(figcnt)
 % colormap(jet)
 % scatter(date_jd(field>1),fpubtemp(field>1),[],field(field>1))
 % hold on
@@ -340,9 +343,10 @@ end
 % ylabel(g,'Field number')
 % xlabel('Julian Date')
 % ylabel('FPUB Temp [K]')
+% figcnt = figcnt + 1;
 
 % Plot difference in mask mean before and after jail bar correction
-figure(4)
+figure(figcnt)
 jailbarPlotter =  zeros(size(datafiles));
 jailbarPlotter(jailbar_type > 1) = 1;
 s1 = scatter(im_num(field>1 & bad < 1),(maskmean(field>1 & bad < 1)-maskmeanold(field>1 & bad < 1)).*exposure_time(field>1 & bad < 1),[],jailbarPlotter(field>1 & bad < 1));
@@ -355,34 +359,56 @@ xlabel('Image Number')
 ylabel('Image Masked Mean Delta (JailBarCorrection - PreJailBar) [DN]')
 colormap(jet);
 colorbar;
+figcnt = figcnt + 1;
 
 % Plot mask mean (DN) before and after jail bar correction over all images
-figure(3)
-s1 = scatter(im_num(field>1 & bad < 1),maskmeanold(field>1 & bad < 1).*exposure_time(field>1 & bad < 1),[],jailbarPlotter(field>1 & bad < 1));
-colormap(jet);
+figure(figcnt)
+s1_one = scatter(im_num(field>1 & bad < 1 & jailbarPlotter == 1)...
+    ,maskmeanold(field>1 & bad < 1 & jailbarPlotter == 1).*exposure_time(field>1 & bad < 1 & jailbarPlotter == 1)...
+    ,[],'MarkerEdgeColor',[1 51/255 51/255]);
 hold on;
-s2 = scatter(im_num(field>1 & bad < 1),maskmean(field>1 & bad < 1).*exposure_time(field>1 & bad < 1),'g','x');
+s1_zero = scatter(im_num(field>1 & bad < 1 & jailbarPlotter == 0)...
+    ,maskmeanold(field>1 & bad < 1 & jailbarPlotter == 0).*exposure_time(field>1 & bad < 1 & jailbarPlotter == 0)...
+    ,[],'MarkerEdgeColor',[0 102/255 204/255]);
+% s2 = scatter(im_num(field>1 & bad < 1),maskmean(field>1 & bad < 1).*exposure_time(field>1 & bad < 1),'g','x');
 xlabel('Image Number')
 ylabel('Image Masked Mean [DN]')
-legend('Before Jail Bar Correction','After Jail Bar Correction')
+legend([s1_one,s1_zero],{'Before Jail Bar Correction (High)','Before Jail Bar Correction (Low)'})
+ylimz = ylim;
+figcnt = figcnt + 1;
+
+figure(figcnt)
+s2_one = scatter(im_num(field>1 & bad < 1 & jailbarPlotter == 1)...
+    ,maskmean(field>1 & bad < 1 & jailbarPlotter == 1).*exposure_time(field>1 & bad < 1 & jailbarPlotter == 1)...
+    ,[],'MarkerEdgeColor',[1 51/255 51/255]);
+hold on;
+s2_zero = scatter(im_num(field>1 & bad < 1 & jailbarPlotter == 0)...
+    ,maskmean(field>1 & bad < 1 & jailbarPlotter == 0).*exposure_time(field>1 & bad < 1 & jailbarPlotter == 0)...
+    ,[],'MarkerEdgeColor',[0 102/255 204/255]);
+xlabel('Image Number')
+ylabel('Image Masked Mean [DN]')
+legend([s2_one,s2_zero],{'After Jail Bar Correction (High)','After Jail Bar Correction (Low)'})
+ylim(ylimz); %make y axis match
+figcnt = figcnt + 1;
 
 % Masked image mean before and after jail bar correction colored by field
 % number
-figure(5)
-% s1 = scatter(im_num(field>1 & bad < 1),maskmeanold(field>1 & bad < 1));
+figure(figcnt)
+s1 = scatter(im_num(field>1 & bad < 1),maskmeanold(field>1 & bad < 1));
 % hold on;
 s2 = scatter(im_num(field>1 & bad < 1),maskmean(field>1 & bad < 1).*exposure_time(field>1 & bad < 1),[],field(field>1 & bad < 1));
 xlabel('Image Number')
 ylabel('Image Masked Mean [DN]')
-legend('Before Jail Bar Correction','After Jail Bar Correction')
+legend([s1,s1],{'Before Jail Bar Correction','After Jail Bar Correction'})
+figcnt = figcnt + 1;
 
 % Plot comparison of diff ghost sub from model and data
-figure(3)
-colormap(jet)
+figure(figcnt)
+colormap(lines(length(min(field(field>1 & bad < 1)):1:max(field(field>1 & bad < 1)))))
 scatter(diffghostcheck(field>1 & bad < 1),diffghostreal(field>1 & bad < 1),[],field(field>1 & bad < 1))
 hold on;
-scatter(diffghostcheck(field>1 & bad > 0),diffghostreal(field>1 & bad > 0),300,field(field>1 & bad > 0),'x')
-h = colorbar;
+% scatter(diffghostcheck(field>1 & bad > 0),diffghostreal(field>1 & bad > 0),300,field(field>1 & bad > 0),'x')
+h = colorbar('Ticks',min(field(field>1 & bad < 1)):1:max(field(field>1 & bad < 1)));
 ylabel(h, 'Field number')
 xlabel('\lambdaI_{\lambda}^{G,D} [nW m^{-2} sr^{-1}]')
 ylabel('\lambdaI_{\lambda}^{G,M} [nW m^{-2} sr^{-1}]')
@@ -391,17 +417,20 @@ xfit=linspace(min(diffghostcheck),max(diffghostcheck));
 yfit=(fitobject.p1*xfit + fitobject.p2);
 fit2 = plot(xfit,yfit);
 title(sprintf('Fit: y = %.3fx + %.3f',fitobject.p1,fitobject.p2));
+figcnt = figcnt + 1;
 
+figure(figcnt)
 % Plot hist of x-axis (diff ghost check from data) to see distribution
-hist(diffghostcheck(field>1),25)
+histogram(diffghostcheck(field>1),25)
 xlabel('\lambdaI_{\lambda}^{G,D} [nW m^{-2} sr^{-1}]')
 ylabel('N')
 % Mean and std give acceptable range for y-int to be within 0
 mean(diffghostcheck(field>1))
 std(diffghostcheck(field>1))
+figcnt = figcnt + 1;
 
 % Plot comparison of hist peak of masked calibrated image and ref bias
-figure(4)
+figure(figcnt)
 colormap(jet)
 % Uncorrected most prob value and ref bias
 scatter(im_ref(field>1 & bad < 1),im_hist(field>1 & bad < 1),[],field(field>1 & bad < 1))

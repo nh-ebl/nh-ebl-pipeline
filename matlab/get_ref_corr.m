@@ -41,7 +41,7 @@ newgoodfields = [5,6,7,8];
 lauergoodfields = [1,2,3,4,5,6,7];
 % lauergoodfields = [];
 lauer_exlude_enable = true; %enables skipping of new sequences
-newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,22,23];
+newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,23];
 % newestgoodfields = [];
 newest_exlude_enable = true; %enables skipping of new sequences
 
@@ -242,129 +242,129 @@ end
 
 % Plot mean of masked raw image (light data) vs. mean of reference pixels
 % (also light data) - with x=y line overplotted
-figure(); clf
-hold on;
-% Axis labels
-xlabel('Mean of Unmasked Raw Image Pixels [DN]')
-ylabel('Sigma-Clipped Mean of Reference Pixels [DN]')
-% ylabel('Mean of Reference Pixels [DN]')
-% ylabel('Median/Robust Mean of Referee Pixels [DN]')
-% X data
-goodlightsig = lightsig(lightbad<1,1); % Mean of masked raw image
-% Y data
-goodlightref = lightref(lightbad<1,1); % Sigma-clipped mean of ref pixels
-% goodlightref = lightref_mean(lightbad<1,1); % Actual mean
-% goodlightref = lightbias(lightbad<1,1); % Recorded bias (median or robust mean)
-% Color data
-% goodlightfield = lightfield(lightbad<1,1);
-% goodlightdate = lightdate(lightbad<1,1);
-% goodlightfpubtemp = lightfpubtemp(lightbad<1,1);
-% Scatter plot
-r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFaceColor','#77AC30'); % All points red
-% r = scatter(goodlightsig,goodlightref,[],goodlightfield); % Points color-coded by field number
-% r = scatter(goodlightsig,goodlightref,[],goodlightdate); % Points color-coded by date
-% r = scatter(goodlightsig,goodlightref,[],goodlightfpubtemp); % Points color-coded by fpub temp
-% g = colorbar; % If needed
-% Plot x = y
-x = [535:550];
-y = [535:550];
-xy = plot(x,y,'Color','#7E2F8E');
-% Basic linear fit
-[fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
-xfit=linspace(535,550);
-yfit=(fitobject.p1*xfit + fitobject.p2);
-% fitwut = plot(xfit,yfit,'b');
-% Fit with slope = 1
-mdl = fitlm(goodlightsig,goodlightref-1*goodlightsig,'constant');
-yfit=(1*xfit + mean(mdl.Fitted));
-% fitwut_constslope = plot(xfit,yfit,'m');
-% Calculate rejected points
-k = goodlightsig >= goodlightref; %get where goodlightref (y on plot) are under y=x line, (1*goodlightsig-0) is the full math for future ref
-goodlightsig_rejection = goodlightsig(k);
-goodlightref_rejection = goodlightref(k);
-% Fit with slope = 1 and points above x=y rejected
-mdl_rejection = fitlm(goodlightsig_rejection,goodlightref_rejection-1*goodlightsig_rejection,'constant');
-yfit=(1*xfit + mean(mdl_rejection.Fitted));
-fitwut_constslope_rejection = plot(xfit,yfit,'Color','k');
-% Robust fit w/ default weighting - this is the good one being used for ref corr
-mdl_robust = fitlm(goodlightsig,goodlightref,'RobustOpts','on');
-yfit=(mdl_robust.Coefficients{2,1}*xfit + mdl_robust.Coefficients{1,1});
-fitwut_robust = plot(xfit,yfit,'Color','#4DBEEE');
-% Huber weighting
-mdl_robust_huber = fitlm(goodlightsig,goodlightref,'RobustOpts','huber');
-yfit=(mdl_robust_huber.Coefficients{2,1}*xfit + mdl_robust_huber.Coefficients{1,1});
-fitwut_robust_huber = plot(xfit,yfit,'Color','#D95319');
-% Legend
-legend([xy fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
-    {'X = Y', ...
-    sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
-    sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
-    sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
-    ,'Location','northeast');
+% figure(); clf
+% hold on;
+% % Axis labels
+% xlabel('Mean of Unmasked Raw Image Pixels [DN]')
+% ylabel('Sigma-Clipped Mean of Reference Pixels [DN]')
+% % ylabel('Mean of Reference Pixels [DN]')
+% % ylabel('Median/Robust Mean of Referee Pixels [DN]')
+% % X data
+% goodlightsig = lightsig(lightbad<1,1); % Mean of masked raw image
+% % Y data
+% goodlightref = lightref(lightbad<1,1); % Sigma-clipped mean of ref pixels
+% % goodlightref = lightref_mean(lightbad<1,1); % Actual mean
+% % goodlightref = lightbias(lightbad<1,1); % Recorded bias (median or robust mean)
+% % Color data
+% % goodlightfield = lightfield(lightbad<1,1);
+% % goodlightdate = lightdate(lightbad<1,1);
+% % goodlightfpubtemp = lightfpubtemp(lightbad<1,1);
+% % Scatter plot
+% r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFaceColor','#77AC30'); % All points red
+% % r = scatter(goodlightsig,goodlightref,[],goodlightfield); % Points color-coded by field number
+% % r = scatter(goodlightsig,goodlightref,[],goodlightdate); % Points color-coded by date
+% % r = scatter(goodlightsig,goodlightref,[],goodlightfpubtemp); % Points color-coded by fpub temp
+% % g = colorbar; % If needed
+% % Plot x = y
+% x = [535:550];
+% y = [535:550];
+% xy = plot(x,y,'Color','#7E2F8E');
+% % Basic linear fit
+% [fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
+% xfit=linspace(535,550);
+% yfit=(fitobject.p1*xfit + fitobject.p2);
+% % fitwut = plot(xfit,yfit,'b');
+% % Fit with slope = 1
+% mdl = fitlm(goodlightsig,goodlightref-1*goodlightsig,'constant');
+% yfit=(1*xfit + mean(mdl.Fitted));
+% % fitwut_constslope = plot(xfit,yfit,'m');
+% % Calculate rejected points
+% k = goodlightsig >= goodlightref; %get where goodlightref (y on plot) are under y=x line, (1*goodlightsig-0) is the full math for future ref
+% goodlightsig_rejection = goodlightsig(k);
+% goodlightref_rejection = goodlightref(k);
+% % Fit with slope = 1 and points above x=y rejected
+% mdl_rejection = fitlm(goodlightsig_rejection,goodlightref_rejection-1*goodlightsig_rejection,'constant');
+% yfit=(1*xfit + mean(mdl_rejection.Fitted));
+% fitwut_constslope_rejection = plot(xfit,yfit,'Color','k');
+% % Robust fit w/ default weighting - this is the good one being used for ref corr
+% mdl_robust = fitlm(goodlightsig,goodlightref,'RobustOpts','on');
+% yfit=(mdl_robust.Coefficients{2,1}*xfit + mdl_robust.Coefficients{1,1});
+% fitwut_robust = plot(xfit,yfit,'Color','#4DBEEE');
+% % Huber weighting
+% mdl_robust_huber = fitlm(goodlightsig,goodlightref,'RobustOpts','huber');
+% yfit=(mdl_robust_huber.Coefficients{2,1}*xfit + mdl_robust_huber.Coefficients{1,1});
+% fitwut_robust_huber = plot(xfit,yfit,'Color','#D95319');
+% % Legend
+% legend([xy fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
+%     {'X = Y', ...
+%     sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
+%     sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
+%     sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
+%     ,'Location','northeast');
 
 
 %Plot relationship with 538 DN subtracted
-figure(); clf
-hold on;
-% Axis labels
-xlabel('Mean of Unmasked Raw Image Pixels - 538 [DN]')
-ylabel('Sigma-Clipped Mean of Reference Pixels - 538 [DN]')
-% ylabel('Mean of Reference Pixels - 538 [DN]')
-% ylabel('Median/Robust Mean of Reference Pixels - 538 [DN]')
-% X data
-goodlightsig = lightsig(lightbad<1,1)-538; % Mean of Unmasked Raw Image Pixels
-% Y data
-goodlightref = lightref(lightbad<1,1)-538; % Sigma-clipped mean of ref pix
-% goodlightref = lightref_mean(lightbad<1,1)-538; % Actual mean
-% goodlightref = lightbias(lightbad<1,1)-538; % Recorded bias (median or robust mean)
-% Color data
-% goodlightfield = lightfield(lightbad<1,1);
-goodlightdate = lightdate(lightbad<1,1);
-% goodlightfpubtemp = lightfpubtemp(lightbad<1,1);
-% Scatter plot
-r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFaceColor','#77AC30'); % All points red
-% r = scatter(goodlightsig,goodlightref,[],goodlightfield); % Points color-coded by field number
-% r = scatter(goodlightsig,goodlightref,[],goodlightdate); % Points color-coded by date
-% r = scatter(goodlightsig,goodlightref,[],goodlightfpubtemp); % Points color-coded by fpub temp
-% g = colorbar; % If needed
-% Plot x = y
-x = [535:550]-538;
-y = [535:550]-538;
-xy = plot(x,y,'Color','#7E2F8E');
-xlim([0,12])
-ylim([-2,12]);
-% Basic linear fit
-[fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
-xfit=linspace(535-538,550-538);
-yfit=(fitobject.p1*xfit + fitobject.p2);
-% fitwut = plot(xfit,yfit,'b');
-% Fit with slope = 1
-mdl = fitlm(goodlightsig,goodlightref-1*goodlightsig,'constant');
-yfit=(1*xfit + mean(mdl.Fitted));
-% fitwut_constslope = plot(xfit,yfit,'m');
-% Calculate rejected points
-k = goodlightsig >= goodlightref; %get where goodlightref (y on plot) are under y=x line, (1*goodlightsig-0) is the full math for future ref
-goodlightsig_rejection = goodlightsig(k);
-goodlightref_rejection = goodlightref(k);
-% Fit with slope = 1 and points above x=y rejected
-mdl_rejection = fitlm(goodlightsig_rejection,goodlightref_rejection-1*goodlightsig_rejection,'constant');
-yfit=(1*xfit + mean(mdl_rejection.Fitted));
-fitwut_constslope_rejection = plot(xfit,yfit,'Color','k');
-% Robust fit w/ default weighting - this is the good one being used for ref corr
-mdl_robust = fitlm(goodlightsig,goodlightref,'RobustOpts','on');
-yfit=(mdl_robust.Coefficients{2,1}*xfit + mdl_robust.Coefficients{1,1});
-fitwut_robust = plot(xfit,yfit,'Color','#4DBEEE');
-% Huber weighting
-mdl_robust_huber = fitlm(goodlightsig,goodlightref,'RobustOpts','huber');
-yfit=(mdl_robust_huber.Coefficients{2,1}*xfit + mdl_robust_huber.Coefficients{1,1});
-fitwut_robust_huber = plot(xfit,yfit,'Color','#D95319');
-% Legend
-legend([xy  fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
-    {'X = Y', ...
-    sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
-    sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
-    sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
-    ,'Location','northeast');
+% figure(); clf
+% hold on;
+% % Axis labels
+% xlabel('Mean of Unmasked Raw Image Pixels - 538 [DN]')
+% ylabel('Sigma-Clipped Mean of Reference Pixels - 538 [DN]')
+% % ylabel('Mean of Reference Pixels - 538 [DN]')
+% % ylabel('Median/Robust Mean of Reference Pixels - 538 [DN]')
+% % X data
+% goodlightsig = lightsig(lightbad<1,1)-538; % Mean of Unmasked Raw Image Pixels
+% % Y data
+% goodlightref = lightref(lightbad<1,1)-538; % Sigma-clipped mean of ref pix
+% % goodlightref = lightref_mean(lightbad<1,1)-538; % Actual mean
+% % goodlightref = lightbias(lightbad<1,1)-538; % Recorded bias (median or robust mean)
+% % Color data
+% % goodlightfield = lightfield(lightbad<1,1);
+% goodlightdate = lightdate(lightbad<1,1);
+% % goodlightfpubtemp = lightfpubtemp(lightbad<1,1);
+% % Scatter plot
+% r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFaceColor','#77AC30'); % All points red
+% % r = scatter(goodlightsig,goodlightref,[],goodlightfield); % Points color-coded by field number
+% % r = scatter(goodlightsig,goodlightref,[],goodlightdate); % Points color-coded by date
+% % r = scatter(goodlightsig,goodlightref,[],goodlightfpubtemp); % Points color-coded by fpub temp
+% % g = colorbar; % If needed
+% % Plot x = y
+% x = [535:550]-538;
+% y = [535:550]-538;
+% xy = plot(x,y,'Color','#7E2F8E');
+% xlim([0,12])
+% ylim([-2,12]);
+% % Basic linear fit
+% [fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
+% xfit=linspace(535-538,550-538);
+% yfit=(fitobject.p1*xfit + fitobject.p2);
+% % fitwut = plot(xfit,yfit,'b');
+% % Fit with slope = 1
+% mdl = fitlm(goodlightsig,goodlightref-1*goodlightsig,'constant');
+% yfit=(1*xfit + mean(mdl.Fitted));
+% % fitwut_constslope = plot(xfit,yfit,'m');
+% % Calculate rejected points
+% k = goodlightsig >= goodlightref; %get where goodlightref (y on plot) are under y=x line, (1*goodlightsig-0) is the full math for future ref
+% goodlightsig_rejection = goodlightsig(k);
+% goodlightref_rejection = goodlightref(k);
+% % Fit with slope = 1 and points above x=y rejected
+% mdl_rejection = fitlm(goodlightsig_rejection,goodlightref_rejection-1*goodlightsig_rejection,'constant');
+% yfit=(1*xfit + mean(mdl_rejection.Fitted));
+% fitwut_constslope_rejection = plot(xfit,yfit,'Color','k');
+% % Robust fit w/ default weighting - this is the good one being used for ref corr
+% mdl_robust = fitlm(goodlightsig,goodlightref,'RobustOpts','on');
+% yfit=(mdl_robust.Coefficients{2,1}*xfit + mdl_robust.Coefficients{1,1});
+% fitwut_robust = plot(xfit,yfit,'Color','#4DBEEE');
+% % Huber weighting
+% mdl_robust_huber = fitlm(goodlightsig,goodlightref,'RobustOpts','huber');
+% yfit=(mdl_robust_huber.Coefficients{2,1}*xfit + mdl_robust_huber.Coefficients{1,1});
+% fitwut_robust_huber = plot(xfit,yfit,'Color','#D95319');
+% % Legend
+% legend([xy  fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
+%     {'X = Y', ...
+%     sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
+%     sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
+%     sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
+%     ,'Location','northeast');
 
 
 %Plot relationship with 538 DN subtracted and normalized for integration
@@ -405,8 +405,8 @@ r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFace
 % Plot x = y
 % x = [535:550]-538;
 % y = [535:550]-538;
-x = [0:0.6];
-y = [0:0.6];
+x = [0:0.1:0.6];
+y = [0:0.1:0.6];
 xy = plot(x,y,'Color','#7E2F8E');
 % xlim([0,0.6])
 % ylim([-2,12]);
@@ -438,8 +438,8 @@ fitwut_robust_huber = plot(xfit,yfit,'Color','#D95319');
 % Legend
 legend([xy  fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
     {'X = Y', ...
-    sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
-    sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
+    sprintf('Linear Fit (above X=Y rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
+    sprintf('Robust Bisquare Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
     sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
     ,'Location','northwest');
 
@@ -447,127 +447,127 @@ legend([xy  fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
 % Plot mean of masked raw image (light data dns) vs. mean of reference pixels
 % (also light data) - with x=y line overplotted - not correct way of
 % integrating over exp time
-figure(); clf
-hold on;
-% Axis labels
-xlabel('Mean of Unmasked Raw Image Pixels [DN/s]')
-ylabel('Sigma-Clipped Mean of Reference Pixels [DN/s]')
-% ylabel('Mean of Reference Pixels [DN/s]')
-% ylabel('Median/Robust Mean of Reference Pixels [DN/s]')
-% X data
-goodlightsig = lightsig_dns(lightbad<1,1); % Mean of masked raw image
-% Y data
-goodlightref = lightref_dns(lightbad<1,1); % Sigma-clipped mean of ref pixels
-% goodlightref = lightref_mean(lightbad<1,1); % Actual mean
-% goodlightref = lightbias(lightbad<1,1); % Recorded bias (median or robust mean)
-% Color data
-% goodlightfield = lightfield(lightbad<1,1);
-% goodlightdate = lightdate(lightbad<1,1);
-% goodlightfpubtemp = lightfpubtemp(lightbad<1,1);
-% Scatter plot
-r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFaceColor','#77AC30'); % All points red
-% r = scatter(goodlightsig,goodlightref,[],goodlightfield); % Points color-coded by field number
-% r = scatter(goodlightsig,goodlightref,[],goodlightdate); % Points color-coded by date
-% r = scatter(goodlightsig,goodlightref,[],goodlightfpubtemp); % Points color-coded by fpub temp
-% g = colorbar; % If needed
-% Plot x = y
-x = [0:60];
-y = [0:60];
-xy = plot(x,y,'Color','#7E2F8E');
-% Basic linear fit
-[fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
-xfit=linspace(0,60);
-yfit=(fitobject.p1*xfit + fitobject.p2);
-% fitwut = plot(xfit,yfit,'b');
-% Fit with slope = 1
-mdl = fitlm(goodlightsig,goodlightref-1*goodlightsig,'constant');
-yfit=(1*xfit + mean(mdl.Fitted));
-% fitwut_constslope = plot(xfit,yfit,'m');
-% Calculate rejected points
-k = goodlightsig >= goodlightref; %get where goodlightref (y on plot) are under y=x line, (1*goodlightsig-0) is the full math for future ref
-goodlightsig_rejection = goodlightsig(k);
-goodlightref_rejection = goodlightref(k);
-% Fit with slope = 1 and points above x=y rejected
-mdl_rejection = fitlm(goodlightsig_rejection,goodlightref_rejection-1*goodlightsig_rejection,'constant');
-yfit=(1*xfit + mean(mdl_rejection.Fitted));
-fitwut_constslope_rejection = plot(xfit,yfit,'Color','k');
-% Robust fit w/ default weighting - this is the good one being used for ref corr
-mdl_robust = fitlm(goodlightsig,goodlightref,'RobustOpts','on');
-yfit=(mdl_robust.Coefficients{2,1}*xfit + mdl_robust.Coefficients{1,1});
-fitwut_robust = plot(xfit,yfit,'Color','#4DBEEE');
-% Huber weighting
-mdl_robust_huber = fitlm(goodlightsig,goodlightref,'RobustOpts','huber');
-yfit=(mdl_robust_huber.Coefficients{2,1}*xfit + mdl_robust_huber.Coefficients{1,1});
-fitwut_robust_huber = plot(xfit,yfit,'Color','#D95319');
-% Legend
-legend([xy fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
-    {'X = Y', ...
-    sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
-    sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
-    sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
-    ,'Location','southeast');
+% figure(); clf
+% hold on;
+% % Axis labels
+% xlabel('Mean of Unmasked Raw Image Pixels [DN/s]')
+% ylabel('Sigma-Clipped Mean of Reference Pixels [DN/s]')
+% % ylabel('Mean of Reference Pixels [DN/s]')
+% % ylabel('Median/Robust Mean of Reference Pixels [DN/s]')
+% % X data
+% goodlightsig = lightsig_dns(lightbad<1,1); % Mean of masked raw image
+% % Y data
+% goodlightref = lightref_dns(lightbad<1,1); % Sigma-clipped mean of ref pixels
+% % goodlightref = lightref_mean(lightbad<1,1); % Actual mean
+% % goodlightref = lightbias(lightbad<1,1); % Recorded bias (median or robust mean)
+% % Color data
+% % goodlightfield = lightfield(lightbad<1,1);
+% % goodlightdate = lightdate(lightbad<1,1);
+% % goodlightfpubtemp = lightfpubtemp(lightbad<1,1);
+% % Scatter plot
+% r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFaceColor','#77AC30'); % All points red
+% % r = scatter(goodlightsig,goodlightref,[],goodlightfield); % Points color-coded by field number
+% % r = scatter(goodlightsig,goodlightref,[],goodlightdate); % Points color-coded by date
+% % r = scatter(goodlightsig,goodlightref,[],goodlightfpubtemp); % Points color-coded by fpub temp
+% % g = colorbar; % If needed
+% % Plot x = y
+% x = [0:60];
+% y = [0:60];
+% xy = plot(x,y,'Color','#7E2F8E');
+% % Basic linear fit
+% [fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
+% xfit=linspace(0,60);
+% yfit=(fitobject.p1*xfit + fitobject.p2);
+% % fitwut = plot(xfit,yfit,'b');
+% % Fit with slope = 1
+% mdl = fitlm(goodlightsig,goodlightref-1*goodlightsig,'constant');
+% yfit=(1*xfit + mean(mdl.Fitted));
+% % fitwut_constslope = plot(xfit,yfit,'m');
+% % Calculate rejected points
+% k = goodlightsig >= goodlightref; %get where goodlightref (y on plot) are under y=x line, (1*goodlightsig-0) is the full math for future ref
+% goodlightsig_rejection = goodlightsig(k);
+% goodlightref_rejection = goodlightref(k);
+% % Fit with slope = 1 and points above x=y rejected
+% mdl_rejection = fitlm(goodlightsig_rejection,goodlightref_rejection-1*goodlightsig_rejection,'constant');
+% yfit=(1*xfit + mean(mdl_rejection.Fitted));
+% fitwut_constslope_rejection = plot(xfit,yfit,'Color','k');
+% % Robust fit w/ default weighting - this is the good one being used for ref corr
+% mdl_robust = fitlm(goodlightsig,goodlightref,'RobustOpts','on');
+% yfit=(mdl_robust.Coefficients{2,1}*xfit + mdl_robust.Coefficients{1,1});
+% fitwut_robust = plot(xfit,yfit,'Color','#4DBEEE');
+% % Huber weighting
+% mdl_robust_huber = fitlm(goodlightsig,goodlightref,'RobustOpts','huber');
+% yfit=(mdl_robust_huber.Coefficients{2,1}*xfit + mdl_robust_huber.Coefficients{1,1});
+% fitwut_robust_huber = plot(xfit,yfit,'Color','#D95319');
+% % Legend
+% legend([xy fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
+%     {'X = Y', ...
+%     sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
+%     sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
+%     sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
+%     ,'Location','southeast');
 
 %Plot relationship with 538 DN subtracted
-figure(); clf
-hold on;
-% Axis labels
-xlabel('Mean of Unmasked Raw Image Pixels - 18 [DN/s]')
-ylabel('Sigma-Clipped Mean of Reference Pixels - 18 [DN/s]')
-% ylabel('Mean of Reference Pixels - 18 [DN/s]')
-% ylabel('Median/Robust Mean of Reference Pixels - 18 [DN/s]')
-% X data
-goodlightsig = lightsig_dns(lightbad<1,1)-18; % Mean of Unmasked Raw Image Pixels
-% Y data
-goodlightref = lightref_dns(lightbad<1,1)-18; % Sigma-clipped mean of ref pix
-% goodlightref = lightref_mean(lightbad<1,1)-538; % Actual mean
-% goodlightref = lightbias(lightbad<1,1)-538; % Recorded bias (median or robust mean)
-% Color data
-% goodlightfield = lightfield(lightbad<1,1);
-goodlightdate = lightdate(lightbad<1,1);
-% goodlightfpubtemp = lightfpubtemp(lightbad<1,1);
-% Scatter plot
-r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFaceColor','#77AC30'); % All points red
-% r = scatter(goodlightsig,goodlightref,[],goodlightfield); % Points color-coded by field number
-% r = scatter(goodlightsig,goodlightref,[],goodlightdate); % Points color-coded by date
-% r = scatter(goodlightsig,goodlightref,[],goodlightfpubtemp); % Points color-coded by fpub temp
-% g = colorbar; % If needed
-% Plot x = y
-x = [0:60]-18;
-y = [0:60]-18;
-xy = plot(x,y,'Color','#7E2F8E');
-xlim([0,60-18])
-ylim([0,60-18]);
-% Basic linear fit
-[fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
-xfit=linspace(0-18,60-18);
-yfit=(fitobject.p1*xfit + fitobject.p2);
-% fitwut = plot(xfit,yfit,'b');
-% Fit with slope = 1
-mdl = fitlm(goodlightsig,goodlightref-1*goodlightsig,'constant');
-yfit=(1*xfit + mean(mdl.Fitted));
-% fitwut_constslope = plot(xfit,yfit,'m');
-% Calculate rejected points
-k = goodlightsig >= goodlightref; %get where goodlightref (y on plot) are under y=x line, (1*goodlightsig-0) is the full math for future ref
-goodlightsig_rejection = goodlightsig(k);
-goodlightref_rejection = goodlightref(k);
-% Fit with slope = 1 and points above x=y rejected
-mdl_rejection = fitlm(goodlightsig_rejection,goodlightref_rejection-1*goodlightsig_rejection,'constant');
-yfit=(1*xfit + mean(mdl_rejection.Fitted));
-fitwut_constslope_rejection = plot(xfit,yfit,'Color','k');
-% Robust fit w/ default weighting - this is the good one being used for ref corr
-mdl_robust = fitlm(goodlightsig,goodlightref,'RobustOpts','on');
-yfit=(mdl_robust.Coefficients{2,1}*xfit + mdl_robust.Coefficients{1,1});
-fitwut_robust = plot(xfit,yfit,'Color','#4DBEEE');
-% Huber weighting
-mdl_robust_huber = fitlm(goodlightsig,goodlightref,'RobustOpts','huber');
-yfit=(mdl_robust_huber.Coefficients{2,1}*xfit + mdl_robust_huber.Coefficients{1,1});
-fitwut_robust_huber = plot(xfit,yfit,'Color','#D95319');
-% Legend
-legend([xy  fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
-    {'X = Y', ...
-    sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
-    sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
-    sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
-    ,'Location','southeast');
+% figure(); clf
+% hold on;
+% % Axis labels
+% xlabel('Mean of Unmasked Raw Image Pixels - 18 [DN/s]')
+% ylabel('Sigma-Clipped Mean of Reference Pixels - 18 [DN/s]')
+% % ylabel('Mean of Reference Pixels - 18 [DN/s]')
+% % ylabel('Median/Robust Mean of Reference Pixels - 18 [DN/s]')
+% % X data
+% goodlightsig = lightsig_dns(lightbad<1,1)-18; % Mean of Unmasked Raw Image Pixels
+% % Y data
+% goodlightref = lightref_dns(lightbad<1,1)-18; % Sigma-clipped mean of ref pix
+% % goodlightref = lightref_mean(lightbad<1,1)-538; % Actual mean
+% % goodlightref = lightbias(lightbad<1,1)-538; % Recorded bias (median or robust mean)
+% % Color data
+% % goodlightfield = lightfield(lightbad<1,1);
+% goodlightdate = lightdate(lightbad<1,1);
+% % goodlightfpubtemp = lightfpubtemp(lightbad<1,1);
+% % Scatter plot
+% r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFaceColor','#77AC30'); % All points red
+% % r = scatter(goodlightsig,goodlightref,[],goodlightfield); % Points color-coded by field number
+% % r = scatter(goodlightsig,goodlightref,[],goodlightdate); % Points color-coded by date
+% % r = scatter(goodlightsig,goodlightref,[],goodlightfpubtemp); % Points color-coded by fpub temp
+% % g = colorbar; % If needed
+% % Plot x = y
+% x = [0:60]-18;
+% y = [0:60]-18;
+% xy = plot(x,y,'Color','#7E2F8E');
+% xlim([0,60-18])
+% ylim([0,60-18]);
+% % Basic linear fit
+% [fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
+% xfit=linspace(0-18,60-18);
+% yfit=(fitobject.p1*xfit + fitobject.p2);
+% % fitwut = plot(xfit,yfit,'b');
+% % Fit with slope = 1
+% mdl = fitlm(goodlightsig,goodlightref-1*goodlightsig,'constant');
+% yfit=(1*xfit + mean(mdl.Fitted));
+% % fitwut_constslope = plot(xfit,yfit,'m');
+% % Calculate rejected points
+% k = goodlightsig >= goodlightref; %get where goodlightref (y on plot) are under y=x line, (1*goodlightsig-0) is the full math for future ref
+% goodlightsig_rejection = goodlightsig(k);
+% goodlightref_rejection = goodlightref(k);
+% % Fit with slope = 1 and points above x=y rejected
+% mdl_rejection = fitlm(goodlightsig_rejection,goodlightref_rejection-1*goodlightsig_rejection,'constant');
+% yfit=(1*xfit + mean(mdl_rejection.Fitted));
+% fitwut_constslope_rejection = plot(xfit,yfit,'Color','k');
+% % Robust fit w/ default weighting - this is the good one being used for ref corr
+% mdl_robust = fitlm(goodlightsig,goodlightref,'RobustOpts','on');
+% yfit=(mdl_robust.Coefficients{2,1}*xfit + mdl_robust.Coefficients{1,1});
+% fitwut_robust = plot(xfit,yfit,'Color','#4DBEEE');
+% % Huber weighting
+% mdl_robust_huber = fitlm(goodlightsig,goodlightref,'RobustOpts','huber');
+% yfit=(mdl_robust_huber.Coefficients{2,1}*xfit + mdl_robust_huber.Coefficients{1,1});
+% fitwut_robust_huber = plot(xfit,yfit,'Color','#D95319');
+% % Legend
+% legend([xy  fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
+%     {'X = Y', ...
+%     sprintf('Linear Fit (above y=x rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
+%     sprintf('Robust Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
+%     sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
+%     ,'Location','southeast');
 
 fprint('done');

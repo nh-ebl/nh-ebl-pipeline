@@ -173,13 +173,13 @@ starghostdistall4=zeros((size(datafiles,1)+size(ndatafiles,1)),1);
 
 % For old data files
 for ifile=1:size(datafiles,1)
-    
+
     % Print current file number
     fprintf('On file %d of %d.\n',ifile,size(datafiles,1));
-    
+
     % Load data
     load(sprintf('%s%s',paths.datadir,datafiles(ifile).name));
-    
+
     % Append ghost x and y position, radius, total position, and if partial
     %these come from the excel files where the locations were predetermined
     data.ghost.ghostx = oldghostinfo{ifile,14};
@@ -191,7 +191,7 @@ for ifile=1:size(datafiles,1)
     data.ghost.fitx = [0.1200, 8.0714]; %also written to mat files in nh_fix_files, change there if needed
     data.ghost.fity = [0.1240, 1.9151];
     [data.ghost.ghostra,data.ghost.ghostdec]=pix2radec(data.astrometry,data.ghost.ghostx,data.ghost.ghosty);
-    
+
     % If no ghost (nothing in x/y location), do nothing
     if  strcmp(data.ghost.ghostx, 0) == 1
         fprintf('No ghost ');
@@ -206,21 +206,21 @@ for ifile=1:size(datafiles,1)
         elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
             ghostpart(ifile,1) = 0.5;
         end
-        
+
         % Calculate 'mask' of each ghost and plot - im>0 for all masks = 1, im for weighted by
-    % repeated location
-%         [xgrid, ygrid] = meshgrid(1:size(data.data,2), 1:size(data.data,1));
+        % repeated location
+        %         [xgrid, ygrid] = meshgrid(1:size(data.data,2), 1:size(data.data,1));
         % Create mask where meshgrid values are less than radius distance from
         % source (adjusting back to origin in lower left corner)
         % Radius was determined by maximum possible ghost radius (18), now extended
         % to 21.5 to make up for coord prediction having some error
-%         mask = ((xgrid-(data.ghost.ghostx)).^2 + (ygrid-(data.ghost.ghosty)).^2) <= data.ghost.ghostrad.^2;
+        %         mask = ((xgrid-(data.ghost.ghostx)).^2 + (ygrid-(data.ghost.ghosty)).^2) <= data.ghost.ghostrad.^2;
         % Set mask values to 1
-%         ghostmask = zeros(256);
-%         ghostmask(mask) = 1;
-%         im = im + ghostmask;
-%         imagesc(im>0);
-        
+        %         ghostmask = zeros(256);
+        %         ghostmask(mask) = 1;
+        %         im = im + ghostmask;
+        %         imagesc(im>0);
+
         % ghost brightness analysis
         %using ap_photom, the brightness of the ghost is determined and
         %assigned to variables
@@ -233,23 +233,23 @@ for ifile=1:size(datafiles,1)
         %             ghostmag(ifile,1)=(-2.5*log10(Flux(ifile,1))+25.6884); % calc G mag with Gaia zero point
         %             ghostmag(ifile,1)=(-2.5*log10(Flux(ifile,1)/data.cal.vzero)); % Get V-band mag
         ghostmag(ifile,1) = Flux(ifile,1); % keep lil instead of mag
-        
+
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,1);
-        
+
         % Preallocate space for list of star distance to center, star
         % distance to ghost, and x and y coord of star
         stardistcent = zeros(1,numstars);
         stardistghost = zeros(1,numstars);
         starx = zeros(numstars,1);
         stary = zeros(numstars,1);
-        
+
         % For all stars, retrieve x and y position
         for j = 1:numstars
-            
+
             x = data.ghost.brightxpix(j,1);
             y = data.ghost.brightypix(j,1);
-            
+
             % Adjust coordinates for large (654x654) grid
             if x < 0
                 x = 199 + x;
@@ -261,22 +261,22 @@ for ifile=1:size(datafiles,1)
             else
                 y = y + 199;
             end
-            
+
             % Save star x and y adjusted positions
             brightmag(ifile,1);
             starx(j,1) = x;
             stary(j,1) = y;
-            
+
             % Calculate distance from center pixel to star pixel and
             % distance from star pixel to ghost pixel
             stardistcent(1,j) = sqrt((x-(199+128))^2 + (y-(199+128))^2);
             stardistghost(1,j) = sqrt((x-(199+data.ghost.ghostx))^2 + (y-(199+(data.ghost.ghosty)))^2);
         end
-        
+
         % Save star to center and star to ghost distances
         data.ghost.stardistcent = stardistcent;
         data.ghost.stardistghost = stardistghost;
-        
+
         % Find which star (if more than one) is closest to ghost (assuming
         % that is the cause of the ghost)
         [M,I] = min(stardistghost);
@@ -285,7 +285,7 @@ for ifile=1:size(datafiles,1)
         starrad(ifile,1) = M;
         starxadj(ifile,1) = starx(I,1);
         staryadj(ifile,1) = stary(I,1);
-        
+
         %assigning star mag to a variable
         brightmag(ifile,1) = data.ghost.brightmag(I,1);
         ghostrad(ifile,1)= data.ghost.ghostrad;
@@ -301,7 +301,7 @@ for ifile=1:size(datafiles,1)
         ghostxadj(ifile,1) = 199+data.ghost.ghostx;
         ghostyadj(ifile,1) = 199+data.ghost.ghosty;
         % testing the location of ghosts using our prediction equation
-        
+
         ghostxcent(ifile,1)= ghostxadj(ifile,1)-327;
         ghostycent(ifile,1)= ghostyadj(ifile,1)-327;
         starxcent(ifile,1)= starxadj(ifile,1)-327;
@@ -311,11 +311,11 @@ for ifile=1:size(datafiles,1)
         ghostxguess(ifile,1)= 0.1200*starxcent(ifile,1)+8.0714; %new GAIA fit
         ghostyguess(ifile,1)=0.1240*starycent(ifile,1)+1.9151; %new GAIA fit
         ghostmagguess(ifile,1)=1.1473*brightmag(ifile,1)+8.1212; %old USNOB1 fit
-        
+
         % If more than one star per ghost (never seen more than 2), save
         % info for star that's farther away
         if( length(stardistghost) > 1 ) %check out 2 star options instances
-            
+
             % Find star with max distance
             [M,I] = max(stardistghost);
             %             star2rad(ifile,1) = M;
@@ -326,7 +326,7 @@ for ifile=1:size(datafiles,1)
             star2ycent((ifile),1)= star2yadj((ifile),1)-327;
             brightmag2((ifile),1) = data.ghost.brightmag(I,1);
             star2posadj(ifile,1) = sqrt(star2xadj(ifile,1)^2 + star2yadj(ifile,1)^2);
-            
+
             % Make plot of ghost location and bright star locations - blue for
             % regular ghost and red for partial ghost
             % this plot is for second star options, just to check them out
@@ -424,7 +424,7 @@ for ifile=1:size(datafiles,1)
         % xunit = 268*cos(th)+327;
         % yunit = 268*sin(th)+327;
         % plot(xunit,yunit,'k:');
-        
+
         %                 title(sprintf('%s',data.header.rawfile));
         %                 ext = '.png';
         %                 imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
@@ -432,47 +432,47 @@ for ifile=1:size(datafiles,1)
         % Save new data to mat files
         %         save(sprintf('%s%s',paths.datadir,datafiles(ifile).name),'data');
         % %
-        
-%         if( numstars > 0 )
-%             h = figure(2);
-%             set(h,'visible','off');
-%             clf;
-%             x1=-128;
-%             x2=128;
-%             y1=-128;
-%             y2=128;
-%             xbox = [x1, x2, x2, x1, x1];
-%             ybox = [y1, y1, y2, y2, y1];
-%             plot(xbox, ybox, 'k-', 'LineWidth', 3);
-%             hold on;
-%             xlim([-327,327]);
-%             ylim([-327,327]);
-%             th = 0:pi/50:2*pi;
-%             xunit = 268 * cos(th);
-%             yunit = 268 * sin(th);
-%             plot(xunit, yunit,'k--');
-%             pbaspect([1 1 1]);
-%             hold on;
-%             scatter(starxcent((ifile),1),starycent((ifile),1),'y','filled');
-%             text(starxcent((ifile),1)-26,starycent((ifile),1)+20,['m',num2str(brightmag((ifile),1))]);
-%             if numstars > 1
-%                 scatter(star2xcent((ifile),1),star2ycent((ifile),1),'g','filled');
-%                 text(star2xcent((ifile),1)-26,star2ycent((ifile),1)+20,['m',num2str(brightmag2((ifile),1))]);
-%             end
-%             if ghostpart((ifile),1) == 1
-%                 scatter(ghostxcent((ifile),1),ghostycent((ifile),1),'r','filled');
-%             elseif ghostpart((ifile),1) == 0
-%                 scatter(ghostxcent((ifile),1),ghostycent((ifile),1),'b','filled');
-%             end
-%             title(data.header.rawfile,'Interpreter','none');
-%             ext = '.png';
-%             imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
-% %             print(h,imagename, '-dpng');
-%             if( numstars > 1 )
-%                disp('woah');
-%             end
-%         end
-        
+
+        %         if( numstars > 0 )
+        %             h = figure(2);
+        %             set(h,'visible','off');
+        %             clf;
+        %             x1=-128;
+        %             x2=128;
+        %             y1=-128;
+        %             y2=128;
+        %             xbox = [x1, x2, x2, x1, x1];
+        %             ybox = [y1, y1, y2, y2, y1];
+        %             plot(xbox, ybox, 'k-', 'LineWidth', 3);
+        %             hold on;
+        %             xlim([-327,327]);
+        %             ylim([-327,327]);
+        %             th = 0:pi/50:2*pi;
+        %             xunit = 268 * cos(th);
+        %             yunit = 268 * sin(th);
+        %             plot(xunit, yunit,'k--');
+        %             pbaspect([1 1 1]);
+        %             hold on;
+        %             scatter(starxcent((ifile),1),starycent((ifile),1),'y','filled');
+        %             text(starxcent((ifile),1)-26,starycent((ifile),1)+20,['m',num2str(brightmag((ifile),1))]);
+        %             if numstars > 1
+        %                 scatter(star2xcent((ifile),1),star2ycent((ifile),1),'g','filled');
+        %                 text(star2xcent((ifile),1)-26,star2ycent((ifile),1)+20,['m',num2str(brightmag2((ifile),1))]);
+        %             end
+        %             if ghostpart((ifile),1) == 1
+        %                 scatter(ghostxcent((ifile),1),ghostycent((ifile),1),'r','filled');
+        %             elseif ghostpart((ifile),1) == 0
+        %                 scatter(ghostxcent((ifile),1),ghostycent((ifile),1),'b','filled');
+        %             end
+        %             title(data.header.rawfile,'Interpreter','none');
+        %             ext = '.png';
+        %             imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
+        % %             print(h,imagename, '-dpng');
+        %             if( numstars > 1 )
+        %                disp('woah');
+        %             end
+        %         end
+
         if ghostpart((ifile),1) == 1
             ghostxcent((ifile),1) =0;
             ghostycent((ifile),1) =0;
@@ -505,7 +505,7 @@ for ifile=1:size(datafiles,1)
             ghostcentdistall1((ifile),1)= ghostcentdistall((ifile),1);
             starposadj1((ifile),1)= starposadj((ifile),1);
             starghostdistall1((ifile),1)= starghostdistall((ifile),1);
-            
+
         elseif ((brightmag((ifile),1)>4) && (brightmag((ifile),1)<6))
             bm2((ifile),1)= brightmag((ifile),1);
             gm2(ifile,1)= ghostmag(ifile,1);
@@ -569,13 +569,13 @@ end
 
 % For new data files
 for ifile=1:size(ndatafiles,1)
-    
+
     % Print current file number
     fprintf('\nOn file %d of %d.',ifile,size(ndatafiles,1));
-    
+
     % Load data
     load(sprintf('%s%s',npaths.datadir,ndatafiles(ifile).name));
-    
+
     % Append ghost x and y position, radius, total position, and if partial
     data.ghost.ghostx = ghostinfo{ifile,14};
     data.ghost.ghosty = ghostinfo{ifile,15};
@@ -585,10 +585,10 @@ for ifile=1:size(ndatafiles,1)
     % Save x/y fit parameters to be used for ghost location prediction - generated by plots below
     data.ghost.fitx = [0.1200, 8.0714]; %also written to mat files in nh_fix_files, change there if needed
     data.ghost.fity = [0.1240, 1.9151];
-    
+
     % If no ghost, do nothing
     if strcmp(data.ghost.ghostx , '') == 1 || data.ghost.ghostx == 0
-        
+
         fprintf(' No ghost.');
     else
         [data.ghost.ghostra,data.ghost.ghostdec]=pix2radec(data.astrometry,data.ghost.ghostx,data.ghost.ghosty);
@@ -602,40 +602,40 @@ for ifile=1:size(ndatafiles,1)
             ghostrad((ifile+16),1)= data.ghost.ghostrad;
         elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
             ghostpart((ifile+16),1) = 0.5;
-            
+
         end
-        
+
         % Plot all ghost 'masks' together - im>0 for all masks = 1, im for weighted by
-    % repeated location
-%         [xgrid, ygrid] = meshgrid(1:size(data.data,2), 1:size(data.data,1));
+        % repeated location
+        %         [xgrid, ygrid] = meshgrid(1:size(data.data,2), 1:size(data.data,1));
         % Create mask where meshgrid values are less than radius distance from
         % source (adjusting back to origin in lower left corner)
         % Radius was determined by maximum possible ghost radius (18), now extended
         % to 21.5 to make up for coord prediction having some error
-%         mask = ((xgrid-(data.ghost.ghostx)).^2 + (ygrid-(data.ghost.ghosty)).^2) <= data.ghost.ghostrad.^2;
+        %         mask = ((xgrid-(data.ghost.ghostx)).^2 + (ygrid-(data.ghost.ghosty)).^2) <= data.ghost.ghostrad.^2;
         % Set mask values to 1
-%         ghostmask = zeros(256);
-%         ghostmask(mask) = 1;
-%         im = im + ghostmask;
-%         imagesc(im>0);
-        
+        %         ghostmask = zeros(256);
+        %         ghostmask(mask) = 1;
+        %         im = im + ghostmask;
+        %         imagesc(im>0);
+
         % Calculate number of potential bright stars contributing to ghost
         numstars = size(data.ghost.brightmag,1);
-        
+
         % Preallocate space for list of star distance to center, star
         % distance to ghost, and x and y coord of star
         stardistcent = zeros(1,numstars);
         stardistghost = zeros(1,numstars);
         starx = zeros(numstars,1);
         stary = zeros(numstars,1);
-        
+
         % For all stars, retrieve x and y position
         for j = 1:numstars
-            
-            
+
+
             x = data.ghost.brightxpix(j,1);
             y = data.ghost.brightypix(j,1);
-            
+
             % Adjust coordinates for large (654x654) grid
             if x < 0
                 x = 199 + x;
@@ -647,21 +647,21 @@ for ifile=1:size(ndatafiles,1)
             else
                 y = y + 199;
             end
-            
+
             % Save star x and y adjusted positions
             starx(j,1) = x;
             stary(j,1) = y;
-            
+
             % Calculate distance from center pixel to star pixel and
             % distance from star pixel to ghost pixel
             stardistcent(1,j) = sqrt((x-(199+128))^2 + (y-(199+128))^2);
             stardistghost(1,j) = sqrt((x-(199+data.ghost.ghostx))^2 + (y-(199+(data.ghost.ghosty)))^2);
         end
-        
+
         % Save star to center and star to ghost distances
         data.ghost.stardistcent = stardistcent;
         data.ghost.stardistghost = stardistghost;
-        
+
         % Find which star (if more than one) is closest to ghost (assuming
         % that is the cause of the ghost)
         [M,I] = min(stardistghost);
@@ -672,7 +672,7 @@ for ifile=1:size(ndatafiles,1)
         staryadj((ifile+16),1) = stary(I,1);
         starxcent((ifile+16),1)= starxadj((ifile+16),1)-327;
         starycent((ifile+16),1)= staryadj((ifile+16),1)-327;
-        
+
         % For all stars, save star/cent distance, ghost/cent distance, and
         % star/ghost distance
         starcentdistall((ifile+16),1) = stardistcent(1,I);
@@ -686,12 +686,12 @@ for ifile=1:size(ndatafiles,1)
         ghostycent((ifile+16),1)= ghostyadj((ifile+16),1)-327;
         starposadj((ifile+16),1) = sqrt(starxadj((ifile+16),1)^2 + staryadj((ifile+16),1)^2);
         ghostposadj((ifile+16),1) = sqrt((199+data.ghost.ghostx)^2 + (199+data.ghost.ghosty)^2);
-        
+
         %assigning star magnitude to a variable
         if strcmp(data.ghost.ghostpartial , 'partial ') == 1
             brightmag((ifile+16),1) = data.ghost.brightmag(I,1);
         elseif data.ghost.ghostx == 0 && strcmp(data.ghost.ghostpartial , 'partial ') ~= 1
-            
+
         else
             %using ap_photom, the brightness of the ghost is determined and
             %assigned to variables
@@ -713,11 +713,11 @@ for ifile=1:size(ndatafiles,1)
             ghostxguess((ifile+16),1)= 0.1200*starxcent((ifile+16),1)+8.0714; %new GAIA fit
             ghostyguess((ifile+16),1)= 0.1240*starycent((ifile+16),1)+1.9151; %new GAIA fit
         end
-        
+
         % If more than one star per ghost (never seen more than 2), save
         % info for star that's farther away
         if( length(stardistghost) > 1 ) %check out 2 star options instances
-            
+
             % Find star with max distance
             [M,I] = max(stardistghost);
             %             star2rad(ifile,1) = M;
@@ -728,7 +728,7 @@ for ifile=1:size(ndatafiles,1)
             star2ycent((ifile+16),1)= star2yadj((ifile+16),1)-327;
             brightmag2((ifile+16),1) = data.ghost.brightmag(I,1);
             star2posadj((ifile+16),1) = sqrt(star2xadj((ifile+16),1)^2 + star2yadj((ifile+16),1)^2);
-            
+
             % Make plot of ghost location and bright star locations - blue for
             % regular ghost and red for partial ghost
             % this plot is for second star options, just to check them out
@@ -828,53 +828,53 @@ for ifile=1:size(ndatafiles,1)
         % xunit = 268*cos(th)+327;
         % yunit = 268*sin(th)+327;
         % plot(xunit,yunit, 'k:');
-        
+
         %                 title(sprintf('%s',data.header.rawfile));
         %                 ext = '.png';
         %                 imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
         %                 print(h,imagename, '-dpng');
         %
-%         if( numstars > 0 )
-%             h = figure(2);
-%             set(h,'visible','off');
-%             clf;
-%             x1=-128;
-%             x2=128;
-%             y1=-128;
-%             y2=128;
-%             xbox = [x1, x2, x2, x1, x1];
-%             ybox = [y1, y1, y2, y2, y1];
-%             plot(xbox, ybox, 'k-', 'LineWidth', 3);
-%             hold on;
-%             xlim([-327,327]);
-%             ylim([-327,327]);
-%             th = 0:pi/50:2*pi;
-%             xunit = 268 * cos(th);
-%             yunit = 268 * sin(th);
-%             plot(xunit, yunit,'k--');
-%             pbaspect([1 1 1]);
-%             hold on;
-%             scatter(starxcent((ifile+16),1),starycent((ifile+16),1),'y','filled');
-%             text(starxcent((ifile+16),1)-26,starycent((ifile+16),1)+20,['m',num2str(brightmag((ifile+16),1))]);
-%             if numstars > 1
-%                 scatter(star2xcent((ifile+16),1),star2ycent((ifile+16),1),'g','filled');
-%                 text(star2xcent((ifile+16),1)-26,star2ycent((ifile+16),1)+20,['m',num2str(brightmag2((ifile+16),1))]);
-%             end
-%             if ghostpart((ifile+16),1) == 1
-%                 scatter(ghostxcent((ifile+16),1),ghostycent((ifile+16),1),'r','filled');
-%             elseif ghostpart((ifile+16),1) == 0
-%                 scatter(ghostxcent((ifile+16),1),ghostycent((ifile+16),1),'b','filled');
-%             end
-%             title(data.header.rawfile,'Interpreter','none');
-%             ext = '.png';
-%             imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
-% %             print(h,imagename, '-dpng');
-%             if( numstars > 1 )
-%                disp('woah');
-%             end
-%         end
+        %         if( numstars > 0 )
+        %             h = figure(2);
+        %             set(h,'visible','off');
+        %             clf;
+        %             x1=-128;
+        %             x2=128;
+        %             y1=-128;
+        %             y2=128;
+        %             xbox = [x1, x2, x2, x1, x1];
+        %             ybox = [y1, y1, y2, y2, y1];
+        %             plot(xbox, ybox, 'k-', 'LineWidth', 3);
+        %             hold on;
+        %             xlim([-327,327]);
+        %             ylim([-327,327]);
+        %             th = 0:pi/50:2*pi;
+        %             xunit = 268 * cos(th);
+        %             yunit = 268 * sin(th);
+        %             plot(xunit, yunit,'k--');
+        %             pbaspect([1 1 1]);
+        %             hold on;
+        %             scatter(starxcent((ifile+16),1),starycent((ifile+16),1),'y','filled');
+        %             text(starxcent((ifile+16),1)-26,starycent((ifile+16),1)+20,['m',num2str(brightmag((ifile+16),1))]);
+        %             if numstars > 1
+        %                 scatter(star2xcent((ifile+16),1),star2ycent((ifile+16),1),'g','filled');
+        %                 text(star2xcent((ifile+16),1)-26,star2ycent((ifile+16),1)+20,['m',num2str(brightmag2((ifile+16),1))]);
+        %             end
+        %             if ghostpart((ifile+16),1) == 1
+        %                 scatter(ghostxcent((ifile+16),1),ghostycent((ifile+16),1),'r','filled');
+        %             elseif ghostpart((ifile+16),1) == 0
+        %                 scatter(ghostxcent((ifile+16),1),ghostycent((ifile+16),1),'b','filled');
+        %             end
+        %             title(data.header.rawfile,'Interpreter','none');
+        %             ext = '.png';
+        %             imagename = sprintf('%s%s%s',npaths.ghostdir,data.header.timestamp,ext);
+        % %             print(h,imagename, '-dpng');
+        %             if( numstars > 1 )
+        %                disp('woah');
+        %             end
+        %         end
 
-        
+
         %for color coding graphs
         if ghostpart((ifile+16),1) == 1
             ghostxcent((ifile+16),1) =0;
@@ -1030,7 +1030,7 @@ int_err = [std(log10(gm1(gm1~=0))),std(log10(gm2(gm2~=0))),std(log10(gm3(gm3~=0)
 [fitobject,gof,output] = fit(reshape(star_mag,[numel(star_mag),1]),ghost_int','poly1','Weights',int_err);
 alpha = 0.95;
 ci = confint(fitobject, alpha);
-t = tinv((1+alpha)/2, gof.dfe); 
+t = tinv((1+alpha)/2, gof.dfe);
 se = (ci(2,:)-ci(1,:)) ./ (2*t); % Standard Error from confidence intervals
 
 % apply fit
@@ -1054,7 +1054,7 @@ pCov_mdl_CovB = inv(mdl_J'*mdl_J)*((mdl_R'*mdl_R)./(numel(star_mag) - 2)); % -2 
 
 % fit solution using handmade linear_fit
 fitter = linear_fit(reshape(star_mag,[numel(star_mag),1]),ghost_int',int_err');
-fitter.covMat; % var-cov matrix from fit 
+fitter.covMat; % var-cov matrix from fit
 W = eye(numel(star_mag) ).*int_err'; % Weight matrix
 % var-cov matrix from Jacobian and residuals with weighting added
 inv(fitter.Jacobian'*W*fitter.Jacobian)*((fitter.residuals'*W*fitter.residuals)./(numel(star_mag) - 2)); % The Jacobian/residual out of fitter doesn't have the weight matrix built in, so it needs to be added
@@ -1095,8 +1095,8 @@ hold on;
 xlim([-327,327]);
 ylim([-327,327]);
 th = 0:pi/50:2*pi;
-xunit = 268 * cos(th);
-yunit = 268 * sin(th);
+xunit = 274.5 * cos(th);
+yunit = 274.5 * sin(th);
 h = plot(xunit, yunit,'k--');
 pbaspect([1 1 1]);
 hold on;
@@ -1299,64 +1299,64 @@ title(sprintf('y = %.2fx + %.2f',fityo(1),fityo(2))); % new line of best fit (GA
 legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 
 % %ghost location x test
-figure(14);
-hold on;
-g1= scatter(ghostxo1(ghostxo1~=0), ghostxguess1(ghostxguess1~=0),'r', 'filled');
-g2= scatter(ghostxo2(ghostxo2~=0), ghostxguess2(ghostxguess2~=0),'m', 'filled');
-g3= scatter( ghostxo3(ghostxo3~=0),ghostxguess3(ghostxguess3~=0),'c', 'filled');
-g4= scatter(ghostxo4(ghostxo4~=0), ghostxguess4(ghostxguess4~=0),'b', 'filled');
-guesslinex= linspace(min(ghostxcent(ghostxcent~=0)),max(ghostxcent(ghostxcent~=0)));
-guessguessx= linspace(min(ghostxguess(ghostxguess~=0)),max(ghostxguess(ghostxguess~=0)));
-plot(guesslinex(guesslinex~=0),guessguessx(guessguessx~=0));
-xlabel('Expected X');
-ylabel('Guess X');
-legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+% figure(14);
+% hold on;
+% g1= scatter(ghostxo1(ghostxo1~=0), ghostxguess1(ghostxguess1~=0),'r', 'filled');
+% g2= scatter(ghostxo2(ghostxo2~=0), ghostxguess2(ghostxguess2~=0),'m', 'filled');
+% g3= scatter( ghostxo3(ghostxo3~=0),ghostxguess3(ghostxguess3~=0),'c', 'filled');
+% g4= scatter(ghostxo4(ghostxo4~=0), ghostxguess4(ghostxguess4~=0),'b', 'filled');
+% guesslinex= linspace(min(ghostxcent(ghostxcent~=0)),max(ghostxcent(ghostxcent~=0)));
+% guessguessx= linspace(min(ghostxguess(ghostxguess~=0)),max(ghostxguess(ghostxguess~=0)));
+% plot(guesslinex(guesslinex~=0),guessguessx(guessguessx~=0));
+% xlabel('Expected X');
+% ylabel('Guess X');
+% legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %
 % %ghost location y test
-figure(15);
-hold on;
-g1= scatter( ghostyo1(ghostyo1~=0),ghostyguess1(ghostyguess1~=0),'r', 'filled');
-g2= scatter( ghostyo2(ghostyo2~=0),ghostyguess2(ghostyguess2~=0),'m', 'filled');
-g3= scatter( ghostyo3(ghostyo3~=0),ghostyguess3(ghostyguess3~=0),'c', 'filled');
-g4= scatter( ghostyo4(ghostyo4~=0),ghostyguess4(ghostyguess4~=0),'b', 'filled');
-guessliney= linspace(min(ghostycent(ghostycent~=0)),max(ghostycent(ghostycent~=0)));
-guessguessy= linspace(min(ghostyguess(ghostyguess~=0)),max(ghostyguess(ghostyguess~=0)));
-plot(guessliney(guessliney~=0),guessguessy(guessguessy~=0));
-xlabel('Expected Y');
-ylabel('Guess Y');
-legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+% figure(15);
+% hold on;
+% g1= scatter( ghostyo1(ghostyo1~=0),ghostyguess1(ghostyguess1~=0),'r', 'filled');
+% g2= scatter( ghostyo2(ghostyo2~=0),ghostyguess2(ghostyguess2~=0),'m', 'filled');
+% g3= scatter( ghostyo3(ghostyo3~=0),ghostyguess3(ghostyguess3~=0),'c', 'filled');
+% g4= scatter( ghostyo4(ghostyo4~=0),ghostyguess4(ghostyguess4~=0),'b', 'filled');
+% guessliney= linspace(min(ghostycent(ghostycent~=0)),max(ghostycent(ghostycent~=0)));
+% guessguessy= linspace(min(ghostyguess(ghostyguess~=0)),max(ghostyguess(ghostyguess~=0)));
+% plot(guessliney(guessliney~=0),guessguessy(guessguessy~=0));
+% xlabel('Expected Y');
+% ylabel('Guess Y');
+% legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %
 %
 % %actual X - guess vs actual
-figure(16);
-title('X');
-xlabel('expected');
-ylabel('expected - guess');
-amgx1= ghostxo1 - ghostxguess1;
-amgx2= ghostxo2 - ghostxguess2;
-amgx3= ghostxo3 - ghostxguess3;
-amgx4= ghostxo4 - ghostxguess4;
-hold on;
-g1= scatter(ghostxo1(ghostxo1~=0),amgx1(amgx1~=0), 'r','filled');
-g2= scatter(ghostxo2(ghostxo2~=0),amgx2(amgx2~=0), 'm','filled');
-g3= scatter(ghostxo3(ghostxo3~=0),amgx3(amgx3~=0), 'c','filled');
-g4= scatter(ghostxo4(ghostxo4~=0),amgx4(amgx4~=0), 'b','filled');
-legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+% figure(16);
+% title('X');
+% xlabel('expected');
+% ylabel('expected - guess');
+% amgx1= ghostxo1 - ghostxguess1;
+% amgx2= ghostxo2 - ghostxguess2;
+% amgx3= ghostxo3 - ghostxguess3;
+% amgx4= ghostxo4 - ghostxguess4;
+% hold on;
+% g1= scatter(ghostxo1(ghostxo1~=0),amgx1(amgx1~=0), 'r','filled');
+% g2= scatter(ghostxo2(ghostxo2~=0),amgx2(amgx2~=0), 'm','filled');
+% g3= scatter(ghostxo3(ghostxo3~=0),amgx3(amgx3~=0), 'c','filled');
+% g4= scatter(ghostxo4(ghostxo4~=0),amgx4(amgx4~=0), 'b','filled');
+% legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 %
 % %actual Y - guess vs actual
-figure(17);
-title('Y');
-xlabel('expected');
-ylabel('expected - guess');
-amgy1= ghostyo1 - ghostyguess1;
-amgy2= ghostyo2 - ghostyguess2;
-amgy3= ghostyo3 - ghostyguess3;
-amgy4= ghostyo4 - ghostyguess4;
-hold on;
-g1= scatter(ghostyo1(ghostyo1~=0) ,amgy1(amgy1~=0), 'r','filled');
-g2= scatter(ghostyo2(ghostyo2~=0) ,amgy2(amgy2~=0), 'm','filled');
-g3= scatter(ghostyo3(ghostyo3~=0) ,amgy3(amgy3~=0), 'c','filled');
-g4= scatter(ghostyo4(ghostyo4~=0) ,amgy4(amgy4~=0), 'b','filled');
-legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+% figure(17);
+% title('Y');
+% xlabel('expected');
+% ylabel('expected - guess');
+% amgy1= ghostyo1 - ghostyguess1;
+% amgy2= ghostyo2 - ghostyguess2;
+% amgy3= ghostyo3 - ghostyguess3; 
+% amgy4= ghostyo4 - ghostyguess4;
+% hold on;
+% g1= scatter(ghostyo1(ghostyo1~=0) ,amgy1(amgy1~=0), 'r','filled');
+% g2= scatter(ghostyo2(ghostyo2~=0) ,amgy2(amgy2~=0), 'm','filled');
+% g3= scatter(ghostyo3(ghostyo3~=0) ,amgy3(amgy3~=0), 'c','filled');
+% g4= scatter(ghostyo4(ghostyo4~=0) ,amgy4(amgy4~=0), 'b','filled');
+% legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
 
-
+fprintf('done')

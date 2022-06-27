@@ -48,7 +48,7 @@ for ifile=1:nfiles
     
     mymags = NaN.*ones(ncat,1);
 
-    if ~exist('xpix','var') || ~exist('ypix','var')
+    if ~isfield(data.mask,'xpix') || ~isfield(data.mask,'ypix')
         %only run if need to make xpix/ypix (should not run since makemask made them)
         ypix = zeros(ncat,1);
         xpix = zeros(ncat,1);
@@ -71,19 +71,10 @@ for ifile=1:nfiles
             %parallel for speed, later loop needs work to parallize
             [ypix(row), xpix(row)] = radec2pix(RApar(row),DECpar(row), data.astrom);
         end
-        % if params.err_gals == 0
-            % save the calc'd ypix/xpix the corresponding catalog file
-            if use_gaia == 1 %NOTE! here doesn't have params.err_gals
-                save(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum),'xpix','ypix','-append');
-            elseif use_gaia == 0
-                save(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum),'xpix','ypix','-append');
-            end
-        % elseif params.err_gals == 1
-        %     % save the calc'd ypix/xpix the corresponding catalog file
-        %     if use_gaia == 1
-        %         save(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc),'xpix','ypix','-append');
-        %     end
-        % end
+        %there is no error datastruct asbstration in this code, so always
+        %update if not there
+        data.mask.xpix = xpix; %record if error off (because error on is data.err and don't want to save to data.err.mask.xpix as a duplicate)
+        data.mask.xpix = ypix;
     end
     
     % loop over each catalog entry;

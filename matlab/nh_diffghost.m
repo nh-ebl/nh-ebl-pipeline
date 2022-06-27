@@ -81,9 +81,9 @@ ghost_pix = length(data.data(maskboxtest));
 image_pix = data.astrom.imagew.*data.astrom.imageh;
 
 % Calculate total surface brightness of all diffuse ghosts from all stars
-ghostsb = (10.^(-0.3248.*boxmagcut + 6.4991))./image_pix; % These values determined in ghost_analysis.m from fit
-ghostsberrpos = ((10.^((-0.3248.*boxmagcut + 6.4991)+0.0733))./image_pix) - ((10.^((-0.3248.*boxmagcut + 6.4991)))./image_pix); % These values determined in ghost_analysis.m from fit
-ghostsberrneg = ((10.^((-0.3248.*boxmagcut + 6.4991)))./image_pix) - ((10.^((-0.3248.*boxmagcut + 6.4991)-0.0733))./image_pix); % These values determined in ghost_analysis.m from fit
+ghostsb = (10.^(-0.2985.*boxmagcut + 6.3978))./image_pix; % These values determined in ghost_analysis.m from fit
+ghostsberrpos = ((10.^((-0.2985.*boxmagcut + 6.3978)+0.0543))./image_pix) - ((10.^((-0.2985.*boxmagcut + 6.3978)))./image_pix); % These values determined in ghost_analysis.m from fit
+ghostsberrneg = ((10.^((-0.2985.*boxmagcut + 6.3978)))./image_pix) - ((10.^((-0.2985.*boxmagcut + 6.3978)-0.0543))./image_pix); % These values determined in ghost_analysis.m from fit
 
 % Calculate surface brightness from stars that cause ghosts
 % Fcat = (data.cal.vzero) .* 10.^(-(boxmagcut+data.cal.gaia2lorrimag)./2.5);
@@ -108,7 +108,7 @@ ghostdir.diffusesuberrneg = sqrt(sum(ghostsberrneg.^2));
 % Plot ghost sb vs. star sb with linear fit
 % h = figure(1);
 % clf;
-% set(h,'visible','off');
+% set(h,'visible','on');
 % scatter(starsb,ghostsb,'filled');
 % set(gca, 'XScale', 'log');
 % set(gca, 'YScale', 'log');

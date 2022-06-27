@@ -36,7 +36,7 @@ newgood_exlude_enable = false; %enables skipping of sequences
 lauergoodfields = [1,2,3,4,5,6,7];
 lauer_exlude_enable = false; %enables skipping of new sequences
 % lauergoodfields = [];
-newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,22,23];
+newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,23];
 newest_exlude_enable = false; %enables skipping of new sequences
 % newestgoodfields = [];
 
@@ -135,6 +135,7 @@ for ifile=1:numel(wlightfiles)
             fieldChange_fileCntr = fieldChange_fileCntr + 1; %increment
             newest_exclude(ifile) = 1; %set this to exlude
         elseif( ~strcmp(data.astrom.reqid, reqIDChange) )
+%             disp(['Current req ID: ',data.astrom.reqid,' Field #: ',num2str(data.header.fieldnum),' Excluded so far: ',num2str(sum(newest_exclude))])
             reqIDChange = data.astrom.reqid; %record reqID
             fieldChange_fileCntr = 1; %reset
             newest_exclude(ifile) = 1; %set this to exlude
@@ -142,6 +143,9 @@ for ifile=1:numel(wlightfiles)
         end
     end
 end
+% disp(['Total excluded: ',num2str(sum(newest_exclude))])
+newest_goodfilesNum = sum(isgoodnewest&newest_exclude);
+disp(['Newest|Good over files after isgoodnewest (good field check) and newest_exclude (time skip): ',num2str(newest_goodfilesNum)])
 newest_exclude = find(newest_exclude); %get it into indexes
 
 load('run_params.mat','params')
@@ -1072,6 +1076,8 @@ for ifile=1:numel(wlightfiles)
                 nanimage = image;
                 nanimage(data.mask.onemask) = NaN;
                 save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+            else
+                newest_goodfilesNum = newest_goodfilesNum - 1; %reduce by 1 if there was a bad file
             end
             % If struct field does not exist, files have not been marked good
             % or bad - assume all good
@@ -1096,7 +1102,7 @@ for ifile=1:numel(wlightfiles)
         jfile = jfile + 1;
     end
 end
-
+disp(['Newest|Total good files to be used (including good field (isgoodnewest), time limit (newest_exclude), isgood (header.bad check)): ',num2str(newest_goodfilesNum)])
 % Select only data marked as good
 isgood = logical(isgood);
 
@@ -1130,57 +1136,67 @@ isgood_field = unique_field_id(isgood);
 isgood_b = myb(isgood);
 
 % Calculate per-field values
+goodfiles_ditch = false(length(goodfiles),1);
 for i = 1:length(goodfiles)
     k_field = isgood_field == unique_fields(i);
-    field_masked = mean(isgood_masked(k_field));
-    field_maskmean = mean(isgood_maskmean(k_field));
-    field_tri = mean(isgood_tri(k_field));
-    field_psfwing = mean(isgood_psfwing(k_field));
-    field_corrmean = mean(isgood_corrmean(k_field));
-    field_isl = mean(isgood_isl(k_field));
-    field_dgl = mean(isgood_dgl(k_field));
-    field_trierr = mean(isgood_trierr(k_field));
-    field_dglerr = mean(isgood_dglerr(k_field));
-    field_ext = mean(isgood_ext(k_field));
-    if strcmp(flag_method,'new') == 1
-        field_diffghost = mean(isgood_diffghost(k_field));
-        field_diffghosterrpos = mean(isgood_diffghosterrpos(k_field));
-        field_diffghosterrneg = mean(isgood_diffghosterrneg(k_field));
-        if want_errmags == 0 && want_errpsf == 0
-            field_scattering_tot = mean(isgood_scattering_tot(k_field));
-            field_scattering_gaia = mean(isgood_scattering_gaia(k_field));
-            field_scattering_gaia_psferrpos = mean(isgood_scattering_gaia_psferrpos(k_field));
-            field_scattering_gaia_fluxerrpos = mean(isgood_scattering_gaia_fluxerrpos(k_field));
-            field_scattering_masana = mean(isgood_scattering_masana(k_field));
-            field_scattering_masana_psferrpos = mean(isgood_scattering_masana_psferrpos(k_field));
-            field_scattering_masana_fluxerrpos = mean(isgood_scattering_masana_fluxerrpos(k_field));
+    if any(k_field)
+        field_masked = mean(isgood_masked(k_field));
+        field_maskmean = mean(isgood_maskmean(k_field));
+        field_tri = mean(isgood_tri(k_field));
+        field_psfwing = mean(isgood_psfwing(k_field));
+        field_corrmean = mean(isgood_corrmean(k_field));
+        field_isl = mean(isgood_isl(k_field));
+        field_dgl = mean(isgood_dgl(k_field));
+        field_trierr = mean(isgood_trierr(k_field));
+        field_dglerr = mean(isgood_dglerr(k_field));
+        field_ext = mean(isgood_ext(k_field));
+        if strcmp(flag_method,'new') == 1
+            field_diffghost = mean(isgood_diffghost(k_field));
+            field_diffghosterrpos = mean(isgood_diffghosterrpos(k_field));
+            field_diffghosterrneg = mean(isgood_diffghosterrneg(k_field));
+            if want_errmags == 0 && want_errpsf == 0
+                field_scattering_tot = mean(isgood_scattering_tot(k_field));
+                field_scattering_gaia = mean(isgood_scattering_gaia(k_field));
+                field_scattering_gaia_psferrpos = mean(isgood_scattering_gaia_psferrpos(k_field));
+                field_scattering_gaia_fluxerrpos = mean(isgood_scattering_gaia_fluxerrpos(k_field));
+                field_scattering_masana = mean(isgood_scattering_masana(k_field));
+                field_scattering_masana_psferrpos = mean(isgood_scattering_masana_psferrpos(k_field));
+                field_scattering_masana_fluxerrpos = mean(isgood_scattering_masana_fluxerrpos(k_field));
+            else
+                field_scattering_tot = 0;
+                field_scattering_gaia = 0;
+                field_scattering_gaia_psferrpos = 0;
+                field_scattering_gaia_fluxerrpos = 0;
+                field_scattering_masana = 0;
+                field_scattering_masana_psferrpos = 0;
+                field_scattering_masana_fluxerrpos = 0;
+            end
         else
-            field_scattering_tot = 0;
-            field_scattering_gaia = 0;
-            field_scattering_gaia_psferrpos = 0;
-            field_scattering_gaia_fluxerrpos = 0;
-            field_scattering_masana = 0;
-            field_scattering_masana_psferrpos = 0;
-            field_scattering_masana_fluxerrpos = 0;
+            field_diffghost = 0;
+            field_diffghosterrpos = 0;
+            field_diffghosterrneg = 0;
+            field_scattering = 0;
         end
+        field_b = mean(isgood_b(k_field));
+        disp(['Field #',num2str(goodfiles(i)),': b = ' ,num2str(field_b),...
+            ' | masked mean = ',num2str(field_masked),' | corr mean = ',num2str(field_corrmean),...
+            ' | tri mean = ',num2str(field_tri),' | tri err = ',num2str(field_trierr),...
+            ' |  psfwing mean = ',num2str(field_psfwing),' | ISL mean = ',num2str(field_isl),...
+            ' | Planck DGL mean = ',num2str(field_dgl),' | Planck DGL err = ',num2str(field_dglerr),...
+            ' | Scattering mean = ',num2str(field_scattering_tot),' | Scattering Gaia = ',num2str(field_scattering_gaia),' | Scattering Masana = ',num2str(field_scattering_masana),...
+            ' | Scattering Masana PSF err = ',num2str(field_scattering_masana_psferrpos),' | Scattering Masana Flux err = ',num2str(field_scattering_masana_fluxerrpos),...
+            ' | Scattering Gaia PSF err = ',num2str(field_scattering_gaia_psferrpos),' | Scattering Gaia Flux err = ',num2str(field_scattering_gaia_fluxerrpos),...
+            ' | Diff Ghost mean = ',num2str(field_diffghost),' | Diff Ghost err pos = ',num2str(field_diffghosterrpos),' | Diff Ghost err neg = ',num2str(field_diffghosterrneg),...
+            ' | Ext = ', num2str(field_ext)])
     else
-        field_diffghost = 0;
-        field_diffghosterrpos = 0;
-        field_diffghosterrneg = 0;
-        field_scattering = 0;
+        %if k_field is empty then no goodfiles in the field
+        %remove the field from the listing, can't do it mid-loop though
+        goodfiles_ditch(i) = 1; %set to ditch
     end
-    field_b = mean(isgood_b(k_field));
-    disp(['Field #',num2str(goodfiles(i)),': b = ' ,num2str(field_b),...
-        ' | masked mean = ',num2str(field_masked),' | corr mean = ',num2str(field_corrmean),...
-        ' | tri mean = ',num2str(field_tri),' | tri err = ',num2str(field_trierr),...
-        ' |  psfwing mean = ',num2str(field_psfwing),' | ISL mean = ',num2str(field_isl),...
-        ' | Planck DGL mean = ',num2str(field_dgl),' | Planck DGL err = ',num2str(field_dglerr),...
-        ' | Scattering mean = ',num2str(field_scattering_tot),' | Scattering Gaia = ',num2str(field_scattering_gaia),' | Scattering Masana = ',num2str(field_scattering_masana),...
-        ' | Scattering Masana PSF err = ',num2str(field_scattering_masana_psferrpos),' | Scattering Masana Flux err = ',num2str(field_scattering_masana_fluxerrpos),...
-        ' | Scattering Gaia PSF err = ',num2str(field_scattering_gaia_psferrpos),' | Scattering Gaia Flux err = ',num2str(field_scattering_gaia_fluxerrpos),...
-        ' | Diff Ghost mean = ',num2str(field_diffghost),' | Diff Ghost err pos = ',num2str(field_diffghosterrpos),' | Diff Ghost err neg = ',num2str(field_diffghosterrneg),...
-        ' | Ext = ', num2str(field_ext)])
 end
+%now remove empty fields
+goodfiles(goodfiles_ditch) = [];
+unique_fields(goodfiles_ditch) = [];
 
 figure(1); clf
 plot(mysun(isgood),mysig(isgood)-myisl(isgood)-pltr_mydgl_planck(isgood),'o')
@@ -1190,8 +1206,8 @@ ylabel('EBL')
 if strcmp(flag_method,'new') == 1
     figure(2); clf
     plot(mysun(isgood),myghostdiff(isgood),'o')
-    hold on;
-    errorbar(mysun(isgood),myghostdiff(isgood), myghostdifferrneg(isgood), myghostdifferrpos(isgood), 'LineStyle','none','Color','k');
+%     hold on;
+%     errorbar(mysun(isgood),myghostdiff(isgood), myghostdifferrneg(isgood), myghostdifferrpos(isgood), 'LineStyle','none','Color','k');
     xlabel('Solar Distance')
     ylabel('Summed Ghost Intensity [nW m^{-2} sr^{-1}]')
 
@@ -1333,10 +1349,17 @@ for ifield=1:numel(goodfiles)
     %     myavp(ifield) = sum(myav(whpl & isgood)./thiserr.^2)./sum(1./thiserr.^2);
     %     myohmp(ifield) = sum(myohm(whpl & isgood)./thiserr.^2)./sum(1./thiserr.^2);
     pltr_mydataset(ifield) = median(mydataset(whpl)); %for plotting per dataset color
+%     mytoterr_pos(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
+%         mytrierr_goodfiles(ifield)^2 + myghostdifferrpos_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + mysem(ifield)^2);
+%     mytoterr_neg(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
+%         mytrierr_goodfiles(ifield)^2 + myghostdifferrneg_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + mysem(ifield)^2);
+    
+    % Use std (myunc) instead of sem (mysem) for individual statistical
+    % errors
     mytoterr_pos(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
-        mytrierr_goodfiles(ifield)^2 + myghostdifferrpos_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + mysem(ifield)^2);
+        mytrierr_goodfiles(ifield)^2 + myghostdifferrpos_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + myunc(ifield)^2);
     mytoterr_neg(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
-        mytrierr_goodfiles(ifield)^2 + myghostdifferrneg_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + mysem(ifield)^2);
+        mytrierr_goodfiles(ifield)^2 + myghostdifferrneg_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + myunc(ifield)^2);
 end
 pltr_mydatasetTriplets(pltr_mydataset == 1,:) = repmat([0, 0.4470, 0.7410],sum(pltr_mydataset == 1),1); %set consistent color triplets
 pltr_mydatasetTriplets(pltr_mydataset == 2,:) = repmat([0.8500, 0.3250, 0.0980],sum(pltr_mydataset == 2),1);
@@ -1497,12 +1520,12 @@ legend([p1,i1,i2],{'Planck','Iris','Iris + SFD'},'Location','northwest');
 % figure(10); clf
 %
 % % HI4PI error
-% hi4pi_err = ((2.3e18)/5)/sqrt((1.13*(16.2)^2)/((17.4^2))); % 5-sig rms sensitivity (2.3e18 cm^-2) converted to 1-sig and from per hi4pi beam to per lorri image
-% hi4pi_err_fields = ones(length(goodfiles),1)*hi4pi_err;
+hi4pi_err = ((2.3e18)/5)/sqrt((1.13*(16.2)^2)/((17.4^2))); % 5-sig rms sensitivity (2.3e18 cm^-2) converted to 1-sig and from per hi4pi beam to per lorri image
+hi4pi_err_fields = ones(length(goodfiles),1)*hi4pi_err;
 % n1 = scatter(pltr_mydgl_nh_goodfiles,pltr_thissig_goodfiles,'k');
 % hold on
 % n1errx = errorbar(pltr_mydgl_nh_goodfiles,pltr_thissig_goodfiles,hi4pi_err_fields,'horizontal', 'LineStyle','none','Color', 'k');
-% n1erry = errorbar(pltr_mydgl_nh_goodfiles,pltr_thissig_goodfiles,pltr_sem,'vertical', 'LineStyle','none','Color', 'k');
+% n1erry = errorbar(pltr_mydgl_nh_goodfiles,pltr_thisiris_err_fields.*dlsig_goodfiles,pltr_sem,'vertical', 'LineStyle','none','Color', 'k');
 %
 % % make fit
 % % NHI
@@ -1571,6 +1594,121 @@ legend([p1,i1,i2],{'Planck','Iris','Iris + SFD'},'Location','northwest');
 %
 % xlabel('Galactic b (deg)')
 % legend([p1,i1,i2],{'Planck','Iris','Iris + SFD'},'Location','northeast');
+
+% %lil_100m <-4 of them
+% pltr_my100m_planck_goodfiles.*dl
+% pltr_my100m_iris_goodfiles.*dl
+% pltr_my100m_iris_sfd_goodfiles.*dl
+% pltr_mydgl_nh_goodfiles.*dl
+% 
+% %sig_x <-4 of them
+% pltr_my100merr_combo_planck_goodfiles.*dl
+% iris_err_fields.*dl
+% iris_err_fields.*dl
+% hi4pi_err_fields
+% 
+% pltr_thissig_goodfiles %lil_optf
+% mytoterr_pos %sig_y
+% myext_goodfiles %ext
+
+%---stacked bar plot or error constituents---
+figure(12); clf
+bar([myunc,myscattering_toterr_goodfiles,mypsfwing_psferr_goodfiles,...
+    mytrierr_goodfiles,myghostdifferrpos_goodfiles,mygalerr_goodfiles,abs(mymagerr_goodfiles),],'stacked')
+ylabel('Cumulative Error [nW m{^-2} sr^{-1}]')
+xlabel('Field Number')
+legend('Statistical','Scattering','PSF Wing','TRILEGAL','Diffuse Ghosts','Masking Galaxies','Masking Stars',...
+    'Location','bestoutside','Orientation','horizontal')
+
+
+figure(13); clf
+bar([abs(mymagerr_goodfiles),mygalerr_goodfiles,myghostdifferrpos_goodfiles,mytrierr_goodfiles,...
+    mypsfwing_psferr_goodfiles,myscattering_toterr_goodfiles,myunc],'stacked')
+ylabel('Cumulative Error [nW m{^-2} sr^{-1}]')
+xlabel('Field Number')
+legend('Statistical','Scattering','PSF Wing','TRILEGAL','Diffuse Ghosts','Masking Galaxies','Masking Stars',...
+    'Location','bestoutside','Orientation','horizontal')
+set(gca,'YScale','log')
+
+%=============Planck=============
+%---make data file---
+fid = fopen('fit_info.txt','w');
+lil_100m = pltr_my100m_planck_goodfiles.*dl;
+sig_x = pltr_my100merr_combo_planck_goodfiles.*dl;
+for i=1:length(lil_100m)
+    %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i));
+end
+fclose(fid);
+%---make text title file---
+fid = fopen('fit_info_txt.txt','w');
+fprintf(fid,'Planck');
+fclose(fid);
+%---run pthon---
+% pyrunfile("fit_results.py")
+system(['python ',pwd,'/fit_results.py']);
+disp(' '); %space for readability
+
+%=============IRIS=============
+%---make data file---
+fid = fopen('fit_info.txt','w');
+lil_100m = pltr_my100m_iris_goodfiles.*dl;
+sig_x = iris_err_fields.*dl;
+for i=1:length(lil_100m)
+    %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i));
+end
+fclose(fid);
+%---make text title file---
+fid = fopen('fit_info_txt.txt','w');
+fprintf(fid,'IRIS');
+fclose(fid);
+%---run pthon---
+% pyrunfile("fit_results.py")
+system(['python ',pwd,'/fit_results.py']);
+disp(' '); %space for readability
+
+%=============IRIS/SFD=============
+%---make data file---
+fid = fopen('fit_info.txt','w');
+lil_100m = pltr_my100m_iris_sfd_goodfiles.*dl;
+sig_x = iris_err_fields.*dl;
+for i=1:length(lil_100m)
+    %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i));
+end
+fclose(fid);
+%---make text title file---
+fid = fopen('fit_info_txt.txt','w');
+fprintf(fid,'IRIS/SFD');
+fclose(fid);
+%---run pthon---
+% pyrunfile("fit_results.py")
+system(['python ',pwd,'/fit_results.py']);
+disp(' '); %space for readability
+
+%=============NHI=============
+%---make data file---
+fid = fopen('fit_info.txt','w');
+lil_100m = pltr_mydgl_nh_goodfiles.*dl;
+sig_x = hi4pi_err_fields;
+for i=1:length(lil_100m)
+    %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i));
+end
+fclose(fid);
+%---make text title file---
+fid = fopen('fit_info_txt.txt','w');
+fprintf(fid,'NHI');
+fclose(fid);
+%---run pthon---
+% pyrunfile("fit_results.py")
+system(['python ',pwd,'/fit_results.py']);
+disp(' '); %space for readability
+
+%---cleanup---
+delete 'fit_info.txt' 'fit_info_txt.txt'
+
 
 distance = mydist;
 rawmean = mysubmen;
