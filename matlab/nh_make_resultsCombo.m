@@ -11,6 +11,9 @@ npaths = get_paths_new();
 lpaths = get_paths_lauer();
 wpaths = get_paths_newest();
 
+% Set exclude time
+excl_time = 150; %seconds from start of sequence to exclude
+
 %old light data
 lightfiles = dir(sprintf('%s*.mat',paths.datadir));
 %new light data
@@ -31,13 +34,13 @@ isgoodnewest = zeros(numel(wlightfiles),1);
 oldgoodfields = [3,5,6,7];
 % oldgoodfields = []; % Set good fields to none to skip data set
 newgoodfields = [5,6,7,8];
-newgood_exlude_enable = false; %enables skipping of sequences
+newgood_exlude_enable = true; %enables skipping of sequences
 % newgoodfields = [];
 lauergoodfields = [1,2,3,4,5,6,7];
-lauer_exlude_enable = false; %enables skipping of new sequences
+lauer_exlude_enable = true; %enables skipping of new sequences
 % lauergoodfields = [];
-newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,23];
-newest_exlude_enable = false; %enables skipping of new sequences
+newestgoodfields = [2,4,6,7]; %[2,4,6,7]; %[2,4,5,6,7,12,15,16,17,19,20,23]; - old set before exclusion
+newest_exlude_enable = true; %enables skipping of new sequences
 % newestgoodfields = [];
 
 
@@ -62,7 +65,7 @@ end
 %Check for new light files
 reqIDChange = ''; %detects reqID change
 fieldChange_fileCntr = 1; %counter for file skip
-fieldChange_fileSkip_time = 150; %s, time to skip at start of sequence
+fieldChange_fileSkip_time = excl_time; %s, time to skip at start of sequence
 newgood_exclude = zeros(numel(llightfiles),1); %will fill up with new sequences to ignore
 for ifile=1:numel(nlightfiles)
     datatemp = load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
@@ -91,7 +94,7 @@ newgood_exclude = find(newgood_exclude); %get it into indexes
 %Check for lauer light files
 reqIDChange = ''; %detects reqID change
 fieldChange_fileCntr = 1; %counter for file skip
-fieldChange_fileSkip_time = 150; %s, time to skip at start of sequence
+fieldChange_fileSkip_time = excl_time; %s, time to skip at start of sequence
 lauer_exclude = zeros(numel(llightfiles),1); %will fill up with new sequences to ignore
 for ifile=1:numel(llightfiles)
     load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
@@ -119,7 +122,7 @@ lauer_exclude = find(lauer_exclude); %get it into indexes
 %Check for newest light files
 reqIDChange = ''; %detects reqID change
 fieldChange_fileCntr = 1; %counter for file skip
-fieldChange_fileSkip_time = 150; %s, time to skip at start of sequence
+fieldChange_fileSkip_time = excl_time; %s, time to skip at start of sequence
 newest_exclude = zeros(numel(wlightfiles),1); %will fill up with new sequences to ignore
 for ifile=1:numel(wlightfiles)
     load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
@@ -160,6 +163,8 @@ numlauerlightfiles = sum(isgoodlauer);
 numnewestlightfiles = sum(isgoodnewest);
 
 %Preallocate
+file_set_perSet = [1:numoldlightfiles,1:numnewlightfiles,1:numlauerlightfiles,1:numnewestlightfiles];
+file_num_perSet = [1:numoldlightfiles,1:numnewlightfiles,1:numlauerlightfiles,1:numnewestlightfiles]'; %the number of the file in the specific set
 isgood = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 mydate = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 myfieldnum = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
@@ -236,16 +241,18 @@ mypsferr = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewest
 
 %For old data files
 fprintf('Loading old data \n');
-jfile = 1;
+jfile_offset = 0; %offset to keep ifile in line with other file sets
 % k = 1;
 zones_indexer = 1; %Keeps count of the current zone
 zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
-for ifile=1:numel(lightfiles)
+parfor jfile=1+jfile_offset:numel(lightfiles)+jfile_offset
     %If file is for a good field, load and save values
+    ifile = jfile-jfile_offset; %lets parfor work by letting jfile iterate instead of ifile
     if isgoodold(ifile) == 1
         %Load data files
-        load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
         disp(sprintf('On file %d of %d.',ifile,size(lightfiles,1)));
+        data = dataz.data; %get the data out, makes parfor work
 
         %Read in data
         mydate(jfile) = data.header.date_jd-data.header.launch_jd;
@@ -420,11 +427,13 @@ for ifile=1:numel(lightfiles)
                 disp(mystring)
 
                 image = data.image.calimage;
-                save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+                % save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+                parsave_image(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),image);
 
                 nanimage = image;
                 nanimage(data.mask.onemask) = NaN;
-                save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+                % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+                parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
             end
             % If struct field does not exist, files have not been marked good
             % or bad - assume all good
@@ -440,29 +449,31 @@ for ifile=1:numel(lightfiles)
             disp(mystring)
 
             image = data.image.calimage;
-            save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+            % save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+            parsave_image(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),image);
 
             nanimage = image;
             nanimage(data.mask.onemask) = NaN;
-            save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+            % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+            parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
         end
-        jfile = jfile + 1;
     end
 end
 
 %For new data files
+jfile_offset = numoldlightfiles; %offset to keep ifile in line with other file sets
 fprintf('Loading new data \n');
-jfile = 1+numoldlightfiles; %redundant but kept to deal with exclusions
 % k = k + 1;
 zones_indexer = zones_indexer + 1; %Increment the zone to the next zone of data
 zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
-for ifile=1:numel(nlightfiles)
+parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
     %If file is for a good field, load and save values
+    ifile = jfile-jfile_offset; %lets parfor work by letting jfile iterate instead of ifile
     if (isgoodnew(ifile) == 1) && ~any(newgood_exclude == ifile)
-
         %Load data files
-        load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
         disp(sprintf('On file %d of %d.',ifile,size(nlightfiles,1)));
+        data = dataz.data; %get the data out, makes parfor work
 
         %Read in data
         mydate(jfile) = data.header.date_jd-data.header.launch_jd;
@@ -637,11 +648,13 @@ for ifile=1:numel(nlightfiles)
                 disp(mystring)
 
                 image = data.image.calimage;
-                save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+                % save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+                parsave_image(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),image);
 
                 nanimage = image;
                 nanimage(data.mask.onemask) = NaN;
-                save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+                % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+                parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
             end
             % If struct field does not exist, files have not been marked good
             % or bad - assume all good
@@ -657,29 +670,32 @@ for ifile=1:numel(nlightfiles)
             disp(mystring)
 
             image = data.image.calimage;
-            save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+            % save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+            parsave_image(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),image);
 
             nanimage = image;
             nanimage(data.mask.onemask) = NaN;
-            save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+            % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+            parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
         end
-        jfile = jfile + 1;
     end
 end
 
 %For lauer data files
 fprintf('Loading Lauer data \n');
-jfile = 1+numoldlightfiles+numnewlightfiles; %redundant but kept in case exclude is on
+jfile_offset = numoldlightfiles+numnewlightfiles; %offset to keep ifile in line with other file sets
 % k = k + 1;
 zones_indexer = zones_indexer + 1; %Increment the zone to the next zone of data
 zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
-for ifile=1:numel(llightfiles)
+parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
     %If file is for a good field and not excluded, load and save values
+    ifile = jfile-jfile_offset; %lets parfor work by letting jfile iterate instead of ifile
     if (isgoodlauer(ifile) == 1) && ~any(lauer_exclude == ifile)
 
         %Load data files
-        load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
         disp(sprintf('On file %d of %d.',ifile,size(llightfiles,1)));
+        data = dataz.data; %get the data out, makes parfor work
 
         %Read in data
         mydate(jfile) = data.header.date_jd-data.header.launch_jd;
@@ -874,29 +890,32 @@ for ifile=1:numel(llightfiles)
             disp(mystring)
 
             image = data.image.calimage;
-            save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+            % save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+            parsave_image(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),image);
 
             nanimage = image;
             nanimage(data.mask.onemask) = NaN;
-            save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+            % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+            parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
         end
-        jfile = jfile + 1;
     end
 end
 
 %For newest data files
 fprintf('Loading newest data \n');
-jfile = 1+numoldlightfiles+numnewlightfiles+numlauerlightfiles; %redundant but kept in case exclude is on
+jfile_offset = numoldlightfiles+numnewlightfiles+numlauerlightfiles; %offset to keep ifile in line with other file sets
 % k = k + 1;
 zones_indexer = zones_indexer + 1; %Increment the zone to the next zone of data
 zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
-for ifile=1:numel(wlightfiles)
+parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
     %If file is for a good field and not excluded, load and save values
+    ifile = jfile-jfile_offset; %lets parfor work by letting jfile iterate instead of ifile
     if (isgoodnewest(ifile) == 1) && ~any(newest_exclude == ifile)
 
         %Load data files
-        load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
         disp(sprintf('On file %d of %d.',ifile,size(wlightfiles,1)));
+        data = dataz.data; %get the data out, makes parfor work
 
         %Read in data
         mydate(jfile) = data.header.date_jd-data.header.launch_jd;
@@ -1071,11 +1090,13 @@ for ifile=1:numel(wlightfiles)
                 disp(mystring)
 
                 image = data.image.calimage;
-                save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+                % save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+                parsave_image(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),image);
 
                 nanimage = image;
                 nanimage(data.mask.onemask) = NaN;
-                save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+                % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+                parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
             else
                 newest_goodfilesNum = newest_goodfilesNum - 1; %reduce by 1 if there was a bad file
             end
@@ -1093,13 +1114,14 @@ for ifile=1:numel(wlightfiles)
             disp(mystring)
 
             image = data.image.calimage;
-            save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+            % save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+            parsave_image(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),image);
 
             nanimage = image;
             nanimage(data.mask.onemask) = NaN;
-            save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+            % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+            parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
         end
-        jfile = jfile + 1;
     end
 end
 disp(['Newest|Total good files to be used (including good field (isgoodnewest), time limit (newest_exclude), isgood (header.bad check)): ',num2str(newest_goodfilesNum)])
@@ -1278,6 +1300,8 @@ myghostdifferrpos_goodfiles = zeros(numel(goodfiles),1);
 myghostdifferrneg_goodfiles = zeros(numel(goodfiles),1);
 mytoterr_pos = zeros(numel(goodfiles),1);
 mytoterr_neg = zeros(numel(goodfiles),1);
+myfieldnum_goodfiles = zeros(numel(goodfiles),1);
+myfieldexp_goodfiles = zeros(numel(goodfiles),1);
 
 % Calculate per-field values
 for ifield=1:numel(goodfiles)
@@ -1285,6 +1309,8 @@ for ifield=1:numel(goodfiles)
     whpl = unique_field_id == unique_fields(ifield);
     mydist(ifield) = mean(mysun(whpl & isgood));
     mygal(ifield) = mean(myb(whpl & isgood));
+    myfieldnum_goodfiles(ifield) = mean(myfieldnum(whpl & isgood));
+    myfieldexp_goodfiles(ifield) = length(myb(whpl & isgood));
     if strcmp(flag_method,'new') == 1
         thissig = mysig(whpl & isgood)-myisl(whpl & isgood)-pltr_mydgl_planck(whpl & isgood)-myghostdiff(whpl & isgood)-myscattering_tot(whpl & isgood);
         pltr_totsig_goodfiles = mysig(whpl & isgood)-myisl(whpl & isgood)-myghostdiff(whpl & isgood)-myscattering_tot(whpl & isgood);
@@ -1365,33 +1391,33 @@ pltr_mydatasetTriplets(pltr_mydataset == 1,:) = repmat([0, 0.4470, 0.7410],sum(p
 pltr_mydatasetTriplets(pltr_mydataset == 2,:) = repmat([0.8500, 0.3250, 0.0980],sum(pltr_mydataset == 2),1);
 pltr_mydatasetTriplets(pltr_mydataset == 3,:) = repmat([0.9290, 0.6940, 0.1250],sum(pltr_mydataset == 3),1);
 
-figure(4); clf
-plot(mydist,mysubmen,'o')
-hold on
-errorbar(mydist,mysubmen,mysuberr,'o');
-xlabel('Solar Distance')
-ylabel('Error-Weighted Image Mean')
+% figure(4); clf
+% plot(mydist,mysubmen,'o')
+% hold on
+% errorbar(mydist,mysubmen,mysuberr,'o');
+% xlabel('Solar Distance')
+% ylabel('Error-Weighted Image Mean')
 
-mysubmen
+% mysubmen
 
 figure(5); clf
-FLG_perDatasetColoring = true; %false plots default (same color), true plots colors per dataset (old/new/lar)
+FLG_perDatasetColoring = false; %false plots default (same color), true plots colors per dataset (old/new/lar)
 %plot(mydist,mymean,'.','MarkerSize',0);
 %hold on
 if ~FLG_perDatasetColoring
-    errorbar(mydist,mymean,mysem,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+    errorbar(mydist,mymean,myunc,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
 else
     hold on;
     for j = 1:length(mydist)
-        errorbar(mydist(j),mymean(j),mysem(j),'.','MarkerSize',20,'MarkerEdge',pltr_mydatasetTriplets(j,:),'LineStyle','none','Color',pltr_mydatasetTriplets(j,:)); %old error bars were myunc, based on std not sem
+        errorbar(mydist(j),mymean(j),myunc(j),'.','MarkerSize',20,'MarkerEdge',pltr_mydatasetTriplets(j,:),'LineStyle','none','Color',pltr_mydatasetTriplets(j,:)); %old error bars were myunc, based on std not sem
     end
 end
 hold on;
 xlabel('Solar Distance')
 ylabel('Error-Weighted EBL')
 
-supermean = sum(mymean./mysem.^2)./sum(1./mysem.^2) %old way was myunc instead of mysem
-superunc = 1./sqrt(sum(1./mysem.^2)) %old way was myunc instead of mysem
+supermean = sum(mymean./myunc.^2)./sum(1./myunc.^2) %old way was myunc instead of mysem
+superunc = 1./sqrt(sum(1./myunc.^2)) %old way was myunc instead of mysem
 
 % superav = sum(myavp./myunc.^2)./sum(1./myunc.^2)
 
@@ -1401,12 +1427,12 @@ plot(xlim,[supermean,supermean],'Color',[0, 0.4470, 0.7410])
 plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
 plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
 plot(xlim,[0,0],'k:')
-xlabel('Heliocentric Distance (AU)')
-ylabel('Optical EBL (nW/m^2/sr)')
+xlabel('Heliocentric Distance [AU]')
+ylabel('COB [nW m^{-2} sr^{-1}]')
 %   title('Zemcov et al, Preliminary w/ Stat. Errors')
 
 figure(6); clf
-me = errorbar(mygal,mymean,mysem,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+me = errorbar(abs(mygal),mymean,myunc,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
 hold on;
 
 z_pts = [15.4,18.1,-6.3,29.2];
@@ -1414,7 +1440,7 @@ z_err = [14.4,26.2,9.1,20.5];
 z_err_sem = [14.4/sqrt(10),26.2/sqrt(10),9.1/sqrt(3),20.5/sqrt(3)];
 z_b = [85.74,28.41,57.69,62.03];
 
-zem = errorbar(z_b,z_pts,z_err_sem,'.','MarkerSize',20,'MarkerEdge',[0, 0.4470, 0.7410],'LineStyle','none','Color',[0, 0.4470, 0.7410]); %old error bars were myunc, based on std not sem
+zem = errorbar(abs(z_b),z_pts,z_err,'.','MarkerSize',20,'MarkerEdge',[0, 0.4470, 0.7410],'LineStyle','none','Color',[0, 0.4470, 0.7410]); %old error bars were myunc, based on std not sem
 % supermean = sum(mymean./myunc.^2)./sum(1./myunc.^2) %old way was myunc instead of mysem
 % superunc = 1./sqrt(sum(1./myunc.^2)) %old way was myunc instead of mysem
 %
@@ -1427,34 +1453,34 @@ zem = errorbar(z_b,z_pts,z_err_sem,'.','MarkerSize',20,'MarkerEdge',[0, 0.4470, 
 % plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
 % plot(xlim,[0,0],'k:')
 legend([me,zem],{'Symons Fields','Zemcov Fields'},'Location','southwest');
-xlabel(['Galactic Latitude (' char(176) ')'])
-ylabel('Optical EBL (nW/m^2/sr)')
+xlabel(['Galactic Latitude [' char(176) ']'])
+ylabel('COB [nW m^{-2} sr^{-1}]')
 
 % Plot DGL vs. EBL + DGL for all images
-figure(7); clf
-p1 = scatter(pltr_mydgl_planck(isgood),pltr_thissig,'o');
-hold on
-% p1err = errorbar(pltr_thissig,pltr_mydgl_planck,pltr_mydglerr_planck,'o');
-i1 = scatter(pltr_mydgl_iris(isgood),pltr_thissig,'g');
-% i1err = errorbar(pltr_thissig,pltr_mydgl_iris,pltr_mydglerr_iris,'m');
-ylabel('EBL + DGL (nW/m^2/sr)')
-xlabel('DGL (nW/m^2/sr)')
-legend([p1,i1],{'Planck','Iris'},'Location','northwest');
+% figure(7); clf
+% p1 = scatter(pltr_mydgl_planck(isgood),pltr_thissig,'o');
+% hold on
+% % p1err = errorbar(pltr_thissig,pltr_mydgl_planck,pltr_mydglerr_planck,'o');
+% i1 = scatter(pltr_mydgl_iris(isgood),pltr_thissig,'g');
+% % i1err = errorbar(pltr_thissig,pltr_mydgl_iris,pltr_mydglerr_iris,'m');
+% ylabel('EBL + DGL (nW/m^2/sr)')
+% xlabel('DGL (nW/m^2/sr)')
+% legend([p1,i1],{'Planck','Iris'},'Location','northwest');
 
 % Plot DGL vs. EBL + DGL per field
-figure(8); clf
-p1 = scatter(pltr_mydgl_planck_goodfiles,pltr_thissig_goodfiles,'o');
-hold on
-% p1err = errorbar(pltr_thissig,pltr_mydgl_planck,pltr_mydglerr_planck,'o');
-i1 = scatter(pltr_mydgl_iris_goodfiles,pltr_thissig_goodfiles,'g');
-% i1err = errorbar(pltr_thissig,pltr_mydgl_iris,pltr_mydglerr_iris,'m');
-ylabel('EBL + DGL (nW/m^2/sr)')
-xlabel('DGL (nW/m^2/sr)')
-legend([p1,i1],{'Planck','Iris'},'Location','northwest');
+% figure(8); clf
+% p1 = scatter(pltr_mydgl_planck_goodfiles,pltr_thissig_goodfiles,'o');
+% hold on
+% % p1err = errorbar(pltr_thissig,pltr_mydgl_planck,pltr_mydglerr_planck,'o');
+% i1 = scatter(pltr_mydgl_iris_goodfiles,pltr_thissig_goodfiles,'g');
+% % i1err = errorbar(pltr_thissig,pltr_mydgl_iris,pltr_mydglerr_iris,'m');
+% ylabel('EBL + DGL (nW/m^2/sr)')
+% xlabel('DGL (nW/m^2/sr)')
+% legend([p1,i1],{'Planck','Iris'},'Location','northwest');
 
 % Plot 100 micron emission vs. EBL + DGL with fit that includes x and y errors
 figure(9); clf
-FLG_perDatasetColoring = false; %false plots colors per Planck/Iris/Iris+SDF, true plots colors per dataset (old/new/lar)
+FLG_perDatasetColoring = true; %false plots colors per Planck/Iris/Iris+SDF, true plots colors per dataset (old/new/lar)
 
 % IRIS error
 iris_err = (0.06)/sqrt((1.13*(4.3)^2)/((17.4^2))); % rms noise (0.06 MJy/sr) converted from per iris beam to per lorri image
@@ -1518,30 +1544,30 @@ legend([p1,i1,i2],{'Planck','Iris','Iris + SFD'},'Location','northwest');
 
 % Plot NHI vs. EBL + DGL
 % figure(10); clf
-%
-% % HI4PI error
-hi4pi_err = ((2.3e18)/5)/sqrt((1.13*(16.2)^2)/((17.4^2))); % 5-sig rms sensitivity (2.3e18 cm^-2) converted to 1-sig and from per hi4pi beam to per lorri image
-hi4pi_err_fields = ones(length(goodfiles),1)*hi4pi_err;
+% %
+% % % HI4PI error
+% hi4pi_err = ((2.3e18)/5)/sqrt((1.13*(16.2)^2)/((17.4^2))); % 5-sig rms sensitivity (2.3e18 cm^-2) converted to 1-sig and from per hi4pi beam to per lorri image
+% hi4pi_err_fields = ones(length(goodfiles),1)*hi4pi_err;
 % n1 = scatter(pltr_mydgl_nh_goodfiles,pltr_thissig_goodfiles,'k');
 % hold on
 % n1errx = errorbar(pltr_mydgl_nh_goodfiles,pltr_thissig_goodfiles,hi4pi_err_fields,'horizontal', 'LineStyle','none','Color', 'k');
-% n1erry = errorbar(pltr_mydgl_nh_goodfiles,pltr_thisiris_err_fields.*dlsig_goodfiles,pltr_sem,'vertical', 'LineStyle','none','Color', 'k');
-%
+% n1erry = errorbar(pltr_mydgl_nh_goodfiles,pltr_thisiris_err_fields.*dlsig_goodfiles,mytoterr_pos,'vertical', 'LineStyle','none','Color', 'k');
+% 
 % % make fit
 % % NHI
-% [b_nh, m_nh, sigm_nh, sigb_nh, chi2, q] = fitexy(pltr_mydgl_nh_goodfiles, pltr_thissig_goodfiles, hi4pi_err_fields, pltr_sem)
+% [b_nh, m_nh, sigm_nh, sigb_nh, chi2, q] = fitexy(pltr_mydgl_nh_goodfiles, pltr_thissig_goodfiles, hi4pi_err_fields, mytoterr_pos)
 % % fitter_nh = linear_fit(pltr_mydgl_nh_goodfiles,pltr_thissig_goodfiles);
-%
+% 
 % % apply fit
 % % fit_x_nh = linspace(min(pltr_mydgl_nh_goodfiles),max(pltr_mydgl_nh_goodfiles));
 % fit_x_nh = linspace(0,max(pltr_mydgl_nh_goodfiles));
 % fit_y_nh = (m_nh*fit_x_nh + b_nh);
-%
+% 
 % % plot fit
 % fit_nh = plot(fit_x_nh,fit_y_nh,'k');
-%
+% 
 % ylabel('EBL + DGL (nW/m^2/sr)')
-% xlabel('Neutral Hydrogen Column Density (cm^{-2})')
+% xlabel('Neutral Hydrogen Column Density [cm^{-2}]')
 
 % Plot correlation between 100m emission and galactic b
 % figure(11); clf
@@ -1721,3 +1747,12 @@ ohm = myohmp;
 
 save('../scratch/nh_make_results.mat','distance','rawmean','rawmean',...
     'rawerr','cobmean','coberr','supermean','supererr','ohm')
+
+end
+
+function parsave_image(fname, image) %this lets parfor save
+  save(fname, 'image')
+end
+function parsave_nanimage(fname, nanimage) %this lets parfor save
+  save(fname, 'nanimage')
+end

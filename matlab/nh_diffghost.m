@@ -93,8 +93,8 @@ ghostsberrneg = ((10.^((-0.2985.*boxmagcut + 6.3978)))./image_pix) - ((10.^((-0.
 
 % Save summed diffuse ghost surface brightness to data
 ghostdir.diffusesub = sum(ghostsb);
-ghostdir.diffusesuberrpos = sqrt(sum(ghostsberrpos.^2));
-ghostdir.diffusesuberrneg = sqrt(sum(ghostsberrneg.^2));
+ghostdir.diffusesuberrpos = sum(ghostsberrpos); % Used to be quad sum
+ghostdir.diffusesuberrneg = sum(ghostsberrneg); % Used to be quad sum
 
 % Calculate slope of ghost sb vs. star sb
 % fitter = linear_fit(log10(starsb),log10(ghostsb));

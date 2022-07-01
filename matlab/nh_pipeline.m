@@ -15,8 +15,8 @@ close all
 % paths = get_paths_old_ghosts();
 % paths = get_paths_old();
 % paths = get_paths_new();
-paths = get_paths_lauer();
-% paths = get_paths_newest();
+% paths = get_paths_lauer();
+paths = get_paths_newest();
 
 datadir = paths.datadir;
 % Save which data we're looking at
@@ -29,7 +29,7 @@ elseif strcmp(paths.datadir,'/data/symons/NH_old_data/mat/good/') == 1
 elseif strcmp(paths.datadir,'/data/symons/nh_data/mat/') == 1
     data_type = 'new';
     start = 40; % Skip first 40 images (field 1)
-elseif strcmp(paths.datadir,'/data/symons/nh_data_lauer/mat/') == 1 || strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') 
+elseif strcmp(paths.datadir,'/data/symons/nh_data_lauer/mat/') == 1 || strcmp(paths.datadir,'/data/symons/nh_data_new/mat/')
     data_type = 'new';
     start = 1;
 end
@@ -191,28 +191,28 @@ for ifile=start:size(datafiles,1) % !!!NEED TO CHANGE BACK!!!
     end
 
     % Stop on a certain file
-%     if (strcmp(data.header.timestamp,'2458057.5833880') == 1) || (strcmp(data.header.timestamp,'2458057.5835037') == 1)...
-%             || (strcmp(data.header.timestamp,'2458057.5836195') == 1) || (strcmp(data.header.timestamp,'2458057.5837352') == 1)...
-%             || (strcmp(data.header.timestamp,'2458057.5838509') == 1) || (strcmp(data.header.timestamp,'2458057.5839667') == 1)...
-%             || (strcmp(data.header.timestamp,'2458057.5840824') == 1) || (strcmp(data.header.timestamp,'2458057.5841982') == 1)...
-%             || (strcmp(data.header.timestamp,'2458057.5843139') == 1) || (strcmp(data.header.timestamp,'2458057.5844296') == 1)...
-%             || (strcmp(data.header.timestamp,'2458057.5845454') == 1) || (strcmp(data.header.timestamp,'2458057.5846611') == 1)...
-%             || (strcmp(data.header.timestamp,'2458057.5847769') == 1) || (strcmp(data.header.timestamp,'2458057.5848926') == 1)...
-%             || (strcmp(data.header.timestamp,'2458057.5850083') == 1) || (strcmp(data.header.timestamp,'2458057.5851241') == 1)...
-%             || (strcmp(data.header.timestamp,'2458057.5852398') == 1) || (strcmp(data.header.timestamp,'2458057.5853556') == 1)...
-%             || (strcmp(data.header.timestamp,'2458057.5854713') == 1) || (strcmp(data.header.timestamp,'2458057.5855870') == 1)...
-%             || (strcmp(data.header.timestamp,'2458348.3333913') == 1) || (strcmp(data.header.timestamp,'2458348.3750580') == 1)...
-%             || (strcmp(data.header.timestamp,'2458381.1945028') == 1) || (strcmp(data.header.timestamp,'2458381.2361695') == 1)...
-%             || (strcmp(data.header.timestamp,'2458444.9028369') == 1) || (strcmp(data.header.timestamp,'2458444.9445035') == 1)...
-%             || (strcmp(data.header.timestamp,'2458445.5486702') == 1) || (strcmp(data.header.timestamp,'2458445.5695036') == 1)...
-%             || (strcmp(data.header.timestamp,'2458445.5903369') == 1) % newest files that are bad
-        %ifile == 41  %55
-        %     if ifile == 65 | ifile == 139 | ifile == 252 | ifile == 281 | ifile == 341 % new files that are bad
-%         fprintf('ahhhh')
-%         data.header.bad = 1;
-%     else
-%         data.header.bad = 0;
-%     end
+    %     if (strcmp(data.header.timestamp,'2458057.5833880') == 1) || (strcmp(data.header.timestamp,'2458057.5835037') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458057.5836195') == 1) || (strcmp(data.header.timestamp,'2458057.5837352') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458057.5838509') == 1) || (strcmp(data.header.timestamp,'2458057.5839667') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458057.5840824') == 1) || (strcmp(data.header.timestamp,'2458057.5841982') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458057.5843139') == 1) || (strcmp(data.header.timestamp,'2458057.5844296') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458057.5845454') == 1) || (strcmp(data.header.timestamp,'2458057.5846611') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458057.5847769') == 1) || (strcmp(data.header.timestamp,'2458057.5848926') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458057.5850083') == 1) || (strcmp(data.header.timestamp,'2458057.5851241') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458057.5852398') == 1) || (strcmp(data.header.timestamp,'2458057.5853556') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458057.5854713') == 1) || (strcmp(data.header.timestamp,'2458057.5855870') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458348.3333913') == 1) || (strcmp(data.header.timestamp,'2458348.3750580') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458381.1945028') == 1) || (strcmp(data.header.timestamp,'2458381.2361695') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458444.9028369') == 1) || (strcmp(data.header.timestamp,'2458444.9445035') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458445.5486702') == 1) || (strcmp(data.header.timestamp,'2458445.5695036') == 1)...
+    %             || (strcmp(data.header.timestamp,'2458445.5903369') == 1) % newest files that are bad
+    %ifile == 41  %55
+    %     if ifile == 65 | ifile == 139 | ifile == 252 | ifile == 281 | ifile == 341 % new files that are bad
+    %         fprintf('ahhhh')
+    %         data.header.bad = 1;
+    %     else
+    %         data.header.bad = 0;
+    %     end
 
     % Stop on a certain field
     %     if data.header.fieldnum == 3
@@ -220,174 +220,174 @@ for ifile=start:size(datafiles,1) % !!!NEED TO CHANGE BACK!!!
     %     end
 
     % Analyze just one specific file
-%     if strcmp(data.header.timestamp,'2458551.8661483') == 1 %old: '2457486.2917262'
-%     if ifile == 52
+    %     if strcmp(data.header.timestamp,'2458551.8661483') == 1 %old: '2457486.2917262'
+%     if ifile == 169 %188 - bad lauer, 169 - bad newest
+%         fprintf('ahhh')
+        % Restrict newest data to only good fields
+        if (strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') == 1) && any(data.header.fieldnum == [2,4,6,7])
 
-    % Restrict newest data to only good fields
-%     if (strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') == 1) && any(data.header.fieldnum == [2,4,5,6,7,12,15,16,17,19,20,23])
-    
-    % If running err_gals MC, do more than one iteration
-    for mc = 1:mc_it
-    fprintf('Current MC num: %i of %i | On file %d of %d\n',mc,mc_it,ifile,size(datafiles,1));
-        if procstepflag >= 1
-            fprintf('Masking and ghost analysis\n');
-            %% Masking and optical ghosts
+            % If running err_gals MC, do more than one iteration
+            for mc = 1:mc_it
+                fprintf('Current MC num: %i of %i | On file %d of %d\n',mc,mc_it,ifile,size(datafiles,1));
+                if procstepflag == 1
+                    fprintf('Masking and ghost analysis\n');
+                    %% Masking and optical ghosts
 
-            %remove recursive err_str
-            if errflag_mags == 1
-                if( isfield(data.(params.err_str),params.err_str) == 1 )
-                    data.(params.err_str) = rmfield(data.(params.err_str),params.err_str); %remove recursion
+                    %remove recursive err_str
+                    if errflag_mags == 1
+                        if( isfield(data.(params.err_str),params.err_str) == 1 )
+                            data.(params.err_str) = rmfield(data.(params.err_str),params.err_str); %remove recursion
+                        end
+                    end
+
+                    if strcmp(flag_method,'new') == 1 %!!!NEED TO TURN BACK ON!!!
+                        %save ra, dec, pix, and mag of stars in image that could be causing ghosts
+                        [data, ghostcount, realghostcount] = nh_findghoststar(data,paths,params,use_gaia,errflag_mags,mc);
+                        %                 totalghosts = totalghosts + ghostcount;
+                        %                 totalrealghosts = totalrealghosts + realghostcount;
+                    end
+
+                    %
+                    %manually mask portions of image - not needed for old ghost files
+                    %         data = nh_make_manmask(data,paths);
+
+                    %mask out stars and ghosts in image (also stat and clip mask)
+                    %may need to redo catalog depending on gals
+                    %         catalog_data_gaia(gals,paths)
+                    %         catalog_data_gaia_wide(gals,paths)
+                    data = nh_makemask(data,paths,params,3,use_gaia,new_star_mask, max_mag, save_file, flag_method, errflag_mags, mc);
+
+                    %         maskim = data.data.*~data.mask.onemask;
+                    %         maskim(maskim==0) = NaN;
+                    %         checkmax(ifile) = nanmax(nanmax(maskim));
+                    %         checkmin(ifile) = nanmin(nanmin(maskim));
+
+                    %print total masked surface brightness (sum of all masked pixels)
+                    %         data.cal.sbconv .* sum(sum(data.data(data.mask.onemask)./ data.astrom.exptime))
+
+                    %print mask fraction
+                    %         data.mask.maskfrac
+
+                    %overwrite data file with changes
+                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+
                 end
-            end
 
-            if strcmp(flag_method,'new') == 1 %!!!NEED TO TURN BACK ON!!!
-                %save ra, dec, pix, and mag of stars in image that could be causing ghosts
-                [data, ghostcount, realghostcount] = nh_findghoststar(data,paths,params,use_gaia,errflag_mags,mc);
-%                 totalghosts = totalghosts + ghostcount;
-%                 totalrealghosts = totalrealghosts + realghostcount;
-            end
+                if procstepflag == 2
+                    fprintf('Meta data\n');
+                    %% Meta data
+                    %write header values, constants, coordinates, and dark reference pixel data to data file
+                    %(uses mask, may need to redo mask first)
+                    %changes values used in calibration
+                    data = nh_add_meta(data,flag_method); %!!!NEED TO TURN THIS BACK ON !!!
 
-            %
-            %manually mask portions of image - not needed for old ghost files
-            %         data = nh_make_manmask(data,paths);
+                    %overwrite data file with changes
+                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
 
-            %mask out stars and ghosts in image (also stat and clip mask)
-            %may need to redo catalog depending on gals
-            %         catalog_data_gaia(gals,paths)
-            %         catalog_data_gaia_wide(gals,paths)
-            data = nh_makemask(data,paths,params,3,use_gaia,new_star_mask, max_mag, save_file, flag_method, errflag_mags, mc);
-
-            %         maskim = data.data.*~data.mask.onemask;
-            %         maskim(maskim==0) = NaN;
-            %         checkmax(ifile) = nanmax(nanmax(maskim));
-            %         checkmin(ifile) = nanmin(nanmin(maskim));
-
-            %print total masked surface brightness (sum of all masked pixels)
-            %         data.cal.sbconv .* sum(sum(data.data(data.mask.onemask)./ data.astrom.exptime))
-
-            %print mask fraction
-            %         data.mask.maskfrac
-
-            %overwrite data file with changes
-            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
-
-        end
-
-        if procstepflag >= 2
-            fprintf('Meta data\n');
-            %% Meta data
-            %write header values, constants, coordinates, and dark reference pixel data to data file
-            %(uses mask, may need to redo mask first)
-            %changes values used in calibration
-            data = nh_add_meta(data,flag_method); %!!!NEED TO TURN THIS BACK ON !!!
-
-            %overwrite data file with changes
-            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
-
-        end
-
-        if procstepflag >= 3
-            fprintf('Jail bars\n');
-            %% Jail bar correction
-            %perform jail bar correction on data.data and data.ref - need mask first, but can redo from original data
-            [data, evenMinusOdd(ifile), evenMinusOddFixed(ifile), oddMinusEvenref(ifile), oddMinusEvenrefFixed(ifile)] = nh_jail_bars(data,paths,params,flag_method);
-
-            %overwrite data file with changes
-            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
-
-        end
-
-        if procstepflag >= 4
-            fprintf('Calibration\n');
-            %% Calibration
-
-            %save calibrated image in surface brightness units (nh_calcref saves refcorr which is used here)
-            %nh_calcref must be run first *FOR OLD METHOD ONLY*
-            data = nh_calibrate(data,paths,params,flag_method,mc);
-
-            if ifile == 1
-                % Save conversion factor to text file to be read in by python
-                fileID = fopen('conv.txt','w');
-                fprintf(fileID,'%.16f',data.cal.sbconv);
-                fclose(fileID);
-            end
-
-            %overwrite data file with changes
-            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
-
-        end
-        
-        if procstepflag == 5
-            fprintf('Diff ghosts and scattering\n');
-            %% Diffuse ghosts and scattering
-
-            if strcmp(flag_method,'new') == 1
-                %Calculate diffuse contribution from all stars in range to cause a
-                %ghost. List of stars from nh_findghoststar. Later subtracted from
-                %image mean.
-                data = nh_diffghost(data,paths,params); %!!!NEED TO TURN THIS BACK ON !!!
-                %Calculate extended diffuse scattering from all-sky ISL
-                %Depends on calibration, redo if calibration changes
-                if errflag_mags ~= 1
-                    data = nh_scattering(data, paths, errflag_mags, params);
                 end
-            end
 
-            %overwrite data file with changes
-            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+                if procstepflag == 3
+                    fprintf('Jail bars\n');
+                    %% Jail bar correction
+                    %perform jail bar correction on data.data and data.ref - need mask first, but can redo from original data
+                    [data, evenMinusOdd(ifile), evenMinusOddFixed(ifile), oddMinusEvenref(ifile), oddMinusEvenrefFixed(ifile)] = nh_jail_bars(data,paths,params,flag_method);
 
-        end
+                    %overwrite data file with changes
+                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
 
-        if procstepflag == 6
-            fprintf('ISL calculation\n');
-            %% ISL calculation
+                end
 
-            %calculate ISL from USNOB1 and Trilegal - depends on mask, need to redo if new mask
-            %may need to redo catalog depending on gals
-            %         catalog_data_gaia(gals,paths)
-            % Need to run nh_stack_psf() first to save psf to data
-            data = nh_calcisl(data, paths, params, use_gaia, tri_gaia, tri_mag, wing_mag, max_mag, save_file, flag_method, errflag_psf, tri_type);
+                if procstepflag == 4
+                    fprintf('Calibration\n');
+                    %% Calibration
 
-            %         wing = data.isl.usnowing
-            %         triisl = data.isl.trimeanmasksize
-            %         gaiaisl = data.isl.gaiamean
+                    %save calibrated image in surface brightness units (nh_calcref saves refcorr which is used here)
+                    %nh_calcref must be run first *FOR OLD METHOD ONLY*
+                    data = nh_calibrate(data,paths,params,flag_method,mc);
 
-            %overwrite data file with changes
-            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+                    if ifile == 1
+                        % Save conversion factor to text file to be read in by python
+                        fileID = fopen('conv.txt','w');
+                        fprintf(fileID,'%.16f',data.cal.sbconv);
+                        fclose(fileID);
+                    end
 
-        end
+                    %overwrite data file with changes
+                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
 
-        if procstepflag == 7
-            fprintf('DGL calculation\n');
-            %% DGL calculation
-            %         if data.header.fieldnum == 8
-            %             fprintf('its here');
-            %         end
+                end
 
-            %calculate DGL using Planck (or IRIS) data
-            data = nh_calcdgl(data, paths, flag_method);
+                if procstepflag == 5
+                    fprintf('Diff ghosts and scattering\n');
+                    %% Diffuse ghosts and scattering
 
-            %overwrite data file with changes
-            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+                    if strcmp(flag_method,'new') == 1
+                        %Calculate diffuse contribution from all stars in range to cause a
+                        %ghost. List of stars from nh_findghoststar. Later subtracted from
+                        %image mean.
+                        data = nh_diffghost(data,paths,params); %!!!NEED TO TURN THIS BACK ON !!!
+                        %Calculate extended diffuse scattering from all-sky ISL
+                        %Depends on calibration, redo if calibration changes
+                        if errflag_mags ~= 1
+                            data = nh_scattering(data, paths, errflag_mags, params);
+                        end
+                    end
 
-        end
+                    %overwrite data file with changes
+                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
 
-        if procstepflag == 8
-            fprintf('Extinction calculation\n');
-            %% Extinction calculation
+                end
 
-            %calculate extinction using SFD data
-            data = nh_extinction(data, paths);
+                if procstepflag == 6
+                    fprintf('ISL calculation\n');
+                    %% ISL calculation
 
-            %overwrite data file with changes
-            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+                    %calculate ISL from USNOB1 and Trilegal - depends on mask, need to redo if new mask
+                    %may need to redo catalog depending on gals
+                    %         catalog_data_gaia(gals,paths)
+                    % Need to run nh_stack_psf() first to save psf to data
+                    data = nh_calcisl(data, paths, params, use_gaia, tri_gaia, tri_mag, wing_mag, max_mag, save_file, flag_method, errflag_psf, tri_type);
 
-        end
-    
-    end % END FOR MC it
+                    %         wing = data.isl.usnowing
+                    %         triisl = data.isl.trimeanmasksize
+                    %         gaiaisl = data.isl.gaiamean
 
-% end % END IF running one file
-%     end % END IF excluding bad newest fields
+                    %overwrite data file with changes
+                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+
+                end
+
+                if procstepflag == 7
+                    fprintf('DGL calculation\n');
+                    %% DGL calculation
+                    %         if data.header.fieldnum == 8
+                    %             fprintf('its here');
+                    %         end
+
+                    %calculate DGL using Planck (or IRIS) data
+                    data = nh_calcdgl(data, paths, flag_method);
+
+                    %overwrite data file with changes
+                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+
+                end
+
+                if procstepflag == 8
+                    fprintf('Extinction calculation\n');
+                    %% Extinction calculation
+
+                    %calculate extinction using SFD data
+                    data = nh_extinction(data, paths);
+
+                    %overwrite data file with changes
+                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+
+                end
+
+            end % END FOR MC it
+
+%         end % END IF running one file
+    end % END IF excluding bad newest fields
 
     %     mydate(ifile) = data.header.date_jd;
     %     mytemp(ifile) = data.header.ccdtemp;
@@ -441,38 +441,38 @@ for ifile=start:size(datafiles,1) % !!!NEED TO CHANGE BACK!!!
     %dbstop
 
 
-% end %END IF single file
+    % end %END IF single file
 
-totalghosts;
-totalrealghosts;
-max(ghostdist);
+    totalghosts;
+    totalrealghosts;
+    max(ghostdist);
 
-% figure(1);
-% plot(oddMinusEvenref);
-% xlabel('Image Number');
-% ylabel('Mean(Odd Col - Even Col) [DN]')
-% title('Raw Image before Correction')
-%
-% figure(2);
-% plot(oddMinusEvenrefFixed);
-% xlabel('Image Number');
-% ylabel('Mean(Odd Col - Even Col) [DN]')
-% title('Raw Image after Correction')
-%
-% figure(3);
-% plot(evenMinusOdd);
-% xlabel('Image Number');
-% ylabel('Mean(Even Col - Odd Col) [DN]')
-% title('Cal Image before Correction')
-%
-% figure(4);
-% plot(evenMinusOddFixed);
-% xlabel('Image Number');
-% ylabel('Mean(Even Col - Odd Col) [DN]')
-% title('Cal Image after Correction')
+    % figure(1);
+    % plot(oddMinusEvenref);
+    % xlabel('Image Number');
+    % ylabel('Mean(Odd Col - Even Col) [DN]')
+    % title('Raw Image before Correction')
+    %
+    % figure(2);
+    % plot(oddMinusEvenrefFixed);
+    % xlabel('Image Number');
+    % ylabel('Mean(Odd Col - Even Col) [DN]')
+    % title('Raw Image after Correction')
+    %
+    % figure(3);
+    % plot(evenMinusOdd);
+    % xlabel('Image Number');
+    % ylabel('Mean(Even Col - Odd Col) [DN]')
+    % title('Cal Image before Correction')
+    %
+    % figure(4);
+    % plot(evenMinusOddFixed);
+    % xlabel('Image Number');
+    % ylabel('Mean(Even Col - Odd Col) [DN]')
+    % title('Cal Image after Correction')
 
-%figure(4);
-%plot(mydate - data.header.launch_jd,mytemp,'o');
-timeCntr = timeCntr + 1;
-timePer = toc;
+    %figure(4);
+    %plot(mydate - data.header.launch_jd,mytemp,'o');
+    timeCntr = timeCntr + 1;
+    timePer = toc;
 end

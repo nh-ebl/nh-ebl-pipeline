@@ -94,7 +94,10 @@ if (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'new') == 1)
         
     % Reference correction offset determined in get_ref_corr from robust fit
     % This is sig-clipped mean - recorded biaslevl - ref corr offset in DN/s
-    newcorr = datastruct.ref.bias - (0.036*data.astrom.exptime); % Old number was 0.357 from only old/new data using actual mean (not sig-clip), new version is 0.310 but doesn't account for exp time
+    % Was 0.036, now 0.0352 - 0.036 was old, new, and lauer with only lauer
+    % 150s exclusion, now old, new, lauer, and newest and new-newest with
+    % exclusion
+    newcorr = datastruct.ref.bias - (0.0352*data.astrom.exptime); % Old number was 0.357 from only old/new data using actual mean (not sig-clip), new version is 0.310 but doesn't account for exp time
     
     % Apply correction to jail bar-removed data and replace data.data
     % Due to sign, this - sig-clipped mean + recorded biaslevl + ref corr offset

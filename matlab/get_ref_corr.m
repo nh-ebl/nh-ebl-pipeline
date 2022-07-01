@@ -38,18 +38,21 @@ oldgoodfields = [3,5,6,7];
 % oldgoodfields = []; % Set good fields to none to skip data set
 newgoodfields = [5,6,7,8];
 % newgoodfields = [];
+new_exlude_enable = true; %enables skipping of new sequences
 lauergoodfields = [1,2,3,4,5,6,7];
 % lauergoodfields = [];
 lauer_exlude_enable = true; %enables skipping of new sequences
-newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,23];
+newestgoodfields = [2,4,6,7];
 % newestgoodfields = [];
 newest_exlude_enable = true; %enables skipping of new sequences
 
-%Check for old light files
+%make sure right parpool is initiated
 parpoolobj = gcp('nocreate'); % check for thread pool, which can't use the load call
 if isa(parpoolobj,'parallel.ThreadPool')
     delete(parpoolobj); %threads can't use load and will error out
 end
+
+%Check for old light files
 parfor ifile=1:numel(lightfiles)
     datatemp = load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
     data = datatemp.data; %allows parallel to work
@@ -58,14 +61,42 @@ parfor ifile=1:numel(lightfiles)
     end
 end
 
+% %Check for new light files
+% parfor ifile=1:numel(nlightfiles)
+%     datatemp = load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
+%     data = datatemp.data; %allows parallel to work
+%     if sum(data.header.fieldnum == newgoodfields)
+%         isgoodnew(ifile) = 1;
+%     end
+% end
 %Check for new light files
-parfor ifile=1:numel(nlightfiles)
+reqIDChange = ''; %detects reqID change
+fieldChange_fileCntr = 1; %counter for file skip
+fieldChange_fileSkip_time = 150; %s, time to skip at start of sequence
+new_exclude = zeros(numel(nlightfiles),1); %will fill up with new sequences to ignore
+for ifile=1:numel(nlightfiles)
     datatemp = load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
     data = datatemp.data; %allows parallel to work
     if sum(data.header.fieldnum == newgoodfields)
         isgoodnew(ifile) = 1;
     end
+    if new_exlude_enable
+        if( ifile == 1 )
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %get how many files to skip dynamically
+        end
+        %skip a # of files at the start
+        if( strcmp(data.astrom.reqid, reqIDChange) && (fieldChange_fileCntr < fieldChange_fileSkip) )
+            fieldChange_fileCntr = fieldChange_fileCntr + 1; %increment
+            new_exclude(ifile) = 1; %set this to exlude
+        elseif( ~strcmp(data.astrom.reqid, reqIDChange) )
+            reqIDChange = data.astrom.reqid; %record reqID
+            fieldChange_fileCntr = 1; %reset
+            new_exclude(ifile) = 1; %set this to exlude
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %recalc how many fields to skip
+        end
+    end
 end
+new_exclude = find(new_exclude); %get it into indexes
 
 %Check for lauer light files
 reqIDChange = ''; %detects reqID change
@@ -142,12 +173,14 @@ lightexptime = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numne
 
 %For old data files
 fprintf('Loading old data \n');
-jfile = 1;
-for ifile=1:numel(lightfiles)
+jfile_offset = 0; %offset to let par work
+parfor jfile=1+jfile_offset:numel(lightfiles)+jfile_offset
     %If file is for a good field, load and save values
+    ifile = jfile-jfile_offset; %iterating on jfile lets par work
     if isgoodold(ifile) == 1
         %Load data files
-        load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
+        data = dataz.data; %lets par work
         %Save mean of raw data and reference data
         lightref(jfile,1) = nh_sigclip(data.ref.line);
         lightref_dns(jfile,1) = nh_sigclip(data.ref.line)/data.header.exptime;
@@ -157,85 +190,101 @@ for ifile=1:numel(lightfiles)
         lightref_mean(jfile,1) = mean(data.ref.line);
         lightbias(jfile,1) = median(data.ref.line);
         lightexptime(jfile,1) = data.header.exptime;
-        jfile = jfile + 1;
+    else
+        lightbad(jfile,1) = 1;
     end
 end
 
 %For new data files
 fprintf('Loading new data \n');
-jfile = 1;
-for ifile=1:numel(nlightfiles)
+jfile_offset = numoldlightfiles; %offset to let par work
+parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
     %If file is for a good field, load and save values
+    ifile = jfile-jfile_offset; %iterating on jfile lets par work
     if isgoodnew(ifile) == 1
         %Load data files
-        load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
+        data = dataz.data; %lets par work
         %Save mean of raw data and reference data
-        lightsig(jfile+numoldlightfiles,1) = data.ref.engmean;
-        lightsig_dns(jfile+numoldlightfiles,1) = data.ref.engmean/data.header.exptime;
-        lightref(jfile+numoldlightfiles,1) = nh_sigclip(data.ref.line);
-        lightref_dns(jfile+numoldlightfiles,1) = nh_sigclip(data.ref.line)/data.header.exptime;
-        lightdate(jfile+numoldlightfiles,1) = data.header.date_jd - data.header.launch_jd;
-        lightbad(jfile+numoldlightfiles,1) = data.header.bad;
-        lightref_mean(jfile+numoldlightfiles,1) = mean(data.ref.line);
-        lightbias(jfile+numoldlightfiles,1) = data.astrom.biaslevl;
-        lightexptime(jfile+numoldlightfiles,1) = data.header.exptime;
-        jfile = jfile + 1;
+        lightsig(jfile,1) = data.ref.engmean;
+        lightsig_dns(jfile,1) = data.ref.engmean/data.header.exptime;
+        lightref(jfile,1) = nh_sigclip(data.ref.line);
+        lightref_dns(jfile,1) = nh_sigclip(data.ref.line)/data.header.exptime;
+        lightdate(jfile,1) = data.header.date_jd - data.header.launch_jd;
+        if isfield(data.header,'bad')
+            lightbad(jfile,1) = data.header.bad;
+        else
+            if( any(new_exclude == ifile) )
+                lightbad(jfile,1) = 1;
+            end
+        end
+        lightref_mean(jfile,1) = mean(data.ref.line);
+        lightbias(jfile,1) = data.astrom.biaslevl;
+        lightexptime(jfile,1) = data.header.exptime;
+    else
+        lightbad(jfile,1) = 1;
     end
 end
 
 %For lauer data files
 fprintf('Loading Lauer data \n');
-jfile = 1;
-for ifile=1:numel(llightfiles)
+jfile_offset = numoldlightfiles+numnewlightfiles; %offset to let par work
+parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
     %If file is for a good field, load and save values
+    ifile = jfile-jfile_offset; %iterating on jfile lets par work
     if isgoodlauer(ifile) == 1
         %Load data files
-        load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
+        data = dataz.data; %lets par work
         %Save mean of raw data and reference data
-        lightsig(jfile+numoldlightfiles+numnewlightfiles,1) = data.ref.engmean;
-        lightsig_dns(jfile+numoldlightfiles+numnewlightfiles,1) = data.ref.engmean/data.header.exptime;
-        lightref(jfile+numoldlightfiles+numnewlightfiles,1) = nh_sigclip(data.ref.line);
-        lightref_dns(jfile+numoldlightfiles+numnewlightfiles,1) = nh_sigclip(data.ref.line)/data.header.exptime;
-        lightdate(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.date_jd - data.header.launch_jd;
+        lightsig(jfile,1) = data.ref.engmean;
+        lightsig_dns(jfile,1) = data.ref.engmean/data.header.exptime;
+        lightref(jfile,1) = nh_sigclip(data.ref.line);
+        lightref_dns(jfile,1) = nh_sigclip(data.ref.line)/data.header.exptime;
+        lightdate(jfile,1) = data.header.date_jd - data.header.launch_jd;
         if isfield(data.header,'bad')
-            lightbad(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.bad;
+            lightbad(jfile,1) = data.header.bad;
         else
             if( any(lauer_exclude == ifile) )
-                lightbad(jfile+numoldlightfiles+numnewlightfiles,1) = 1;
+                lightbad(jfile,1) = 1;
             end
         end
-        lightref_mean(jfile+numoldlightfiles+numnewlightfiles,1) = mean(data.ref.line);
-        lightbias(jfile+numoldlightfiles+numnewlightfiles,1) = data.ref.biaslevl;
-        lightexptime(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.exptime;
-        jfile = jfile + 1;
+        lightref_mean(jfile,1) = mean(data.ref.line);
+        lightbias(jfile,1) = data.ref.biaslevl;
+        lightexptime(jfile,1) = data.header.exptime;
+    else
+        lightbad(jfile,1) = 1;
     end
 end
 
 %For newest data files
 fprintf('Loading newest data \n');
-jfile = 1;
-for ifile=1:numel(wlightfiles)
+jfile_offset = numoldlightfiles+numnewlightfiles+numlauerlightfiles; %offset to let par work
+parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
     %If file is for a good field, load and save values
+    ifile = jfile-jfile_offset; %iterating on jfile lets par work
     if isgoodnewest(ifile) == 1
         %Load data files
-        load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+        data = dataz.data; %lets par work
         %Save mean of raw data and reference data
-        lightsig(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.ref.engmean;
-        lightsig_dns(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.ref.engmean/data.header.exptime;
-        lightref(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = nh_sigclip(data.ref.line);
-        lightref_dns(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = nh_sigclip(data.ref.line)/data.header.exptime;
-        lightdate(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.date_jd - data.header.launch_jd;
+        lightsig(jfile,1) = data.ref.engmean;
+        lightsig_dns(jfile,1) = data.ref.engmean/data.header.exptime;
+        lightref(jfile,1) = nh_sigclip(data.ref.line);
+        lightref_dns(jfile,1) = nh_sigclip(data.ref.line)/data.header.exptime;
+        lightdate(jfile,1) = data.header.date_jd - data.header.launch_jd;
         if isfield(data.header,'bad')
-            lightbad(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.bad;
+            lightbad(jfile,1) = data.header.bad;
         else
             if( any(newest_exclude == ifile) )
-                lightbad(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = 1;
+                lightbad(jfile,1) = 1;
             end
         end
-        lightref_mean(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = mean(data.ref.line);
-        lightbias(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.ref.biaslevl;
-        lightexptime(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.exptime;
-        jfile = jfile + 1;
+        lightref_mean(jfile,1) = mean(data.ref.line);
+        lightbias(jfile,1) = data.ref.biaslevl;
+        lightexptime(jfile,1) = data.header.exptime;
+    else
+        lightbad(jfile,1) = 1;
     end
 end
 
@@ -405,14 +454,14 @@ r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFace
 % Plot x = y
 % x = [535:550]-538;
 % y = [535:550]-538;
-x = [0:0.1:0.6];
-y = [0:0.1:0.6];
+x = [0:0.1:0.8];
+y = [0:0.1:0.8];
 xy = plot(x,y,'Color','#7E2F8E');
 % xlim([0,0.6])
 % ylim([-2,12]);
 % Basic linear fit
 [fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
-xfit=linspace(0,0.6);
+xfit=linspace(0,0.8);
 yfit=(fitobject.p1*xfit + fitobject.p2);
 % fitwut = plot(xfit,yfit,'b');
 % Fit with slope = 1

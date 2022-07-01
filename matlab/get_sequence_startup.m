@@ -38,9 +38,15 @@ newgoodfields = [5,6,7,8];
 lauergoodfields = [1,2,3,4,5,6,7];
 % lauergoodfields = [];
 lauer_exlude_enable = false; %enables skipping of new sequences
-newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,23];
+newestgoodfields = [2,4,6,7]; %[2,4,6,7,12,15,16,17,19,20,23];
 % newestgoodfields = [];
 newest_exlude_enable = false; %enables skipping of new sequences
+
+%make sure right parpool is initiated
+parpoolobj = gcp('nocreate'); % check for thread pool, which can't use the load call
+if isa(parpoolobj,'parallel.ThreadPool')
+    delete(parpoolobj); %threads can't use load and will error out
+end
 
 %Check for old light files
 parfor ifile=1:numel(lightfiles)

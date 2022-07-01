@@ -163,7 +163,7 @@ lil_optp = lil_opt - m[0] + m[0] / lil_ext
 ## make new error estimate using a better guess for the slope (details
 ## of which shouldn't really matter here)
 for ind in range(0,np.size(lil_opt)):
-    Ninv[ind] = 1./(lil_sigy[ind]**2 + m1[0]**2 * lil_sigx[ind]**2)
+    Ninv[ind] = 1./(lil_sigy[ind]**2 + m1[1]**2 * lil_sigx[ind]**2)
 
 ## now do linear algebra again to get parameter estimates
 AtAinvp = np.linalg.inv((np.matmul(At*Ninv,A)))

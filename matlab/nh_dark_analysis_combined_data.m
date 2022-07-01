@@ -49,46 +49,152 @@ isgoodnewest = zeros(numel(wlightfiles),1);
 %files
 oldgoodfields = [3,5,6,7];
 newgoodfields = [5,6,7,8];
+new_exlude_enable = true; %enables skipping of new sequences
 lauergoodfields = [1,2,3,4,5,6,7];
-newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,23];
+lauer_exlude_enable = true; %enables skipping of new sequences
+newestgoodfields = [2,4,6,7];
+newest_exlude_enable = true; %enables skipping of new sequences
+
+%make sure right parpool is initiated
+parpoolobj = gcp('nocreate'); % check for thread pool, which can't use the load call
+if isa(parpoolobj,'parallel.ThreadPool')
+    delete(parpoolobj); %threads can't use load and will error out
+end
 
 %Check for old light files
-for ifile=1:numel(lightfiles)
-    load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
+parfor ifile=1:numel(lightfiles)
+    dataz = load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
+    data = dataz.data; %lets par work
     if sum(data.header.fieldnum == oldgoodfields)
         isgoodold(ifile) = 1;
     end
 end
 
+% %Check for new light files
+% parfor ifile=1:numel(nlightfiles)
+%     dataz = load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
+%     data = dataz.data; %lets par work
+%     if sum(data.header.fieldnum == newgoodfields)
+%         isgoodnew(ifile) = 1;
+%     end
+% end
 %Check for new light files
+reqIDChange = ''; %detects reqID change
+fieldChange_fileCntr = 1; %counter for file skip
+fieldChange_fileSkip_time = 150; %s, time to skip at start of sequence
+new_exclude = zeros(numel(nlightfiles),1); %will fill up with new sequences to ignore
 for ifile=1:numel(nlightfiles)
-    load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
+    datatemp = load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
+    data = datatemp.data; %allows parallel to work
     if sum(data.header.fieldnum == newgoodfields)
         isgoodnew(ifile) = 1;
     end
+    if new_exlude_enable
+        if( ifile == 1 )
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %get how many files to skip dynamically
+        end
+        %skip a # of files at the start
+        if( strcmp(data.astrom.reqid, reqIDChange) && (fieldChange_fileCntr < fieldChange_fileSkip) )
+            fieldChange_fileCntr = fieldChange_fileCntr + 1; %increment
+            new_exclude(ifile) = 1; %set this to exlude
+        elseif( ~strcmp(data.astrom.reqid, reqIDChange) )
+            reqIDChange = data.astrom.reqid; %record reqID
+            fieldChange_fileCntr = 1; %reset
+            new_exclude(ifile) = 1; %set this to exlude
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %recalc how many fields to skip
+        end
+    end
 end
+new_exclude_logical = new_exclude;
+new_exclude = find(new_exclude); %get it into indexes
 
+% %Check for lauer light files
+% parfor ifile=1:numel(llightfiles)
+%     dataz = load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
+%     data = dataz.data; %lets par work
+%     if sum(data.header.fieldnum == lauergoodfields)
+%         isgoodlauer(ifile) = 1;
+%     end
+% end
 %Check for lauer light files
+reqIDChange = ''; %detects reqID change
+fieldChange_fileCntr = 1; %counter for file skip
+fieldChange_fileSkip_time = 150; %s, time to skip at start of sequence
+lauer_exclude = zeros(numel(llightfiles),1); %will fill up with new sequences to ignore
 for ifile=1:numel(llightfiles)
     load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
     if sum(data.header.fieldnum == lauergoodfields)
         isgoodlauer(ifile) = 1;
     end
+    if lauer_exlude_enable
+        if( ifile == 1 )
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %get how many files to skip dynamically
+        end
+        %skip a # of files at the start
+        if( strcmp(data.astrom.reqid, reqIDChange) && (fieldChange_fileCntr < fieldChange_fileSkip) )
+            fieldChange_fileCntr = fieldChange_fileCntr + 1; %increment
+            lauer_exclude(ifile) = 1; %set this to exlude
+        elseif( ~strcmp(data.astrom.reqid, reqIDChange) )
+            reqIDChange = data.astrom.reqid; %record reqID
+            fieldChange_fileCntr = 1; %reset
+            lauer_exclude(ifile) = 1; %set this to exlude
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %recalc how many fields to skip
+        end
+    end
 end
+lauer_exclude_logical = lauer_exclude;
+lauer_exclude = find(lauer_exclude); %get it into indexes
 
+% %Check for newest light files
+% parfor ifile=1:numel(wlightfiles)
+%     dataz = load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+%     data = dataz.data; %lets par work
+%     if sum(data.header.fieldnum == newestgoodfields)
+%         isgoodnewest(ifile) = 1;
+%     end
+% end
 %Check for newest light files
+reqIDChange = ''; %detects reqID change
+fieldChange_fileCntr = 1; %counter for file skip
+fieldChange_fileSkip_time = 150; %s, time to skip at start of sequence
+newest_exclude = zeros(numel(wlightfiles),1); %will fill up with new sequences to ignore
 for ifile=1:numel(wlightfiles)
     load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
     if sum(data.header.fieldnum == newestgoodfields)
         isgoodnewest(ifile) = 1;
     end
+    if newest_exlude_enable
+        if( ifile == 1 )
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %get how many files to skip dynamically
+        end
+        %skip a # of files at the start
+        if( strcmp(data.astrom.reqid, reqIDChange) && (fieldChange_fileCntr < fieldChange_fileSkip) )
+            fieldChange_fileCntr = fieldChange_fileCntr + 1; %increment
+            newest_exclude(ifile) = 1; %set this to exlude
+        elseif( ~strcmp(data.astrom.reqid, reqIDChange) )
+            reqIDChange = data.astrom.reqid; %record reqID
+            fieldChange_fileCntr = 1; %reset
+            newest_exclude(ifile) = 1; %set this to exlude
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %recalc how many fields to skip
+        end
+    end
 end
+newest_exclude_logical = newest_exclude;
+newest_exclude = find(newest_exclude); %get it into indexes
 
 %Number of old and new light files corresponding to good fields
-numoldlightfiles = sum(isgoodold);
-numnewlightfiles = sum(isgoodnew);
-numlauerlightfiles = sum(isgoodlauer);
-numnewestlightfiles = sum(isgoodnewest);
+% numoldlightfiles = sum(isgoodold); %isgoodall will enforce isgood (remove bad files/excluded files) at the end of all reading in
+% numnewlightfiles = sum(isgoodnew);
+% numlauerlightfiles = sum(isgoodlauer);
+% numnewestlightfiles = sum(isgoodnewest);
+numoldlightfiles = numel(lightfiles);
+numnewlightfiles = numel(nlightfiles);
+numlauerlightfiles = numel(llightfiles);
+numnewestlightfiles = numel(wlightfiles);
+
+%isgood combined for reducing the size of variables at the end (allows for parallel)
+isgoodall = logical([isgoodold;isgoodnew;isgoodlauer;isgoodnewest]);
+excludeall_not = ~logical([zeros(size(isgoodold));new_exclude_logical;lauer_exclude_logical;newest_exclude_logical]);
 
 %Preallocate space for variables light
 lighttemp = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
@@ -118,17 +224,20 @@ darkcurrold = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnew
 %For dark data files
 for ifile=1:size(ndarkfiles)
     %Load data and save values
-    load(sprintf('%s%s',npaths.darkdir,ndarkfiles(ifile).name));
+    dataz = load(sprintf('%s%s',npaths.darkdir,ndarkfiles(ifile).name));
+    data = dataz.data; %lets par work
     
     darktemp(ifile,1) = data.header.ccdtemp;
     darkdate(ifile,1) = data.header.date_jd - data.header.launch_jd;
-    darksig(ifile,1) = median(data.dark(:));
+    darksig(ifile,:) = [median(data.dark(:)), std(data.dark(:))]; %parfor complains about ,1 and ,2 usage b/c????
+    % darksig(ifile,1) = median(data.dark(:));
     darksig_mean(ifile,1) = mean(data.dark(:));
-    darksig(ifile,2) = std(data.dark(:));
-    darkref(ifile,1) = mean(data.ref.line);
+    % darksig(ifile,2) = std(data.dark(:));
+    darkref(ifile,:) = [mean(data.ref.line), std(data.ref.line)]; %parfor complains about ,1 and ,2 usage b/c????
+%     darkref(ifile,1) = mean(data.ref.line);
     darkref_med(ifile,1) = median(data.ref.line);
     darkref_sig(ifile,1) = nh_sigclip(data.ref.line);
-    darkref(ifile,2) = std(data.ref.line);
+%     darkref(ifile,2) = std(data.ref.line);
     darkexp(ifile,1) = data.header.exptime;
     %If date in certain range, assign field number
     if darkdate(ifile,1) < 94
@@ -137,7 +246,7 @@ for ifile=1:size(ndarkfiles)
     if darkdate(ifile,1) > 94 && darkdate(ifile,1) < 96
         darkfield(ifile,1) = 2;
     end
-    if darkdate(ifile,1) > 102 && darkdate(ifile) < 103
+    if darkdate(ifile,1) > 102 && darkdate(ifile,1) < 103
         darkfield(ifile,1) = 3;
     end
     if darkdate(ifile,1) > 103 && darkdate(ifile,1) < 104
@@ -150,25 +259,34 @@ fprintf('Parsing light files.\n');
 
 fprintf('Reading in old data.\n');
 %For old data files
-jfile = 1;
-for ifile=1:numel(lightfiles)
+parfor jfile=1:numel(lightfiles)
     %If file is for a good field, load and save values
+    ifile = jfile; %lets par work
     if isgoodold(ifile) == 1
-        load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
+        data = dataz.data; %lets par work
     
         lighttemp(jfile,1) = data.header.ccdtemp;
         lightfpubtemp(jfile,1) = data.astrom.fpubtemp;
         lightdate(jfile,1) = data.header.date_jd - data.header.launch_jd;
-        lightsig(jfile,1) = data.ref.engmean;
-        lightsig(jfile,2) = sqrt(data.ref.engmean);
-        lightref(jfile,1) = mean(data.ref.line);
+        lightsig(jfile,:) = [data.ref.engmean, sqrt(data.ref.engmean)]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightsig(jfile,1) = data.ref.engmean;
+        % lightsig(jfile,2) = sqrt(data.ref.engmean);
+        lightref(jfile,:) = [mean(data.ref.line), std(data.ref.line)]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightref(jfile,1) = mean(data.ref.line);
         lightref_med(jfile,1) = median(data.ref.line);
         lightref_sig(jfile,1) = nh_sigclip(data.ref.line);
-        lightref(jfile,2) = std(data.ref.line);
+        % lightref(jfile,2) = std(data.ref.line);
         lightexp(jfile,1) = data.header.exptime;
         lightfield(jfile,1) = data.header.fieldnum;
-        lightlIl(jfile,1) = data.stats.maskmean./data.header.exptime;
-        lightlIl(jfile,2) = data.stats.maskstd;
+        lightlIl(jfile,:) = [data.stats.maskmean./data.header.exptime, data.stats.maskstd]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightlIl(jfile,1) = data.stats.maskmean./data.header.exptime;
+        % lightlIl(jfile,2) = data.stats.maskstd;
+        if isfield(data.header,'bad')
+            lightbad(jfile,1) = data.header.bad;
+        else
+            lightbad(jfile,1) = 0;
+        end
         
         maskim = data.image.calimage.*~data.mask.onemask;
         maskim(maskim==0) = NaN;
@@ -177,128 +295,191 @@ for ifile=1:numel(lightfiles)
         gall(jfile,1) = l;
         galb(jfile,1) = b;
         helidist(jfile+numoldlightfiles,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
-
-        
-        jfile = jfile + 1;
+    else
+        lightbad(jfile,1) = 1;
     end
     
-darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+    darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp(jfile,1)+273).^3.*exp(-6400./(lighttemp(jfile,1)+273));
 
 end
 
 fprintf('Reading in new data.\n');
 %For new data files
-jfile = 1;
-for ifile=1:numel(nlightfiles)
+jfile_offset = numoldlightfiles; %offset to let par work
+parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
     %If file is for a good field, load and save values
+    ifile = jfile-jfile_offset; %makes par work
     if isgoodnew(ifile) == 1
-        load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
+        data = dataz.data; %lets par work
 
-        lighttemp(jfile+numoldlightfiles,1) = data.header.ccdtemp;
-        lightfpubtemp(jfile+numoldlightfiles,1) = data.astrom.fpubtemp;
-        lightdate(jfile+numoldlightfiles,1) = data.header.date_jd - data.header.launch_jd;
-        lightsig(jfile+numoldlightfiles,1) = data.ref.engmean;
-        lightsig(jfile+numoldlightfiles,2) = sqrt(data.ref.engmean);
-        lightref(jfile+numoldlightfiles,1) = mean(data.ref.line);
-        lightref_med(jfile+numoldlightfiles,1) = median(data.ref.line);
-        lightref_sig(jfile+numoldlightfiles,1) = nh_sigclip(data.ref.line);
-        lightref(jfile+numoldlightfiles,2) = std(data.ref.line);
-        lightexp(jfile+numoldlightfiles,1) = data.header.exptime;
-        lightfield(jfile+numoldlightfiles,1) = data.header.fieldnum;
-        lightlIl(jfile+numoldlightfiles,1) = data.stats.maskmean./data.header.exptime;
-        lightlIl(jfile+numoldlightfiles,2) = data.stats.maskstd;
-        lightbad(jfile+numoldlightfiles,1) = data.header.bad;
+        lighttemp(jfile,1) = data.header.ccdtemp;
+        lightfpubtemp(jfile,1) = data.astrom.fpubtemp;
+        lightdate(jfile,1) = data.header.date_jd - data.header.launch_jd;
+        lightsig(jfile,:) = [data.ref.engmean, sqrt(data.ref.engmean)]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightsig(jfile,1) = data.ref.engmean;
+        % lightsig(jfile,2) = sqrt(data.ref.engmean);
+        lightref(jfile,:) = [mean(data.ref.line), std(data.ref.line)]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightref(jfile,1) = mean(data.ref.line);
+        lightref_med(jfile,1) = median(data.ref.line);
+        lightref_sig(jfile,1) = nh_sigclip(data.ref.line);
+        % lightref(jfile,2) = std(data.ref.line);
+        lightexp(jfile,1) = data.header.exptime;
+        lightfield(jfile,1) = data.header.fieldnum;
+        lightlIl(jfile,:) = [data.stats.maskmean./data.header.exptime, data.stats.maskstd]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightlIl(jfile,1) = data.stats.maskmean./data.header.exptime;
+        % lightlIl(jfile,2) = data.stats.maskstd;
+        if isfield(data.header,'bad')
+            lightbad(jfile,1) = data.header.bad;
+        else
+            if( any(new_exclude == ifile) )
+                lightbad(jfile,1) = 1;
+            end
+        end
         
         maskim = data.image.calimage.*~data.mask.onemask;
         maskim(maskim==0) = NaN;
-        photcurr(jfile+numoldlightfiles,1) = nanmean(nanmean(maskim));
+        photcurr(jfile,1) = nanmean(nanmean(maskim));
         [l,b]=RA_Dec_to_Gal(data.astrom.spcbrra,data.astrom.spcbrdec);
-        gall(jfile+numoldlightfiles,1) = l;
-        galb(jfile+numoldlightfiles,1) = b;
-        helidist(jfile+numoldlightfiles,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
-        
-        jfile = jfile + 1;
+        gall(jfile,1) = l;
+        galb(jfile,1) = b;
+        helidist(jfile,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
+    else
+        lightbad(jfile,1) = 1;
     end
-darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+    darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp(jfile,1)+273).^3.*exp(-6400./(lighttemp(jfile,1)+273));
 
 % end
 end
 
 fprintf('Reading in lauer data.\n');
 %For lauer data files
-jfile = 1;
-for ifile=1:numel(llightfiles)
+jfile_offset = numoldlightfiles+numnewlightfiles; %offset to let par work
+parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
     %If file is for a good field, load and save values
+    ifile = jfile-jfile_offset; %makes par work
     if isgoodlauer(ifile) == 1
-        load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
+        data = dataz.data; %lets par work
 
-        lighttemp(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.ccdtemp;
-        lightfpubtemp(jfile+numoldlightfiles+numnewlightfiles,1) = data.astrom.fpubtemp;
-        lightdate(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.date_jd - data.header.launch_jd;
-        lightsig(jfile+numoldlightfiles+numnewlightfiles,1) = data.ref.engmean;
-        lightsig(jfile+numoldlightfiles+numnewlightfiles,2) = sqrt(data.ref.engmean);
-        lightref(jfile+numoldlightfiles+numnewlightfiles,1) = mean(data.ref.line);
-        lightref_med(jfile+numoldlightfiles+numnewlightfiles,1) = median(data.ref.line);
-        lightref_sig(jfile+numoldlightfiles+numnewlightfiles,1) = nh_sigclip(data.ref.line);
-        lightref(jfile+numoldlightfiles+numnewlightfiles,2) = std(data.ref.line);
-        lightexp(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.exptime;
-        lightfield(jfile+numoldlightfiles+numnewlightfiles,1) = data.header.fieldnum;
-        lightlIl(jfile+numoldlightfiles+numnewlightfiles,1) = data.stats.maskmean./data.header.exptime;
-        lightlIl(jfile+numoldlightfiles+numnewlightfiles,2) = data.stats.maskstd;
-        lightbad(jfile+numoldlightfiles+numnewlightfiles,1) = 0;
+        lighttemp(jfile,1) = data.header.ccdtemp;
+        lightfpubtemp(jfile,1) = data.astrom.fpubtemp;
+        lightdate(jfile,1) = data.header.date_jd - data.header.launch_jd;
+        lightsig(jfile,:) = [data.ref.engmean, sqrt(data.ref.engmean)]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightsig(jfile,1) = data.ref.engmean;
+        % lightsig(jfile,2) = sqrt(data.ref.engmean);
+        lightref(jfile,:) = [mean(data.ref.line), std(data.ref.line)]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightref(jfile,1) = mean(data.ref.line);
+        lightref_med(jfile,1) = median(data.ref.line);
+        lightref_sig(jfile,1) = nh_sigclip(data.ref.line);
+        % lightref(jfile,2) = std(data.ref.line);
+        lightexp(jfile,1) = data.header.exptime;
+        lightfield(jfile,1) = data.header.fieldnum;
+        lightlIl(jfile,:) = [data.stats.maskmean./data.header.exptime, data.stats.maskstd]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightlIl(jfile,1) = data.stats.maskmean./data.header.exptime;
+        % lightlIl(jfile,2) = data.stats.maskstd;
+        if isfield(data.header,'bad')
+            lightbad(jfile,1) = data.header.bad;
+        else
+            if( any(lauer_exclude == ifile) )
+                lightbad(jfile,1) = 1;
+            end
+        end
         
         maskim = data.image.calimage.*~data.mask.onemask;
         maskim(maskim==0) = NaN;
-        photcurr(jfile+numoldlightfiles+numnewlightfiles,1) = nanmean(nanmean(maskim));
+        photcurr(jfile,1) = nanmean(nanmean(maskim));
         [l,b]=RA_Dec_to_Gal(data.astrom.spcbrra,data.astrom.spcbrdec);
-        gall(jfile+numoldlightfiles+numnewlightfiles,1) = l;
-        galb(jfile+numoldlightfiles+numnewlightfiles,1) = b;
-        helidist(jfile+numoldlightfiles+numnewlightfiles,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
-        
-        jfile = jfile + 1;
+        gall(jfile,1) = l;
+        galb(jfile,1) = b;
+        helidist(jfile,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
+    else
+        lightbad(jfile,1) = 1;
     end
-darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+    darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp(jfile,1)+273).^3.*exp(-6400./(lighttemp(jfile,1)+273));
 
 % end
 end
 
 fprintf('Reading in newest data.\n');
 %For newest data files
-jfile = 1;
-for ifile=1:numel(wlightfiles)
+jfile_offset = numoldlightfiles+numnewlightfiles+numlauerlightfiles; %offset to let par work
+parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
     %If file is for a good field, load and save values
+    ifile = jfile-jfile_offset; %makes par work
     if isgoodnewest(ifile) == 1
-        load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+        dataz = load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+        data = dataz.data; %lets par work
 
-        lighttemp(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.ccdtemp;
-        lightfpubtemp(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.astrom.fpubtemp;
-        lightdate(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.date_jd - data.header.launch_jd;
-        lightsig(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.ref.engmean;
-        lightsig(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,2) = sqrt(data.ref.engmean);
-        lightref(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = mean(data.ref.line);
-        lightref_med(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = median(data.ref.line);
-        lightref_sig(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = nh_sigclip(data.ref.line);
-        lightref(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,2) = std(data.ref.line);
-        lightexp(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.exptime;
-        lightfield(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.header.fieldnum;
-        lightlIl(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = data.stats.maskmean./data.header.exptime;
-        lightlIl(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,2) = data.stats.maskstd;
-        lightbad(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = 0;
+        lighttemp(jfile,1) = data.header.ccdtemp;
+        lightfpubtemp(jfile,1) = data.astrom.fpubtemp;
+        lightdate(jfile,1) = data.header.date_jd - data.header.launch_jd;
+        lightsig(jfile,:) = [data.ref.engmean, sqrt(data.ref.engmean)]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightsig(jfile,1) = data.ref.engmean;
+        % lightsig(jfile,2) = sqrt(data.ref.engmean);
+        lightref(jfile,:) = [mean(data.ref.line), std(data.ref.line)]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightref(jfile,1) = mean(data.ref.line);
+        lightref_med(jfile,1) = median(data.ref.line);
+        lightref_sig(jfile,1) = nh_sigclip(data.ref.line);
+        % lightref(jfile,2) = std(data.ref.line);
+        lightexp(jfile,1) = data.header.exptime;
+        lightfield(jfile,1) = data.header.fieldnum;
+        lightlIl(jfile,:) = [data.stats.maskmean./data.header.exptime, data.stats.maskstd]; %parfor complains about ,1 and ,2 usage b/c????
+        % lightlIl(jfile,1) = data.stats.maskmean./data.header.exptime;
+        % lightlIl(jfile,2) = data.stats.maskstd;
+        if isfield(data.header,'bad')
+            lightbad(jfile,1) = data.header.bad;
+        else
+            if( any(newest_exclude == ifile) )
+                lightbad(jfile,1) = 1;
+            end
+        end
         
         maskim = data.image.calimage.*~data.mask.onemask;
         maskim(maskim==0) = NaN;
-        photcurr(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = nanmean(nanmean(maskim));
+        photcurr(jfile,1) = nanmean(nanmean(maskim));
         [l,b]=RA_Dec_to_Gal(data.astrom.spcbrra,data.astrom.spcbrdec);
-        gall(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = l;
-        galb(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = b;
-        helidist(jfile+numoldlightfiles+numnewlightfiles+numlauerlightfiles,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
-        
-        jfile = jfile + 1;
+        gall(jfile,1) = l;
+        galb(jfile,1) = b;
+        helidist(jfile,1) = sqrt((data.astrom.spcsscx)^2 + (data.astrom.spcsscy)^2 + (data.astrom.spcsscz)^2);
+    else
+        lightbad(jfile,1) = 1;
     end
-darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp+273).^3.*exp(-6400./(lighttemp+273));
+    darkcurrlight = 2.545.*10.*(1./22).*1e4.*122.*(lighttemp(jfile,1)+273).^3.*exp(-6400./(lighttemp(jfile,1)+273));
 
 % end
 end
+%remove non-isgood files (does not include exclude mode files via lightbad)
+%but stuff below seems to be coded assuming non-isgood stuff removed
+lighttemp = lighttemp(isgoodall & excludeall_not, :);
+lightfpubtemp = lightfpubtemp(isgoodall & excludeall_not, :);
+lightdate = lightdate(isgoodall & excludeall_not, :);
+lightsig = lightsig(isgoodall & excludeall_not, :);
+lightref = lightref(isgoodall & excludeall_not, :);
+lightref_med = lightref_med(isgoodall & excludeall_not, :);
+lightref_sig = lightref_sig(isgoodall & excludeall_not, :);
+lightexp = lightexp(isgoodall & excludeall_not, :);
+lightfield = lightfield(isgoodall & excludeall_not, :);
+lightlIl = lightlIl(isgoodall & excludeall_not, :);
+lightbad = lightbad(isgoodall & excludeall_not, :);
+photcurr = photcurr(isgoodall & excludeall_not, :);
+gall = gall(isgoodall & excludeall_not, :);
+galb = galb(isgoodall & excludeall_not, :);
+helidist = helidist(isgoodall & excludeall_not, :);
+
+lightdatenew = lightdatenew(isgoodall & excludeall_not, :);
+lightdateold = lightdateold(isgoodall & excludeall_not, :);
+lighttempnew = lighttempnew(isgoodall & excludeall_not, :);
+lighttempold = lighttempold(isgoodall & excludeall_not, :);
+
+darkcurrnew = darkcurrnew(isgoodall & excludeall_not, :);
+darkcurrold = darkcurrold(isgoodall & excludeall_not, :);
+
+numoldlightfiles = sum(isgoodold); %supports counting above
+numnewlightfiles = sum(isgoodnew & ~new_exclude_logical);
+numlauerlightfiles = sum(isgoodlauer & ~lauer_exclude_logical);
+numnewestlightfiles = sum(isgoodnewest & ~newest_exclude_logical);
+
 %Prepare to save mean values for like fields
 nfieldsdark = 4; %Dark data previously divided into 4 fields by date
 darktempm = zeros(nfieldsdark,1);
@@ -450,6 +631,8 @@ end
 % Convert dark current in e/s/pix to DN/s/pix
 darkcurrdn = darkcurrlight/19.4; % New gain value from Lauer is 19.4 e/DN, old value 22
 % Convert dark current in DN/s/pix to nW/m2/sr
+dataz = load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
+data = dataz.data; %had error that data.cal.sbconv didn't exist, so load in last newest file used (which won't have issues)
 darkcurrnw = darkcurrdn*data.cal.sbconv;
 % Calculate mean dark current (few new files) in nW/m2/sr
 meandc = mean(darkcurrnw);
