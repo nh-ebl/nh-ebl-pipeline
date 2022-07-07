@@ -399,7 +399,7 @@ s1 = scatter(im_num(field>1 & bad < 1),maskmeanold(field>1 & bad < 1));
 s2 = scatter(im_num(field>1 & bad < 1),maskmean(field>1 & bad < 1).*exposure_time(field>1 & bad < 1),[],field(field>1 & bad < 1));
 xlabel('Image Number')
 ylabel('Image Masked Mean [DN]')
-legend([s1,s1],{'Before Jail Bar Correction','After Jail Bar Correction'})
+% legend([s1,s2],{'Before Jail Bar Correction','After Jail Bar Correction'})
 figcnt = figcnt + 1;
 
 % Plot comparison of diff ghost sub from model and data

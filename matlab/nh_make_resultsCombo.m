@@ -1,5 +1,11 @@
 function nh_make_resultsCombo()
 
+%make sure parpool is the right type
+parpoolobj = gcp('nocreate'); % check for thread pool, which can't use the load call
+if isa(parpoolobj,'parallel.ThreadPool')
+    delete(parpoolobj); %threads can't use load and will error out
+end
+
 dglparams = nh_get_dgl_params();
 
 want_errmags = 0;
@@ -39,34 +45,58 @@ newgood_exlude_enable = true; %enables skipping of sequences
 lauergoodfields = [1,2,3,4,5,6,7];
 lauer_exlude_enable = true; %enables skipping of new sequences
 % lauergoodfields = [];
-newestgoodfields = [2,4,6,7]; %[2,4,6,7]; %[2,4,5,6,7,12,15,16,17,19,20,23]; - old set before exclusion
+newestgoodfields = flip([2,4,6,7]); %[2,4,6,7]; %[2,4,5,6,7,12,15,16,17,19,20,23]; - old set before exclusion
+% newestgoodfields = flip([2,4,5,6,7,12,15,16,17,19,20,23]);
 newest_exlude_enable = true; %enables skipping of new sequences
 % newestgoodfields = [];
 
 
 % Calculate total fields
-goodfiles = [oldgoodfields,newgoodfields,lauergoodfields,newestgoodfields];
-zones = cumsum([1,length(oldgoodfields),length(newgoodfields),length(lauergoodfields),length(newestgoodfields)]); %Record the seperate zones and their orders
+goodfiles = [oldgoodfields,newgoodfields,newestgoodfields,lauergoodfields];
+zones = cumsum([1,length(oldgoodfields),length(newgoodfields),length(newestgoodfields),length(lauergoodfields)]); %Record the seperate zones and their orders
 unique_fields = [1:length(goodfiles)];
 
+num_fields = length(goodfiles);
+field_snaps_data = zeros(256,256,num_fields); %records the 1st good image for each unique field
+field_snaps_cal = zeros(256,256,num_fields); %records the 1st good image for each unique field
+field_snaps_mask = true(num_fields,1); %to record which field snaps have been recorded
+get3DInd = @(tf,pg)find(tf) + numel(tf)*(find(pg)-1); %makes 2d logical arrays work in 3d array
+
 %Check for old light files
-parpoolobj = gcp('nocreate'); % check for thread pool, which can't use the load call
-if isa(parpoolobj,'parallel.ThreadPool')
-    delete(parpoolobj); %threads can't use load and will error out
-end
-parfor ifile=1:numel(lightfiles)
+zones_indexer = 1; %Increment the zone to the next zone of data
+zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
+zones_snaps_mask = field_snaps_mask(zones(zones_indexer):zones(zones_indexer+1)-1); %current zone's snaps mask
+zones_snaps_data = zeros(256,256,length(zones_snaps_mask)); %records the 1st good image for each unique field
+zones_snaps_cal = zeros(256,256,length(zones_snaps_mask)); %records the 1st good image for each unique field
+for ifile=1:numel(lightfiles)
     datatemp = load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
     data = datatemp.data; %allows parallel to work
-    if sum(data.header.fieldnum == oldgoodfields)
+    if any(data.header.fieldnum == oldgoodfields)
         isgoodold(ifile) = 1;
     end
+    if isgoodold(ifile) && any(data.header.fieldnum == zones_goodfiles(zones_snaps_mask))
+        zones_snaps_data(:,:,data.header.fieldnum == zones_goodfiles) = data.data;
+        zones_snaps_cal(:,:,data.header.fieldnum == zones_goodfiles) = data.image.calimage;
+        zones_snaps_cal(get3DInd(data.mask.onemask,data.header.fieldnum == zones_goodfiles)) = nan; %two step to set masked values as nan
+        zones_snaps_mask(data.header.fieldnum == zones_goodfiles) = 0; %turn off, got it
+    end
 end
+field_snaps_data(:,:,zones(zones_indexer):zones(zones_indexer+1)-1) = zones_snaps_data; %copy it in
+field_snaps_cal(:,:,zones(zones_indexer):zones(zones_indexer+1)-1) = zones_snaps_cal;
+oldgood_exclude_logical = false(size(isgoodold)); %not used
+old_goodfilesNum = sum(isgoodold&~oldgood_exclude_logical);
+disp(['Old|Total files used after isgoodold (good field check, ',num2str(sum(isgoodold)),') and ~oldgood_exclude (time skip, NOT USED): ',num2str(old_goodfilesNum),'/',num2str(numel(lightfiles))])
 
 %Check for new light files
 reqIDChange = ''; %detects reqID change
 fieldChange_fileCntr = 1; %counter for file skip
 fieldChange_fileSkip_time = excl_time; %s, time to skip at start of sequence
-newgood_exclude = zeros(numel(llightfiles),1); %will fill up with new sequences to ignore
+newgood_exclude = zeros(numel(nlightfiles),1); %will fill up with new sequences to ignore
+zones_indexer = zones_indexer + 1; %Increment the zone to the next zone of data
+zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
+zones_snaps_mask = field_snaps_mask(zones(zones_indexer):zones(zones_indexer+1)-1); %current zone's snaps mask
+zones_snaps_data = zeros(256,256,length(zones_snaps_mask)); %records the 1st good image for each unique field
+zones_snaps_cal = zeros(256,256,length(zones_snaps_mask)); %records the 1st good image for each unique field
 for ifile=1:numel(nlightfiles)
     datatemp = load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
     data = datatemp.data; %allows parallel to work
@@ -88,42 +118,30 @@ for ifile=1:numel(nlightfiles)
             fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %recalc how many fields to skip
         end
     end
+    if isgoodnew(ifile) && ~newgood_exclude(ifile) && any(data.header.fieldnum == zones_goodfiles(zones_snaps_mask))
+        zones_snaps_data(:,:,data.header.fieldnum == zones_goodfiles) = data.data;
+        zones_snaps_cal(:,:,data.header.fieldnum == zones_goodfiles) = data.image.calimage;
+        zones_snaps_cal(get3DInd(data.mask.onemask,data.header.fieldnum == zones_goodfiles)) = nan; %two step to set masked values as nan
+        zones_snaps_mask(data.header.fieldnum == zones_goodfiles) = 0; %turn off, got it
+    end
 end
+field_snaps_data(:,:,zones(zones_indexer):zones(zones_indexer+1)-1) = zones_snaps_data; %copy it in
+field_snaps_cal(:,:,zones(zones_indexer):zones(zones_indexer+1)-1) = zones_snaps_cal;
+newgood_exclude_logical = newgood_exclude;
 newgood_exclude = find(newgood_exclude); %get it into indexes
-
-%Check for lauer light files
-reqIDChange = ''; %detects reqID change
-fieldChange_fileCntr = 1; %counter for file skip
-fieldChange_fileSkip_time = excl_time; %s, time to skip at start of sequence
-lauer_exclude = zeros(numel(llightfiles),1); %will fill up with new sequences to ignore
-for ifile=1:numel(llightfiles)
-    load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
-    if sum(data.header.fieldnum == lauergoodfields)
-        isgoodlauer(ifile) = 1;
-    end
-    if lauer_exlude_enable
-        if( ifile == 1 )
-            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %get how many files to skip dynamically
-        end
-        %skip a # of files at the start
-        if( strcmp(data.astrom.reqid, reqIDChange) && (fieldChange_fileCntr < fieldChange_fileSkip) )
-            fieldChange_fileCntr = fieldChange_fileCntr + 1; %increment
-            lauer_exclude(ifile) = 1; %set this to exlude
-        elseif( ~strcmp(data.astrom.reqid, reqIDChange) )
-            reqIDChange = data.astrom.reqid; %record reqID
-            fieldChange_fileCntr = 1; %reset
-            lauer_exclude(ifile) = 1; %set this to exlude
-            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %recalc how many fields to skip
-        end
-    end
-end
-lauer_exclude = find(lauer_exclude); %get it into indexes
+new_goodfilesNum = sum(isgoodnew&~newgood_exclude_logical);
+disp(['New|Total files used after isgoodnew (good field check, ',num2str(sum(isgoodnew)),') and ~newgood_exclude (time skip, ',num2str(sum(~newgood_exclude_logical)),'): ',num2str(new_goodfilesNum),'/',num2str(numel(nlightfiles)),' [there may be overlap in the two values]'])
 
 %Check for newest light files
 reqIDChange = ''; %detects reqID change
 fieldChange_fileCntr = 1; %counter for file skip
 fieldChange_fileSkip_time = excl_time; %s, time to skip at start of sequence
 newest_exclude = zeros(numel(wlightfiles),1); %will fill up with new sequences to ignore
+zones_indexer = zones_indexer + 1; %Increment the zone to the next zone of data
+zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
+zones_snaps_mask = field_snaps_mask(zones(zones_indexer):zones(zones_indexer+1)-1); %current zone's snaps mask
+zones_snaps_data = zeros(256,256,length(zones_snaps_mask)); %records the 1st good image for each unique field
+zones_snaps_cal = zeros(256,256,length(zones_snaps_mask)); %records the 1st good image for each unique field
 for ifile=1:numel(wlightfiles)
     load(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name));
     if sum(data.header.fieldnum == newestgoodfields)
@@ -145,11 +163,65 @@ for ifile=1:numel(wlightfiles)
             fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %recalc how many fields to skip
         end
     end
+    if isgoodnewest(ifile) && ~newest_exclude(ifile) && any(data.header.fieldnum == zones_goodfiles(zones_snaps_mask))
+        zones_snaps_data(:,:,data.header.fieldnum == zones_goodfiles) = data.data;
+        zones_snaps_cal(:,:,data.header.fieldnum == zones_goodfiles) = data.image.calimage;
+        zones_snaps_cal(get3DInd(data.mask.onemask,data.header.fieldnum == zones_goodfiles)) = nan; %two step to set masked values as nan
+        zones_snaps_mask(data.header.fieldnum == zones_goodfiles) = 0; %turn off, got it
+    end
 end
-% disp(['Total excluded: ',num2str(sum(newest_exclude))])
-newest_goodfilesNum = sum(isgoodnewest&newest_exclude);
-disp(['Newest|Good over files after isgoodnewest (good field check) and newest_exclude (time skip): ',num2str(newest_goodfilesNum)])
+field_snaps_data(:,:,zones(zones_indexer):zones(zones_indexer+1)-1) = zones_snaps_data; %copy it in
+field_snaps_cal(:,:,zones(zones_indexer):zones(zones_indexer+1)-1) = zones_snaps_cal;
+newest_exclude_logical = newest_exclude;
 newest_exclude = find(newest_exclude); %get it into indexes
+% disp(['Total excluded: ',num2str(sum(newest_exclude))])
+newest_goodfilesNum = sum(isgoodnewest&~newest_exclude_logical);
+disp(['Newest|Total files used after isgoodnewest (good field check, ',num2str(sum(isgoodnewest)),') and ~newest_exclude (time skip, ',num2str(sum(~newest_exclude_logical)),'): ',num2str(newest_goodfilesNum),'/',num2str(numel(wlightfiles)),' [there may be overlap in the two values]'])
+
+%Check for lauer light files
+reqIDChange = ''; %detects reqID change
+fieldChange_fileCntr = 1; %counter for file skip
+fieldChange_fileSkip_time = excl_time; %s, time to skip at start of sequence
+lauer_exclude = zeros(numel(llightfiles),1); %will fill up with new sequences to ignore
+zones_indexer = zones_indexer + 1; %Increment the zone to the next zone of data
+zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
+zones_snaps_mask = field_snaps_mask(zones(zones_indexer):zones(zones_indexer+1)-1); %current zone's snaps mask
+zones_snaps_data = zeros(256,256,length(zones_snaps_mask)); %records the 1st good image for each unique field
+zones_snaps_cal = zeros(256,256,length(zones_snaps_mask)); %records the 1st good image for each unique field
+for ifile=1:numel(llightfiles)
+    load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
+    if sum(data.header.fieldnum == lauergoodfields)
+        isgoodlauer(ifile) = 1;
+    end
+    if lauer_exlude_enable
+        if( ifile == 1 )
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %get how many files to skip dynamically
+        end
+        %skip a # of files at the start
+        if( strcmp(data.astrom.reqid, reqIDChange) && (fieldChange_fileCntr < fieldChange_fileSkip) )
+            fieldChange_fileCntr = fieldChange_fileCntr + 1; %increment
+            lauer_exclude(ifile) = 1; %set this to exlude
+        elseif( ~strcmp(data.astrom.reqid, reqIDChange) )
+            reqIDChange = data.astrom.reqid; %record reqID
+            fieldChange_fileCntr = 1; %reset
+            lauer_exclude(ifile) = 1; %set this to exlude
+            fieldChange_fileSkip = round(fieldChange_fileSkip_time/data.header.exptime); %recalc how many fields to skip
+        end
+    end
+    if isgoodlauer(ifile) && ~lauer_exclude(ifile) && any(data.header.fieldnum == zones_goodfiles(zones_snaps_mask))
+        zones_snaps_data(:,:,data.header.fieldnum == zones_goodfiles) = data.data;
+        zones_snaps_cal(:,:,data.header.fieldnum == zones_goodfiles) = data.image.calimage;
+        zones_snaps_cal(get3DInd(data.mask.onemask,data.header.fieldnum == zones_goodfiles)) = nan; %two step to set masked values as nan
+        zones_snaps_mask(data.header.fieldnum == zones_goodfiles) = 0; %turn off, got it
+    end
+end
+field_snaps_data(:,:,zones(zones_indexer):zones(zones_indexer+1)-1) = zones_snaps_data; %copy it in
+field_snaps_cal(:,:,zones(zones_indexer):zones(zones_indexer+1)-1) = zones_snaps_cal;
+lauer_exclude_logical = lauer_exclude;
+lauer_exclude = find(lauer_exclude); %get it into indexes
+lauer_goodfilesNum = sum(isgoodlauer&~lauer_exclude_logical);
+disp(['Lauer|Total files used after isgoodlauer (good field check, ',num2str(sum(isgoodlauer)),') and ~lauer_exclude (time skip, ',num2str(sum(~lauer_exclude_logical)),'): ',num2str(lauer_goodfilesNum),'/',num2str(numel(llightfiles)),' [there may be overlap in the two values]'])
+
 
 load('run_params.mat','params')
 
@@ -157,15 +229,19 @@ load('run_params.mat','params')
 flag_method = 'new';
 
 %Number of old and new light files corresponding to good fields
-numoldlightfiles = sum(isgoodold);
-numnewlightfiles = sum(isgoodnew);
-numlauerlightfiles = sum(isgoodlauer);
-numnewestlightfiles = sum(isgoodnewest);
+numoldlightfiles = numel(lightfiles);
+numnewlightfiles = numel(nlightfiles);
+numlauerlightfiles = numel(llightfiles);
+numnewestlightfiles = numel(wlightfiles);
+% %Number of old and new light files corresponding to good fields
+% numoldlightfiles = sum(isgoodold);
+% numnewlightfiles = sum(isgoodnew);
+% numlauerlightfiles = sum(isgoodlauer);
+% numnewestlightfiles = sum(isgoodnewest);
 
 %Preallocate
-file_set_perSet = [1:numoldlightfiles,1:numnewlightfiles,1:numlauerlightfiles,1:numnewestlightfiles];
-file_num_perSet = [1:numoldlightfiles,1:numnewlightfiles,1:numlauerlightfiles,1:numnewestlightfiles]'; %the number of the file in the specific set
-isgood = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+file_num_perSet = [1:numoldlightfiles,1:numnewlightfiles,1:numnewestlightfiles,1:numlauerlightfiles]'; %the number of the file in the specific set
+isgood = false((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 mydate = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 myfieldnum = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 unique_field_id = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
@@ -239,6 +315,7 @@ mygal_mean = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewe
 mymagerr = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 mypsferr = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 
+
 %For old data files
 fprintf('Loading old data \n');
 jfile_offset = 0; %offset to keep ifile in line with other file sets
@@ -269,9 +346,9 @@ parfor jfile=1+jfile_offset:numel(lightfiles)+jfile_offset
         %             unique_field_id(jfile) = unique_fields(k);
         %         end
         mydataset(jfile) = zones_indexer; %record the dataset of the data (via the zone, 1 == old, 2 == new, 3 == lauer)
-
+        
         mytarget{jfile} = data.header.date_cal;
-
+        
         mysun(jfile) = data.distance.d_sun_NH;
 
         mydt(jfile) = data.distance.d_NH_target;%./1.496e8;;
@@ -459,11 +536,15 @@ parfor jfile=1+jfile_offset:numel(lightfiles)+jfile_offset
         end
     end
 end
+disp(['Total files being used for old data: ',num2str(sum(isgood(1+jfile_offset:numel(lightfiles)+jfile_offset) & isgoodold & ~oldgood_exclude_logical)),'/',num2str(numel(lightfiles))])
+disp(['isgood (header.bad [also incl. field check and time skip]): ',num2str(sum(isgood(1+jfile_offset:numel(lightfiles)+jfile_offset))),' | ',...
+    'isgoodold (good field check): ',num2str(sum(isgoodold)),' | ',...
+    'oldgood_exclude (time skip [NOT USED]): ',num2str(sum(~oldgood_exclude_logical))])
 
 %For new data files
 jfile_offset = numoldlightfiles; %offset to keep ifile in line with other file sets
 fprintf('Loading new data \n');
-% k = k + 1;
+badcntr = 0;
 zones_indexer = zones_indexer + 1; %Increment the zone to the next zone of data
 zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
 parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
@@ -655,226 +736,9 @@ parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
                 nanimage(data.mask.onemask) = NaN;
                 % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
                 parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
-            end
-            % If struct field does not exist, files have not been marked good
-            % or bad - assume all good
-        else
-            isgood(jfile) = 1;
-            mystring = sprintf('%f, %d, %s, %f, %f, %d, %f, %f, %f, %f',...
-                mydate(jfile),myfieldnum(jfile),...
-                mytarget{jfile},mysun(jfile),myelong(jfile),...
-                mycrr(jfile),...
-                mysig(jfile),myisl(jfile),pltr_mydgl_planck(jfile),...
-                mysig(jfile)-myisl(jfile)-pltr_mydgl_planck(jfile));
-
-            disp(mystring)
-
-            image = data.image.calimage;
-            % save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
-            parsave_image(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),image);
-
-            nanimage = image;
-            nanimage(data.mask.onemask) = NaN;
-            % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
-            parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
-        end
-    end
-end
-
-%For lauer data files
-fprintf('Loading Lauer data \n');
-jfile_offset = numoldlightfiles+numnewlightfiles; %offset to keep ifile in line with other file sets
-% k = k + 1;
-zones_indexer = zones_indexer + 1; %Increment the zone to the next zone of data
-zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
-parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
-    %If file is for a good field and not excluded, load and save values
-    ifile = jfile-jfile_offset; %lets parfor work by letting jfile iterate instead of ifile
-    if (isgoodlauer(ifile) == 1) && ~any(lauer_exclude == ifile)
-
-        %Load data files
-        dataz = load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
-        disp(sprintf('On file %d of %d.',ifile,size(llightfiles,1)));
-        data = dataz.data; %get the data out, makes parfor work
-
-        %Read in data
-        mydate(jfile) = data.header.date_jd-data.header.launch_jd;
-
-        myfieldnum(jfile) = data.header.fieldnum;
-        %Assign unique field id based on field number
-        unique_field_id(jfile) = find(myfieldnum(jfile) == zones_goodfiles) + zones(zones_indexer)-1; %Counts from 1 to length(goodfiles), like unique_fields
-        %         if jfile == 1
-        %             unique_field_id(jfile) = unique_fields(k);
-        %         elseif myfieldnum(jfile) ~= myfieldnum(jfile-1)
-        %             k = k + 1;
-        %             unique_field_id(jfile) = unique_fields(k);
-        %         elseif myfieldnum(jfile) == myfieldnum(jfile-1)
-        %             unique_field_id(jfile) = unique_fields(k);
-        %         end
-        mydataset(jfile) = zones_indexer; %record the dataset of the data (via the zone, 1 == old, 2 == new, 3 == lauer)
-
-        mytarget{jfile} = data.header.date_cal;
-
-        mysun(jfile) = data.distance.d_sun_NH;
-
-        mydt(jfile) = data.distance.d_NH_target;%./1.496e8;;
-
-        myelong(jfile) = data.coords.sol_elon;
-
-        myb(jfile) = data.coords.galactic(2);
-
-        myexp(jfile) = round(data.header.exptime);
-
-        myref(jfile) = data.ref.mean;
-
-        myeng(jfile) = data.ref.engmean;
-
-        %         myohm(jfile) = data.dgl.ohmmean;
-
-        %         myav(jfile) = 0.4.*data.header.A_V;
-
-        myext(jfile) = data.ext.mean_flux_rat;
-
-        % Reference-corrected mean of masked image
-        if want_errmags == 1
-            mysig(jfile) = data.err_mags.stats.corrmean;
-        else
-            mysig(jfile) = data.stats.corrmean;
-        end
-        mysig_magerr(jfile) = data.err_mags.stats.corrmean;
-
-        mymaskmean(jfile) = data.stats.maskmean;
-
-        % Bias level from header
-        %     biaslevl(ifile) = data.astrom.biaslevl;
-        % Bias method from header (mean = 1, median = 2) and difference to
-        % actual mean/median
-        %     if strcmp(data.astrom.biasmthd,'mean of dark column data') == 1
-        %         biasmthd(ifile) = 1;
-        %         biasdiff(ifile) = data.astrom.biaslevl - mean(data.ref.line);
-        %     elseif strcmp(data.astrom.biasmthd,'median of dark column data') == 1
-        %         biasmthd(ifile) = 2;
-        %         biasdiff(ifile) = data.astrom.biaslevl - median(data.ref.line);
-        %     else
-        %         fprintf('Absolute panic: bias method not recognized!')
-        %     end
-        % RSOLAR from header
-        rsolar(jfile) = data.astrom.rsolar;
-
-        % Reference-corrected most probable value of masked image
-        %     mysig(ifile) = data.stats.corrmostprob;
-
-        % Sum of image brightness of *masked* stars - how bright is the
-        % masked-out portion of each image per pixel
-        if want_errmags == 1
-            starmaskfrac = sum(data.err_mags.mask.starmask(:))./256.^2;
-            mymasked(jfile) = (sum(sum(data.err_mags.image.calimage.*data.err_mags.mask.starmask)))/(data.astrom.imagew.*data.astrom.imageh.*starmaskfrac);
-        else
-            starmaskfrac = sum(data.mask.starmask(:))./256.^2;
-            mymasked(jfile) = (sum(sum(data.image.calimage.*data.mask.starmask)))/(data.astrom.imagew.*data.astrom.imageh.*starmaskfrac);
-        end
-        starmaskfrac = sum(data.err_mags.mask.starmask(:))./256.^2;
-        mymasked_magerr(jfile) = (sum(sum(data.err_mags.image.calimage.*data.err_mags.mask.starmask)))/(data.astrom.imagew.*data.astrom.imageh.*starmaskfrac);
-
-        mytri(jfile) = data.isl.trimean;
-        mytrierr(jfile) = data.isl.trierr;
-
-        if want_errpsf == 1
-            mypsfwing(jfile) = data.err_psf.isl.usnowing;
-        else
-            mypsfwing(jfile) = data.isl.usnowing;
-        end
-        mypsfwing_psferr(jfile) = data.err_psf.isl.usnowing;
-
-        myisl(jfile) = data.isl.trimean  + mypsfwing(jfile);
-
-        pltr_mydgl_planck(jfile) = data.dgl.dglmean_planck;
-        pltr_mydglerr_planck(jfile) = data.dgl.dglerr_planck;
-        %     pltr_myohmim_planck(jfile) = data.dgl.ohmim_planck;
-        pltr_mydgl_iris(jfile) = data.dgl.dglmean_iris;
-        pltr_mydglerr_iris(jfile) = data.dgl.dglerr_iris;
-        %     pltr_myohmim_iris(jfile) = data.dgl.ohmim_iris;
-        pltr_mydgl_iris_sfd(jfile) = data.dgl.dglmean_iris_sfd;
-        pltr_mydglerr_iris_sfd(jfile) = data.dgl.dglerr_iris_sfd;
-        pltr_my100m_planck(jfile) = data.dgl.onehundomean_planck;
-        pltr_my100merr_planck(jfile) = data.dgl.ohmstd_planck;
-        pltr_my100merr_beta_planck(jfile) = data.dgl.sem_planck_mc_beta;
-        pltr_my100merr_temp_planck(jfile) = data.dgl.sem_planck_mc_temp;
-        pltr_my100merr_tau_planck(jfile) = data.dgl.sem_planck_mc_tau;
-        % Combine temp and beta errors in quad because they're usually equal in magnitude
-        pltr_my100merr_combo_planck(jfile) = sqrt(data.dgl.sem_planck_mc_temp^2 + data.dgl.sem_planck_mc_beta^2);
-        %     pltr_myohmim_planck(jfile) = data.dgl.ohmim_planck;
-        pltr_my100m_iris(jfile) = data.dgl.onehundomean_iris;
-        pltr_my100merr_iris(jfile) = data.dgl.ohmstd_iris;
-        %     pltr_myohmim_iris(jfile) = data.dgl.ohmim_iris;
-        pltr_my100m_iris_sfd(jfile) = data.dgl.onehundomean_iris_sfd;
-        pltr_my100merr_iris_sfd(jfile) = data.dgl.ohmstd_iris_sfd;
-        pltr_mydgl_nh(jfile) = data.dgl.ohmmean_nh;
-        pltr_mydglerr_nh(jfile) = data.dgl.ohmstd_nh;
-
-        % Calculate mean difference between real cal mean and err sims
-        mygalerr(jfile) = mean(data.stats.calmean - data.err_gals.stats.calmean_mc(:));
-        mygal_mean(jfile) = mean(data.err_gals.stats.calmean_mc(:));
-        mymagerr(jfile) = data.stats.calmean - data.err_mags.stats.calmean;
-        mypsferr(jfile) = data.isl.usnowing - data.err_psf.isl.usnowing;
-
-        if want_errmags == 1
-            myerr(jfile) = data.err_mags.stats.correrr;
-        else
-            myerr(jfile) = data.stats.correrr;
-        end
-
-        if want_errmags == 1
-            mycrr(jfile) = data.err_mags.ref.bias;
-        else
-            mycrr(jfile) = data.ref.bias;
-        end
-
-        if strcmp(flag_method,'new') == 1
-            if want_errmags == 1
-                myghostdiff(jfile) = data.err_mags.ghost.diffusesub;
-                myghostdifferrpos(jfile) = data.err_mags.ghost.diffusesuberrpos;
-                myghostdifferrneg(jfile) = data.err_mags.ghost.diffusesuberrneg;
             else
-                myghostdiff(jfile) = data.ghost.diffusesub;
-                myghostdifferrpos(jfile) = data.ghost.diffusesuberrpos;
-                myghostdifferrneg(jfile) = data.ghost.diffusesuberrneg;
-                %             myghostdiffcomp(jfile) = data.ghost.diffusediff;
-                myscattering_tot(jfile) = data.scattered.gaiasum + data.scattered.masanasum;
-                myscattering_gaia(jfile) = data.scattered.gaiasum;
-                myscattering_gaia_psferrpos(jfile) = data.scattered.gaiasum_psferrmax - data.scattered.gaiasum;
-                myscattering_gaia_fluxerrpos(jfile) = data.scattered.gaiasum_fluxerrmax - data.scattered.gaiasum;
-                myscattering_gaiaerr(jfile) = sqrt(myscattering_gaia_psferrpos(jfile)^2 + myscattering_gaia_fluxerrpos(jfile)^2);
-                myscattering_masana(jfile) = data.scattered.masanasum;
-                myscattering_masana_psferrpos(jfile) = data.scattered.masanasum_psferrmax - data.scattered.masanasum;
-                myscattering_masana_fluxerrpos(jfile) = data.scattered.masanasum_fluxerrmax - data.scattered.masanasum;
-                myscattering_masanaerr(jfile) = sqrt(myscattering_masana_psferrpos(jfile)^2 + myscattering_masana_fluxerrpos(jfile)^2);
-                myscattering_toterr(jfile) = sqrt(myscattering_gaiaerr(jfile)^2 + myscattering_masanaerr(jfile)^2);
-            end
-        end
-
-
-        % If struct field data.header.bad exists, check if file is good or
-        % bad - only mark as good if not bad
-        if isfield(data.header,'bad')
-            % Only use good images
-            if data.header.bad == 0
-                isgood(jfile) = 1;
-                mystring = sprintf('%f, %d, %s, %f, %f, %d, %f, %f, %f, %f',...
-                    mydate(jfile),myfieldnum(jfile),...
-                    mytarget{jfile},mysun(jfile),myelong(jfile),...
-                    mycrr(jfile),...
-                    mysig(jfile),myisl(jfile),pltr_mydgl_planck(jfile),...
-                    mysig(jfile)-myisl(jfile)-pltr_mydgl_planck(jfile));
-
-                disp(mystring)
-
-                image = data.image.calimage;
-                save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
-
-                nanimage = image;
-                nanimage(data.mask.onemask) = NaN;
-                save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+                disp(['header.bad WAS BAD on file (',num2str(ifile),'/',num2str(size(nlightfiles,1)),') ',sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name)])
+                badcntr = badcntr + 1;
             end
             % If struct field does not exist, files have not been marked good
             % or bad - assume all good
@@ -900,11 +764,16 @@ parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
         end
     end
 end
+disp(['Bad cntr: ',num2str(badcntr)])
+disp(['Total files being used for new data: ',num2str(sum(isgood(1+jfile_offset:numel(nlightfiles)+jfile_offset) & isgoodnew & ~newgood_exclude_logical)),'/',num2str(numel(nlightfiles))])
+disp(['isgood (header.bad [also incl. field check and time skip]): ',num2str(sum(isgood(1+jfile_offset:numel(nlightfiles)+jfile_offset))),' | ',...
+    'isgoodnew (good field check): ',num2str(sum(isgoodnew)),' | ',...
+    'newgood_exclude (time skip): ',num2str(sum(~newgood_exclude_logical))])
 
 %For newest data files
 fprintf('Loading newest data \n');
-jfile_offset = numoldlightfiles+numnewlightfiles+numlauerlightfiles; %offset to keep ifile in line with other file sets
-% k = k + 1;
+jfile_offset = numoldlightfiles+numnewlightfiles; %offset to keep ifile in line with other file sets
+badcntr = 0;
 zones_indexer = zones_indexer + 1; %Increment the zone to the next zone of data
 zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
 parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
@@ -1098,6 +967,8 @@ parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
                 % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
                 parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
             else
+                disp(['header.bad WAS BAD on file (',num2str(ifile),'/',num2str(size(wlightfiles,1)),') ',sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name)])
+                badcntr = badcntr + 1;
                 newest_goodfilesNum = newest_goodfilesNum - 1; %reduce by 1 if there was a bad file
             end
             % If struct field does not exist, files have not been marked good
@@ -1124,9 +995,244 @@ parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
         end
     end
 end
+disp(['Bad cntr: ',num2str(badcntr)])
+disp(['Total files being used for newest data: ',num2str(sum(isgood(1+jfile_offset:numel(wlightfiles)+jfile_offset) & isgoodnewest & ~newest_exclude_logical)),'/',num2str(numel(wlightfiles))])
+disp(['isgood (header.bad [also incl. field check and time skip]): ',num2str(sum(isgood(1+jfile_offset:numel(wlightfiles)+jfile_offset))),' | ',...
+    'isgoodnewest (good field check): ',num2str(sum(isgoodnewest)),' | ',...
+    'newest_exclude (time skip): ',num2str(sum(~newest_exclude_logical))])
+
+%For lauer data files
+fprintf('Loading Lauer data \n');
+jfile_offset = numoldlightfiles+numnewlightfiles+numnewestlightfiles; %offset to keep ifile in line with other file sets
+badcntr = 0;
+zones_indexer = zones_indexer + 1; %Increment the zone to the next zone of data
+zones_goodfiles = goodfiles(zones(zones_indexer):zones(zones_indexer+1)-1); %Current zone's good fields
+parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
+    %If file is for a good field and not excluded, load and save values
+    ifile = jfile-jfile_offset; %lets parfor work by letting jfile iterate instead of ifile
+    if (isgoodlauer(ifile) == 1) && ~any(lauer_exclude == ifile)
+
+        %Load data files
+        dataz = load(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name));
+        disp(sprintf('On file %d of %d.',ifile,size(llightfiles,1)));
+        data = dataz.data; %get the data out, makes parfor work
+
+        %Read in data
+        mydate(jfile) = data.header.date_jd-data.header.launch_jd;
+
+        myfieldnum(jfile) = data.header.fieldnum;
+        %Assign unique field id based on field number
+        unique_field_id(jfile) = find(myfieldnum(jfile) == zones_goodfiles) + zones(zones_indexer)-1; %Counts from 1 to length(goodfiles), like unique_fields
+        %         if jfile == 1
+        %             unique_field_id(jfile) = unique_fields(k);
+        %         elseif myfieldnum(jfile) ~= myfieldnum(jfile-1)
+        %             k = k + 1;
+        %             unique_field_id(jfile) = unique_fields(k);
+        %         elseif myfieldnum(jfile) == myfieldnum(jfile-1)
+        %             unique_field_id(jfile) = unique_fields(k);
+        %         end
+        mydataset(jfile) = zones_indexer; %record the dataset of the data (via the zone, 1 == old, 2 == new, 3 == lauer)
+
+        mytarget{jfile} = data.header.date_cal;
+
+        mysun(jfile) = data.distance.d_sun_NH;
+
+        mydt(jfile) = data.distance.d_NH_target;%./1.496e8;;
+
+        myelong(jfile) = data.coords.sol_elon;
+
+        myb(jfile) = data.coords.galactic(2);
+
+        myexp(jfile) = round(data.header.exptime);
+
+        myref(jfile) = data.ref.mean;
+
+        myeng(jfile) = data.ref.engmean;
+
+        %         myohm(jfile) = data.dgl.ohmmean;
+
+        %         myav(jfile) = 0.4.*data.header.A_V;
+
+        myext(jfile) = data.ext.mean_flux_rat;
+
+        % Reference-corrected mean of masked image
+        if want_errmags == 1
+            mysig(jfile) = data.err_mags.stats.corrmean;
+        else
+            mysig(jfile) = data.stats.corrmean;
+        end
+        mysig_magerr(jfile) = data.err_mags.stats.corrmean;
+
+        mymaskmean(jfile) = data.stats.maskmean;
+
+        % Bias level from header
+        %     biaslevl(ifile) = data.astrom.biaslevl;
+        % Bias method from header (mean = 1, median = 2) and difference to
+        % actual mean/median
+        %     if strcmp(data.astrom.biasmthd,'mean of dark column data') == 1
+        %         biasmthd(ifile) = 1;
+        %         biasdiff(ifile) = data.astrom.biaslevl - mean(data.ref.line);
+        %     elseif strcmp(data.astrom.biasmthd,'median of dark column data') == 1
+        %         biasmthd(ifile) = 2;
+        %         biasdiff(ifile) = data.astrom.biaslevl - median(data.ref.line);
+        %     else
+        %         fprintf('Absolute panic: bias method not recognized!')
+        %     end
+        % RSOLAR from header
+        rsolar(jfile) = data.astrom.rsolar;
+
+        % Reference-corrected most probable value of masked image
+        %     mysig(ifile) = data.stats.corrmostprob;
+
+        % Sum of image brightness of *masked* stars - how bright is the
+        % masked-out portion of each image per pixel
+        if want_errmags == 1
+            starmaskfrac = sum(data.err_mags.mask.starmask(:))./256.^2;
+            mymasked(jfile) = (sum(sum(data.err_mags.image.calimage.*data.err_mags.mask.starmask)))/(data.astrom.imagew.*data.astrom.imageh.*starmaskfrac);
+        else
+            starmaskfrac = sum(data.mask.starmask(:))./256.^2;
+            mymasked(jfile) = (sum(sum(data.image.calimage.*data.mask.starmask)))/(data.astrom.imagew.*data.astrom.imageh.*starmaskfrac);
+        end
+        starmaskfrac = sum(data.err_mags.mask.starmask(:))./256.^2;
+        mymasked_magerr(jfile) = (sum(sum(data.err_mags.image.calimage.*data.err_mags.mask.starmask)))/(data.astrom.imagew.*data.astrom.imageh.*starmaskfrac);
+
+        mytri(jfile) = data.isl.trimean;
+        mytrierr(jfile) = data.isl.trierr;
+
+        if want_errpsf == 1
+            mypsfwing(jfile) = data.err_psf.isl.usnowing;
+        else
+            mypsfwing(jfile) = data.isl.usnowing;
+        end
+        mypsfwing_psferr(jfile) = data.err_psf.isl.usnowing;
+
+        myisl(jfile) = data.isl.trimean  + mypsfwing(jfile);
+
+        pltr_mydgl_planck(jfile) = data.dgl.dglmean_planck;
+        pltr_mydglerr_planck(jfile) = data.dgl.dglerr_planck;
+        %     pltr_myohmim_planck(jfile) = data.dgl.ohmim_planck;
+        pltr_mydgl_iris(jfile) = data.dgl.dglmean_iris;
+        pltr_mydglerr_iris(jfile) = data.dgl.dglerr_iris;
+        %     pltr_myohmim_iris(jfile) = data.dgl.ohmim_iris;
+        pltr_mydgl_iris_sfd(jfile) = data.dgl.dglmean_iris_sfd;
+        pltr_mydglerr_iris_sfd(jfile) = data.dgl.dglerr_iris_sfd;
+        pltr_my100m_planck(jfile) = data.dgl.onehundomean_planck;
+        pltr_my100merr_planck(jfile) = data.dgl.ohmstd_planck;
+        pltr_my100merr_beta_planck(jfile) = data.dgl.sem_planck_mc_beta;
+        pltr_my100merr_temp_planck(jfile) = data.dgl.sem_planck_mc_temp;
+        pltr_my100merr_tau_planck(jfile) = data.dgl.sem_planck_mc_tau;
+        % Combine temp and beta errors in quad because they're usually equal in magnitude
+        pltr_my100merr_combo_planck(jfile) = sqrt(data.dgl.sem_planck_mc_temp^2 + data.dgl.sem_planck_mc_beta^2);
+        %     pltr_myohmim_planck(jfile) = data.dgl.ohmim_planck;
+        pltr_my100m_iris(jfile) = data.dgl.onehundomean_iris;
+        pltr_my100merr_iris(jfile) = data.dgl.ohmstd_iris;
+        %     pltr_myohmim_iris(jfile) = data.dgl.ohmim_iris;
+        pltr_my100m_iris_sfd(jfile) = data.dgl.onehundomean_iris_sfd;
+        pltr_my100merr_iris_sfd(jfile) = data.dgl.ohmstd_iris_sfd;
+        pltr_mydgl_nh(jfile) = data.dgl.ohmmean_nh;
+        pltr_mydglerr_nh(jfile) = data.dgl.ohmstd_nh;
+
+        % Calculate mean difference between real cal mean and err sims
+        mygalerr(jfile) = mean(data.stats.calmean - data.err_gals.stats.calmean_mc(:));
+        mygal_mean(jfile) = mean(data.err_gals.stats.calmean_mc(:));
+        mymagerr(jfile) = data.stats.calmean - data.err_mags.stats.calmean;
+        mypsferr(jfile) = data.isl.usnowing - data.err_psf.isl.usnowing;
+
+        if want_errmags == 1
+            myerr(jfile) = data.err_mags.stats.correrr;
+        else
+            myerr(jfile) = data.stats.correrr;
+        end
+
+        if want_errmags == 1
+            mycrr(jfile) = data.err_mags.ref.bias;
+        else
+            mycrr(jfile) = data.ref.bias;
+        end
+
+        if strcmp(flag_method,'new') == 1
+            if want_errmags == 1
+                myghostdiff(jfile) = data.err_mags.ghost.diffusesub;
+                myghostdifferrpos(jfile) = data.err_mags.ghost.diffusesuberrpos;
+                myghostdifferrneg(jfile) = data.err_mags.ghost.diffusesuberrneg;
+            else
+                myghostdiff(jfile) = data.ghost.diffusesub;
+                myghostdifferrpos(jfile) = data.ghost.diffusesuberrpos;
+                myghostdifferrneg(jfile) = data.ghost.diffusesuberrneg;
+                %             myghostdiffcomp(jfile) = data.ghost.diffusediff;
+                myscattering_tot(jfile) = data.scattered.gaiasum + data.scattered.masanasum;
+                myscattering_gaia(jfile) = data.scattered.gaiasum;
+                myscattering_gaia_psferrpos(jfile) = data.scattered.gaiasum_psferrmax - data.scattered.gaiasum;
+                myscattering_gaia_fluxerrpos(jfile) = data.scattered.gaiasum_fluxerrmax - data.scattered.gaiasum;
+                myscattering_gaiaerr(jfile) = sqrt(myscattering_gaia_psferrpos(jfile)^2 + myscattering_gaia_fluxerrpos(jfile)^2);
+                myscattering_masana(jfile) = data.scattered.masanasum;
+                myscattering_masana_psferrpos(jfile) = data.scattered.masanasum_psferrmax - data.scattered.masanasum;
+                myscattering_masana_fluxerrpos(jfile) = data.scattered.masanasum_fluxerrmax - data.scattered.masanasum;
+                myscattering_masanaerr(jfile) = sqrt(myscattering_masana_psferrpos(jfile)^2 + myscattering_masana_fluxerrpos(jfile)^2);
+                myscattering_toterr(jfile) = sqrt(myscattering_gaiaerr(jfile)^2 + myscattering_masanaerr(jfile)^2);
+            end
+        end
+
+
+        % If struct field data.header.bad exists, check if file is good or
+        % bad - only mark as good if not bad
+        if isfield(data.header,'bad')
+            % Only use good images
+            if data.header.bad == 0
+                isgood(jfile) = 1;
+                mystring = sprintf('%f, %d, %s, %f, %f, %d, %f, %f, %f, %f',...
+                    mydate(jfile),myfieldnum(jfile),...
+                    mytarget{jfile},mysun(jfile),myelong(jfile),...
+                    mycrr(jfile),...
+                    mysig(jfile),myisl(jfile),pltr_mydgl_planck(jfile),...
+                    mysig(jfile)-myisl(jfile)-pltr_mydgl_planck(jfile));
+
+                disp(mystring)
+
+                image = data.image.calimage;
+                % save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+                parsave_image(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),image);
+
+                nanimage = image;
+                nanimage(data.mask.onemask) = NaN;
+                % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+                parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
+            else
+                disp(['header.bad WAS BAD on file (',num2str(ifile),'/',num2str(size(llightfiles,1)),') ',sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name)])
+                badcntr = badcntr + 1;
+            end
+            % If struct field does not exist, files have not been marked good
+            % or bad - assume all good
+        else
+            isgood(jfile) = 1;
+            mystring = sprintf('%f, %d, %s, %f, %f, %d, %f, %f, %f, %f',...
+                mydate(jfile),myfieldnum(jfile),...
+                mytarget{jfile},mysun(jfile),myelong(jfile),...
+                mycrr(jfile),...
+                mysig(jfile),myisl(jfile),pltr_mydgl_planck(jfile),...
+                mysig(jfile)-myisl(jfile)-pltr_mydgl_planck(jfile));
+
+            disp(mystring)
+
+            image = data.image.calimage;
+            % save(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),'image');
+            parsave_image(sprintf('../scratch/field%d_image%d.mat',myfieldnum(jfile),jfile),image);
+
+            nanimage = image;
+            nanimage(data.mask.onemask) = NaN;
+            % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
+            parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
+        end
+    end
+end
+disp(['Bad cntr: ',num2str(badcntr)])
+disp(['Total files being used for lauer data: ',num2str(sum(isgood(1+jfile_offset:numel(llightfiles)+jfile_offset) & isgoodlauer & ~lauer_exclude_logical)),'/',num2str(numel(llightfiles))])
+disp(['isgood (header.bad [also incl. field check and time skip]): ',num2str(sum(isgood(1+jfile_offset:numel(llightfiles)+jfile_offset))),' | ',...
+    'isgoodlauer (good field check): ',num2str(sum(isgoodlauer)),' | ',...
+    'lauergood_exclude (time skip): ',num2str(sum(~lauer_exclude_logical))])
+
 disp(['Newest|Total good files to be used (including good field (isgoodnewest), time limit (newest_exclude), isgood (header.bad check)): ',num2str(newest_goodfilesNum)])
 % Select only data marked as good
-isgood = logical(isgood);
 
 pltr_thissig = mysig(isgood)-myisl(isgood)-myghostdiff(isgood)-myscattering_tot(isgood);
 
@@ -1220,24 +1326,30 @@ end
 goodfiles(goodfiles_ditch) = [];
 unique_fields(goodfiles_ditch) = [];
 
-figure(1); clf
+figcnt = 1;
+
+figure(figcnt); clf
 plot(mysun(isgood),mysig(isgood)-myisl(isgood)-pltr_mydgl_planck(isgood),'o')
 xlabel('Solar Distance')
 ylabel('EBL')
+figcnt = figcnt + 1;
 
 if strcmp(flag_method,'new') == 1
-    figure(2); clf
+    figure(figcnt); clf
     plot(mysun(isgood),myghostdiff(isgood),'o')
 %     hold on;
 %     errorbar(mysun(isgood),myghostdiff(isgood), myghostdifferrneg(isgood), myghostdifferrpos(isgood), 'LineStyle','none','Color','k');
     xlabel('Solar Distance')
     ylabel('Summed Ghost Intensity [nW m^{-2} sr^{-1}]')
+    figcnt = figcnt + 1;
 
-    %     figure(3); clf
+    %     figure(figcnt); clf
     %     plot(mysun(isgood),myghostdiffcomp(isgood),'o')
     %     yline(mean(myghostdiffcomp(isgood)))
     %     xlabel('Solar Distance')
     %     ylabel('(Predicted Summed Ghost Intensity - ISL Estimation) [nW m^{-2} sr^{-1}]')
+%     figcnt = figcnt + 1;
+
 end
 
 % Preallocate per-field values
@@ -1312,7 +1424,9 @@ for ifield=1:numel(goodfiles)
     myfieldnum_goodfiles(ifield) = mean(myfieldnum(whpl & isgood));
     myfieldexp_goodfiles(ifield) = length(myb(whpl & isgood));
     if strcmp(flag_method,'new') == 1
-        thissig = mysig(whpl & isgood)-myisl(whpl & isgood)-pltr_mydgl_planck(whpl & isgood)-myghostdiff(whpl & isgood)-myscattering_tot(whpl & isgood);
+        thissig_planck = mysig(whpl & isgood)-myisl(whpl & isgood)-pltr_mydgl_planck(whpl & isgood)-myghostdiff(whpl & isgood)-myscattering_tot(whpl & isgood);
+        thissig_iris = mysig(whpl & isgood)-myisl(whpl & isgood)-pltr_mydgl_iris(whpl & isgood)-myghostdiff(whpl & isgood)-myscattering_tot(whpl & isgood);
+        thissig_iris_sfd = mysig(whpl & isgood)-myisl(whpl & isgood)-pltr_mydgl_iris_sfd(whpl & isgood)-myghostdiff(whpl & isgood)-myscattering_tot(whpl & isgood);
         pltr_totsig_goodfiles = mysig(whpl & isgood)-myisl(whpl & isgood)-myghostdiff(whpl & isgood)-myscattering_tot(whpl & isgood);
         pltr_thissig_goodfiles(ifield) = mean(mysig(whpl & isgood)-myisl(whpl & isgood)-myghostdiff(whpl & isgood)-myscattering_tot(whpl & isgood));
     else
@@ -1368,9 +1482,15 @@ for ifield=1:numel(goodfiles)
     thiserr = myerr(whpl & isgood);
     mysubmen(ifield) = sum(mysig(whpl & isgood)./thiserr.^2)./sum(1./thiserr.^2);
     mysuberr(ifield) = std(mysig(whpl & isgood));
-    mymean(ifield) = sum(thissig./thiserr.^2)./sum(1./thiserr.^2);
-    myunc(ifield) = std(thissig);
-    mysem(ifield) = std(thissig)/sqrt(length(thissig));
+    mymean_planck(ifield) = sum(thissig_planck./thiserr.^2)./sum(1./thiserr.^2);
+    myunc_planck(ifield) = std(thissig_planck);
+    mysem_planck(ifield) = std(thissig_planck)/sqrt(length(thissig_planck));
+    mymean_iris(ifield) = sum(thissig_iris./thiserr.^2)./sum(1./thiserr.^2);
+    myunc_iris(ifield) = std(thissig_iris);
+    mysem_iris(ifield) = std(thissig_iris)/sqrt(length(thissig_iris));
+    mymean_iris_sfd(ifield) = sum(thissig_iris_sfd./thiserr.^2)./sum(1./thiserr.^2);
+    myunc_iris_sfd(ifield) = std(thissig_iris_sfd);
+    mysem_iris_sfd(ifield) = std(thissig_iris_sfd)/sqrt(length(thissig_iris_sfd));
     pltr_sem(ifield) = std(pltr_totsig_goodfiles)/sqrt(length(pltr_totsig_goodfiles));
     %     myavp(ifield) = sum(myav(whpl & isgood)./thiserr.^2)./sum(1./thiserr.^2);
     %     myohmp(ifield) = sum(myohm(whpl & isgood)./thiserr.^2)./sum(1./thiserr.^2);
@@ -1391,48 +1511,106 @@ pltr_mydatasetTriplets(pltr_mydataset == 1,:) = repmat([0, 0.4470, 0.7410],sum(p
 pltr_mydatasetTriplets(pltr_mydataset == 2,:) = repmat([0.8500, 0.3250, 0.0980],sum(pltr_mydataset == 2),1);
 pltr_mydatasetTriplets(pltr_mydataset == 3,:) = repmat([0.9290, 0.6940, 0.1250],sum(pltr_mydataset == 3),1);
 
-% figure(4); clf
+% figure(figcnt); clf
 % plot(mydist,mysubmen,'o')
 % hold on
 % errorbar(mydist,mysubmen,mysuberr,'o');
 % xlabel('Solar Distance')
 % ylabel('Error-Weighted Image Mean')
+% figcnt = figcnt + 1;
 
 % mysubmen
 
-figure(5); clf
+% Direct COB sub - Planck
+figure(figcnt); clf
 FLG_perDatasetColoring = false; %false plots default (same color), true plots colors per dataset (old/new/lar)
 %plot(mydist,mymean,'.','MarkerSize',0);
 %hold on
 if ~FLG_perDatasetColoring
-    errorbar(mydist,mymean,myunc,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+    errorbar(mydist,mymean_planck,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
 else
     hold on;
     for j = 1:length(mydist)
-        errorbar(mydist(j),mymean(j),myunc(j),'.','MarkerSize',20,'MarkerEdge',pltr_mydatasetTriplets(j,:),'LineStyle','none','Color',pltr_mydatasetTriplets(j,:)); %old error bars were myunc, based on std not sem
+        errorbar(mydist(j),mymean_planck(j),myunc_planck(j),'.','MarkerSize',20,'MarkerEdge',pltr_mydatasetTriplets(j,:),'LineStyle','none','Color',pltr_mydatasetTriplets(j,:)); %old error bars were myunc, based on std not sem
     end
 end
 hold on;
-xlabel('Solar Distance')
-ylabel('Error-Weighted EBL')
 
-supermean = sum(mymean./myunc.^2)./sum(1./myunc.^2) %old way was myunc instead of mysem
-superunc = 1./sqrt(sum(1./myunc.^2)) %old way was myunc instead of mysem
+supermean = sum(mymean_planck./myunc_planck.^2)./sum(1./myunc_planck.^2) %old way was myunc instead of mysem
+superunc = 1./sqrt(sum(1./myunc_planck.^2)) %old way was myunc instead of mysem
+supersub = sum(mysubmen./myunc_planck.^2)./sum(1./myunc_planck.^2)
 
-% superav = sum(myavp./myunc.^2)./sum(1./myunc.^2)
-
-supersub = sum(mysubmen./myunc.^2)./sum(1./myunc.^2)
-
-plot(xlim,[supermean,supermean],'Color',[0, 0.4470, 0.7410])
-plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
-plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
-plot(xlim,[0,0],'k:')
+plot(xlim,[supermean,supermean],'Color',[0, 0.4470, 0.7410],'LineWidth',2)
+plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'LineStyle','-.','LineWidth',1)
+plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle','-.','LineWidth',1)
+plot(xlim,[0,0],'k--','LineWidth',2)
+ylim([-30,25]);
+xlim([5,50]);
 xlabel('Heliocentric Distance [AU]')
 ylabel('COB [nW m^{-2} sr^{-1}]')
-%   title('Zemcov et al, Preliminary w/ Stat. Errors')
+title('Planck')
+figcnt = figcnt + 1;
 
-figure(6); clf
-me = errorbar(abs(mygal),mymean,myunc,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+% Direct COB sub - IRIS
+figure(figcnt); clf
+FLG_perDatasetColoring = false; %false plots default (same color), true plots colors per dataset (old/new/lar)
+%plot(mydist,mymean,'.','MarkerSize',0);
+%hold on
+if ~FLG_perDatasetColoring
+    errorbar(mydist,mymean_iris,myunc_iris,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+else
+    hold on;
+    for j = 1:length(mydist)
+        errorbar(mydist(j),mymean_iris(j),myunc_iris(j),'.','MarkerSize',20,'MarkerEdge',pltr_mydatasetTriplets(j,:),'LineStyle','none','Color',pltr_mydatasetTriplets(j,:)); %old error bars were myunc, based on std not sem
+    end
+end
+hold on;
+
+supermean = sum(mymean_iris./myunc_iris.^2)./sum(1./myunc_iris.^2) %old way was myunc instead of mysem
+superunc = 1./sqrt(sum(1./myunc_iris.^2)) %old way was myunc instead of mysem
+supersub = sum(mysubmen./myunc_iris.^2)./sum(1./myunc_iris.^2)
+
+plot(xlim,[supermean,supermean],'Color',[0, 0.4470, 0.7410],'LineWidth',2)
+plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'LineStyle','-.','LineWidth',1)
+plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle','-.','LineWidth',1)
+plot(xlim,[0,0],'k--','LineWidth',2)
+ylim([-30,25]);
+xlabel('Heliocentric Distance [AU]')
+ylabel('COB [nW m^{-2} sr^{-1}]')
+title('IRIS')
+figcnt = figcnt + 1;
+
+% Direct COB sub - IRIS/SFD
+figure(figcnt); clf
+FLG_perDatasetColoring = false; %false plots default (same color), true plots colors per dataset (old/new/lar)
+%plot(mydist,mymean,'.','MarkerSize',0);
+%hold on
+if ~FLG_perDatasetColoring
+    errorbar(mydist,mymean_iris_sfd,myunc_iris_sfd,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+else
+    hold on;
+    for j = 1:length(mydist)
+        errorbar(mydist(j),mymean_iris_sfd(j),myunc_iris_sfd(j),'.','MarkerSize',20,'MarkerEdge',pltr_mydatasetTriplets(j,:),'LineStyle','none','Color',pltr_mydatasetTriplets(j,:)); %old error bars were myunc, based on std not sem
+    end
+end
+hold on;
+
+supermean = sum(mymean_iris_sfd./myunc_iris_sfd.^2)./sum(1./myunc_iris_sfd.^2) %old way was myunc instead of mysem
+superunc = 1./sqrt(sum(1./myunc_iris_sfd.^2)) %old way was myunc instead of mysem
+supersub = sum(mysubmen./myunc_iris_sfd.^2)./sum(1./myunc_iris_sfd.^2)
+
+plot(xlim,[supermean,supermean],'Color',[0, 0.4470, 0.7410],'LineWidth',2)
+plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'LineStyle','-.','LineWidth',1)
+plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle','-.','LineWidth',1)
+plot(xlim,[0,0],'k--','LineWidth',2)
+ylim([-30,25]);
+xlabel('Heliocentric Distance [AU]')
+ylabel('COB [nW m^{-2} sr^{-1}]')
+title('IRIS/SFD')
+figcnt = figcnt + 1;
+
+figure(figcnt); clf
+me = errorbar(abs(mygal),mymean_planck,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
 hold on;
 
 z_pts = [15.4,18.1,-6.3,29.2];
@@ -1455,9 +1633,10 @@ zem = errorbar(abs(z_b),z_pts,z_err,'.','MarkerSize',20,'MarkerEdge',[0, 0.4470,
 legend([me,zem],{'Symons Fields','Zemcov Fields'},'Location','southwest');
 xlabel(['Galactic Latitude [' char(176) ']'])
 ylabel('COB [nW m^{-2} sr^{-1}]')
+figcnt = figcnt + 1;
 
 % Plot DGL vs. EBL + DGL for all images
-% figure(7); clf
+% figure(figcnt); clf
 % p1 = scatter(pltr_mydgl_planck(isgood),pltr_thissig,'o');
 % hold on
 % % p1err = errorbar(pltr_thissig,pltr_mydgl_planck,pltr_mydglerr_planck,'o');
@@ -1466,9 +1645,10 @@ ylabel('COB [nW m^{-2} sr^{-1}]')
 % ylabel('EBL + DGL (nW/m^2/sr)')
 % xlabel('DGL (nW/m^2/sr)')
 % legend([p1,i1],{'Planck','Iris'},'Location','northwest');
+% figcnt = figcnt + 1;
 
 % Plot DGL vs. EBL + DGL per field
-% figure(8); clf
+% figure(figcnt); clf
 % p1 = scatter(pltr_mydgl_planck_goodfiles,pltr_thissig_goodfiles,'o');
 % hold on
 % % p1err = errorbar(pltr_thissig,pltr_mydgl_planck,pltr_mydglerr_planck,'o');
@@ -1477,9 +1657,10 @@ ylabel('COB [nW m^{-2} sr^{-1}]')
 % ylabel('EBL + DGL (nW/m^2/sr)')
 % xlabel('DGL (nW/m^2/sr)')
 % legend([p1,i1],{'Planck','Iris'},'Location','northwest');
+% figcnt = figcnt + 1;
 
 % Plot 100 micron emission vs. EBL + DGL with fit that includes x and y errors
-figure(9); clf
+figure(figcnt); clf
 FLG_perDatasetColoring = true; %false plots colors per Planck/Iris/Iris+SDF, true plots colors per dataset (old/new/lar)
 
 % IRIS error
@@ -1541,9 +1722,10 @@ fit_iris_sfd = plot(fit_x_iris_sfd,fit_y_iris_sfd,'m');
 ylabel('EBL + DGL (nW/m^2/sr)')
 xlabel('100 \mum (MJy/sr) * (1-1.1*g*sin(b)^{1/2})')
 legend([p1,i1,i2],{'Planck','Iris','Iris + SFD'},'Location','northwest');
+figcnt = figcnt + 1;
 
 % Plot NHI vs. EBL + DGL
-% figure(10); clf
+% figure(figcnt); clf
 % %
 % % % HI4PI error
 % hi4pi_err = ((2.3e18)/5)/sqrt((1.13*(16.2)^2)/((17.4^2))); % 5-sig rms sensitivity (2.3e18 cm^-2) converted to 1-sig and from per hi4pi beam to per lorri image
@@ -1568,9 +1750,10 @@ legend([p1,i1,i2],{'Planck','Iris','Iris + SFD'},'Location','northwest');
 % 
 % ylabel('EBL + DGL (nW/m^2/sr)')
 % xlabel('Neutral Hydrogen Column Density [cm^{-2}]')
+% figcnt = figcnt + 1;
 
 % Plot correlation between 100m emission and galactic b
-% figure(11); clf
+% figure(figcnt); clf
 %
 % % Scaling factor for 100 micron emission with galactic latitude (free parameter A not included b/c part of b(lambda)
 % dl = (1 - 1.1 .* (0.61).*sqrt(sin(abs(myb(isgood)).*pi./180)));
@@ -1620,6 +1803,7 @@ legend([p1,i1,i2],{'Planck','Iris','Iris + SFD'},'Location','northwest');
 %
 % xlabel('Galactic b (deg)')
 % legend([p1,i1,i2],{'Planck','Iris','Iris + SFD'},'Location','northeast');
+% figcnt = figcnt + 1;
 
 % %lil_100m <-4 of them
 % pltr_my100m_planck_goodfiles.*dl
@@ -1637,24 +1821,129 @@ legend([p1,i1,i2],{'Planck','Iris','Iris + SFD'},'Location','northwest');
 % mytoterr_pos %sig_y
 % myext_goodfiles %ext
 
+
+% fontsize = 12;
+% fontname = 'Calibri';
+% fontweight = 'normal';
+% figure(figcnt); clf
+% tl = tiledlayout(5,4,'TileSpacing','tight','padding','tight');
+% set(gcf,'Color',[1 1 1]) %make background pure white (good for editing)
+% for jj = 1:length(goodfiles)
+%     nexttile
+% %     subplot(4,5,jj)
+%     p1 = pcolor(field_snaps_data(:,:,jj));
+%     set(p1, 'EdgeColor', 'none');
+%     set(gca,'Color',[0 0.4470 0.7410]) %make nans matlab-blue
+%     colormap(gca,'gray')
+%     
+%     % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+%     a = colorbar;
+%     a.Label.String = 'Intensity [DN]';
+%     pbaspect([1 1 1]);
+%     xlabel('LORRI X Pixels','FontName', 'Calibri');
+%     ylabel('LORRI Y Pixels');
+%     caxis([-10,10]);
+%     %         title(sprintf('%s',datastruct.header.rawfile));
+%     % grid minor;
+%     % title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
+%     title(sprintf('Field %d',unique_fields(jj)));
+%     set(gca,'YDir','normal');
+% %     gca.Title.FontSize = fontsize;
+% %     gca.Title.FontName = fontname;
+% %     gca.Title.FontWeight = fontweight;
+% %     gca.FontSize = fontsize;
+% %     gca.FontName = fontname;
+% %     gca.FontWeight = fontweight;
+% %     gca.XLabel.FontSize = fontsize;
+% %     gca.XLabel.FontName = fontname;
+% %     gca.XLabel.FontWeight = fontweight;
+% %     gca.YLabel.FontSize = fontsize;
+% %     gca.YLabel.FontName = fontname;
+% %     gca.YLabel.FontWeight = fontweight;
+% %     gca.Colorbar.FontSize = fontsize;
+% %     gca.Colorbar.FontName = fontname;
+% %     gca.Colorbar.FontWeight = fontweight;
+% %     gca.Colorbar.Label.FontSize = fontsize;
+% %     gca.Colorbar.Label.FontName = fontname;
+% %     gca.Colorbar.Label.FontWeight = fontweight;
+% end
+% figcnt = figcnt + 1;
+
+% figure(figcnt); clf
+% tl = tiledlayout(5,4,'TileSpacing','tight','padding','tight');
+% set(gcf,'Color',[1 1 1]) %make background pure white (good for editing)
+% for jj = 1:length(goodfiles)
+%     nexttile
+% %     subplot(4,5,jj)
+%     p1 = pcolor(field_snaps_cal(:,:,jj));
+%     set(p1, 'EdgeColor', 'none');
+%     set(gca,'Color',[0 0.4470 0.7410]) %make nans matlab-blue
+%     colormap(gca,'gray')
+%     
+%     % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
+%     a = colorbar;
+%     a.Label.String = 'Intensity [nW m^{-2} sr^{-1}]';
+%     pbaspect([1 1 1]);
+%     xlabel('LORRI X Pixels');
+%     ylabel('LORRI Y Pixels');
+%     caxis([-150,150]);
+%     %         title(sprintf('%s',datastruct.header.rawfile));
+%     % grid minor;
+%     % title(sprintf('Clip-masking > %.2f + %.0f*%.2f = %.2f',clipmean,nsig,clipstd,(clipmean+nsig*clipstd)));
+%     title(sprintf('Field %d',unique_fields(jj)));
+%     set(gca,'YDir','normal');
+% %     gca.Title.FontSize = fontsize;
+% %     gca.Title.FontName = fontname;
+% %     gca.Title.FontWeight = fontweight;
+% %     gca.FontSize = fontsize;
+% %     gca.FontName = fontname;
+% %     gca.FontWeight = fontweight;
+% %     gca.XLabel.FontSize = fontsize;
+% %     gca.XLabel.FontName = fontname;
+% %     gca.XLabel.FontWeight = fontweight;
+% %     gca.YLabel.FontSize = fontsize;
+% %     gca.YLabel.FontName = fontname;
+% %     gca.YLabel.FontWeight = fontweight;
+% %     gca.Colorbar.FontSize = fontsize;
+% %     gca.Colorbar.FontName = fontname;
+% %     gca.Colorbar.FontWeight = fontweight;
+% %     gca.Colorbar.Label.FontSize = fontsize;
+% %     gca.Colorbar.Label.FontName = fontname;
+% %     gca.Colorbar.Label.FontWeight = fontweight;
+% end
+% figcnt = figcnt + 1;
+
 %---stacked bar plot or error constituents---
-figure(12); clf
-bar([myunc,myscattering_toterr_goodfiles,mypsfwing_psferr_goodfiles,...
-    mytrierr_goodfiles,myghostdifferrpos_goodfiles,mygalerr_goodfiles,abs(mymagerr_goodfiles),],'stacked')
+figure(figcnt); clf
+h = bar([myunc,myscattering_toterr_goodfiles,mypsfwing_psferr_goodfiles,...
+    mytrierr_goodfiles,myghostdifferrpos_goodfiles,abs(mygalerr_goodfiles),abs(mymagerr_goodfiles),],'stacked');
+h_barWidth = h.BarWidth;
+h_barHeight = sum([myunc,myscattering_toterr_goodfiles,mypsfwing_psferr_goodfiles,...
+    mytrierr_goodfiles,myghostdifferrpos_goodfiles,abs(mygalerr_goodfiles),abs(mymagerr_goodfiles),],2);
+for i=1:length(unique_fields)
+    text(i, h_barHeight(i), num2str(i),'HorizontalAlignment','center','VerticalAlignment','bottom');
+end 
 ylabel('Cumulative Error [nW m{^-2} sr^{-1}]')
 xlabel('Field Number')
 legend('Statistical','Scattering','PSF Wing','TRILEGAL','Diffuse Ghosts','Masking Galaxies','Masking Stars',...
     'Location','bestoutside','Orientation','horizontal')
+figcnt = figcnt + 1;
 
-
-figure(13); clf
-bar([abs(mymagerr_goodfiles),mygalerr_goodfiles,myghostdifferrpos_goodfiles,mytrierr_goodfiles,...
-    mypsfwing_psferr_goodfiles,myscattering_toterr_goodfiles,myunc],'stacked')
-ylabel('Cumulative Error [nW m{^-2} sr^{-1}]')
-xlabel('Field Number')
-legend('Statistical','Scattering','PSF Wing','TRILEGAL','Diffuse Ghosts','Masking Galaxies','Masking Stars',...
-    'Location','bestoutside','Orientation','horizontal')
-set(gca,'YScale','log')
+% figure(figcnt); clf
+% h = bar([abs(mymagerr_goodfiles),abs(mygalerr_goodfiles),myghostdifferrpos_goodfiles,mytrierr_goodfiles,...
+%     mypsfwing_psferr_goodfiles,myscattering_toterr_goodfiles,myunc],'stacked');
+% h_barWidth = h.BarWidth;
+% h_barHeight = sum([myunc,myscattering_toterr_goodfiles,mypsfwing_psferr_goodfiles,...
+%     mytrierr_goodfiles,myghostdifferrpos_goodfiles,abs(mygalerr_goodfiles),abs(mymagerr_goodfiles),],2);
+% for i=1:length(unique_fields)
+%     text(i, h_barHeight(i), num2str(i),'HorizontalAlignment','center','VerticalAlignment','bottom');
+% end 
+% ylabel('Cumulative Error [nW m{^-2} sr^{-1}]')
+% xlabel('Field Number')
+% legend('Statistical','Scattering','PSF Wing','TRILEGAL','Diffuse Ghosts','Masking Galaxies','Masking Stars',...
+%     'Location','bestoutside','Orientation','horizontal')
+% set(gca,'YScale','log')
+% figcnt = figcnt + 1;
 
 %=============Planck=============
 %---make data file---
@@ -1714,6 +2003,8 @@ system(['python ',pwd,'/fit_results.py']);
 disp(' '); %space for readability
 
 %=============NHI=============
+hi4pi_err = ((2.3e18)/5)/sqrt((1.13*(16.2)^2)/((17.4^2))); % 5-sig rms sensitivity (2.3e18 cm^-2) converted to 1-sig and from per hi4pi beam to per lorri image
+hi4pi_err_fields = ones(length(goodfiles),1)*hi4pi_err;
 %---make data file---
 fid = fopen('fit_info.txt','w');
 lil_100m = pltr_mydgl_nh_goodfiles.*dl;
@@ -1735,6 +2026,103 @@ disp(' '); %space for readability
 %---cleanup---
 delete 'fit_info.txt' 'fit_info_txt.txt'
 
+% IPD Plots
+myipd_goodfiles = [0.12611579;...
+0.33819679;...
+0.32918186;...
+0.18524416;...
+0.35001141;...
+0.36698896;...
+0.076865947;...
+0.33709999;...
+0.10806821;...
+0.28672479;...
+0.32283905;...
+0.16193704;...
+0.0950076;...
+0.084372334;...
+0.099879038;...
+0.12701996;...
+0.10457724;...
+0.05585325;...
+0.062172902];
+
+ipd_poserr = [1.2611579;...
+3.3819679;...
+3.2918186;...
+1.8524416;...
+3.5001141;...
+3.6698896;...
+0.76865947;...
+3.3709999;...
+1.0806821;...
+2.8672479;...
+3.2283905;...
+1.6193704;...
+0.950076;...
+0.84372334;...
+0.99879038;...
+1.2701996;...
+1.0457724;...
+0.5585325;...
+0.62172902];
+
+ipd_negerr = [0.012611579;...
+0.033819679;...
+0.032918186;...
+0.018524416;...
+0.035001141;...
+0.036698896;...
+0.007686595;...
+0.033709999;...
+0.010806821;...
+0.028672479;...
+0.032283905;...
+0.016193704;...
+0.00950076;...
+0.008437233;...
+0.009987904;...
+0.012701996;...
+0.010457724;...
+0.005585325;...
+0.00621729];
+
+figure(figcnt);
+clf
+errorbar(myipd_goodfiles,mymean,myunc,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+ylabel('COB [nW m^{-2} sr^{-1}]')
+xlabel('IPD [nW m^{-2} sr^{-1}]')
+figcnt = figcnt + 1;
+
+figure(figcnt);
+clf
+errorbar(mydist,myipd_goodfiles,ipd_negerr,ipd_poserr,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+% [dist_sorted, dist_sortedIndexes] = sort(mydist);
+% plot(dist_sorted,myipd_goodfiles(dist_sortedIndexes),'Color',[0.8500, 0.3250, 0.0980]);
+% hold on;
+% % plot(dist_sorted,myipd_goodfiles(dist_sortedIndexes)+ipd_poserr(dist_sortedIndexes),'Color','b');
+% % plot(dist_sorted,myipd_goodfiles(dist_sortedIndexes)-ipd_negerr(dist_sortedIndexes),'Color','g');
+% pp = patch([dist_sorted; flip(dist_sorted)],...
+%     [myipd_goodfiles(dist_sortedIndexes)-ipd_negerr(dist_sortedIndexes);...
+%     flip(myipd_goodfiles(dist_sortedIndexes)+ipd_poserr(dist_sortedIndexes))], [0.8500, 0.3250, 0.0980], 'EdgeColor', 'none');
+% alpha(pp,.5)
+ylabel('IPD [nW m^{-2} sr^{-1}]')
+xlabel('Solar Distance [AU]')
+set(gca,'YScale','log')
+figcnt = figcnt + 1;
+
+% Exclusion time vs COB plot
+all_times = [0;50;100;150;200;250;300];
+cob = [22.39;22.28;21.66;22.02;17.67;19.10;19.98]; % mean of COB from fit
+cob_err = [1.435;1.215;1.255;1.2275;0.525;2.115;2.2375]; % This is mean of sigma COB from fit
+
+figure(figcnt);
+clf
+errorbar(all_times,cob,cob_err,'.','MarkerSize',20,'MarkerEdge',[0.4940 0.1840 0.5560],'LineStyle','none','Color',[0.4940 0.1840 0.5560]); %old error bars were myunc, based on std not sem
+xlim([-5,305]);
+ylabel('COB [nW m^{-2} sr^{-1}]')
+xlabel('Time Excluded from Sequence Start [s]')
+figcnt = figcnt + 1;
 
 distance = mydist;
 rawmean = mysubmen;

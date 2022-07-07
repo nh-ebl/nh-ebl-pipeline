@@ -13,10 +13,10 @@ clear all
 close all
 %get paths for new data files or old data files
 % paths = get_paths_old_ghosts();
-% paths = get_paths_old();
+paths = get_paths_old();
 % paths = get_paths_new();
 % paths = get_paths_lauer();
-paths = get_paths_newest();
+% paths = get_paths_newest();
 
 datadir = paths.datadir;
 % Save which data we're looking at
@@ -39,12 +39,12 @@ end
 flag_method = 'new';
 
 %set portion of pipeline to run
-procstepflag = 4; %1 - masking, 2 - add meta, 3 - jail bars, 4 - calibrate, 5 - diff ghosts & scattering, 6 - isl, 7 - dgl, 8 - extinction
+procstepflag = 1; %1 - masking, 2 - add meta, 3 - jail bars, 4 - calibrate, 5 - diff ghosts & scattering, 6 - isl, 7 - dgl, 8 - extinction
 
 % Set error flags - error on means error of this type is being added in
 errflag_mags = 0; %1 is on, 0 is off - run 1-5
 errflag_psf = 0; % - run 6
-errflag_gals = 1; % - run 1-4
+errflag_gals = 0; % - run 1-4
 % Set number of MC iterations for gal error
 if errflag_gals == 1
     mc_it = 100;
@@ -224,7 +224,7 @@ for ifile=start:size(datafiles,1) % !!!NEED TO CHANGE BACK!!!
 %     if ifile == 169 %188 - bad lauer, 169 - bad newest
 %         fprintf('ahhh')
         % Restrict newest data to only good fields
-        if (strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') == 1) && any(data.header.fieldnum == [2,4,6,7])
+%         if (strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') == 1) && any(data.header.fieldnum == [2,4,6,7])
 
             % If running err_gals MC, do more than one iteration
             for mc = 1:mc_it
@@ -387,7 +387,7 @@ for ifile=start:size(datafiles,1) % !!!NEED TO CHANGE BACK!!!
             end % END FOR MC it
 
 %         end % END IF running one file
-    end % END IF excluding bad newest fields
+%     end % END IF excluding bad newest fields
 
     %     mydate(ifile) = data.header.date_jd;
     %     mytemp(ifile) = data.header.ccdtemp;

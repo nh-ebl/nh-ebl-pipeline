@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 #############################  Preamble  ##################################
+plt.rcParams.update({'font.size': 15})
 
 ## set up plotting
 plt.ioff() #disables the plot from showing, which is fine since it's saved directly anyway
@@ -37,6 +38,9 @@ text_file.close
 
 title = rows[0] #title of data
 
+#Prep a text file to save the printed text
+textOut_file = open('nh_text_results_2022_'+title.replace('/','')+'.txt','w')
+
 ## this is a guess at b(lambda) used in the error estimation for the
 ## zeroth-cut fit.  Results shouldn't be sensitive to it if it's about
 ## in the right place.
@@ -46,7 +50,7 @@ else:
     slope_guess = 7.
 
 ## plot the "as given" data in blue
-ax.errorbar(lil_x,lil_opt,yerr=lil_sigy,xerr=lil_sigx,linestyle='',marker='o',markerfacecolor='blue',markeredgecolor='blue',ecolor='blue')
+ax.errorbar(lil_x,lil_opt,yerr=lil_sigy,xerr=lil_sigx,linestyle='',marker='o',markerfacecolor='xkcd:dark lilac',markeredgecolor='xkcd:dark lilac',ecolor='xkcd:dark lilac')
 
 #############################  Part 1  ###################################
 
@@ -71,12 +75,17 @@ m = np.matmul(AtAinv,AtNd)
 
 ## now tell me what you got.
 print('Zeroth-order cut - informational only. '+title)
+print('Zeroth-order cut - informational only. '+title,file=textOut_file)
 if( title == 'NHI' ):
     print('Best-fitting slope is: ',m[1],' \pm ',np.sqrt(AtAinv[1,1]),'.')
     print('Best-fitting offset is: ',m[0],' \pm ',np.sqrt(AtAinv[0,0]),'.')
+    print('Best-fitting slope is: ',m[1],' \pm ',np.sqrt(AtAinv[1,1]),'.',file=textOut_file)
+    print('Best-fitting offset is: ',m[0],' \pm ',np.sqrt(AtAinv[0,0]),'.',file=textOut_file)
 else:
     print('Best-fitting slope is: {0:2.2f} \pm {1:2.2f}.'.format(m[1],np.sqrt(AtAinv[1,1])))
     print('Best-fitting offset is: {0:2.2f} \pm {1:2.2f}.'.format(m[0],np.sqrt(AtAinv[0,0])))
+    print('Best-fitting slope is: {0:2.2f} \pm {1:2.2f}.'.format(m[1],np.sqrt(AtAinv[1,1])),file=textOut_file)
+    print('Best-fitting offset is: {0:2.2f} \pm {1:2.2f}.'.format(m[0],np.sqrt(AtAinv[0,0])),file=textOut_file)
 
 ## show the output on a plot with a solid blue line
 if( title == 'NHI' ):
@@ -85,7 +94,7 @@ else:
     mod_x = np.linspace(0,3)
 
 mod_y = m[0] + m[1] * mod_x
-COBEst_orig, = ax.plot(mod_x,mod_y,color='blue')
+COBEst_orig, = ax.plot(mod_x,mod_y,color='xkcd:dark lilac')
 
 #############################  Part 2  ###################################
 
@@ -127,22 +136,29 @@ mse = rss/dof
 og_rmse = np.sqrt(mse)
 if( title == 'NHI' ):
     print('Original-fit RMSE is: ',og_rmse,'.')
+    print('Original-fit RMSE is: ',og_rmse,'.',file=textOut_file)
 else:
     print('Original-fit RMSE is: {0:2.2f}.'.format(og_rmse))
-ax.fill_between(mod_x, mod_y-og_rmse,mod_y+og_rmse, facecolor='blue', alpha=0.5,edgecolor='none')
+    print('Original-fit RMSE is: {0:2.2f}.'.format(og_rmse),file=textOut_file)
+ax.fill_between(mod_x, mod_y-og_rmse,mod_y+og_rmse, facecolor='xkcd:dark lilac', alpha=0.5,edgecolor='none')
 
 ## now tell me what you got.
 print('Extinction-corrected COB estimates (USE THESE NUMBERS). '+title)
+print('Extinction-corrected COB estimates (USE THESE NUMBERS). '+title,file=textOut_file)
 if( title == 'NHI' ):
     print('Best-fitting slope is: ',m1[1],' \pm ',np.sqrt(AtAinv1[1,1]),'.')
     print('Best-fitting offset is: ',m1[0],' \pm ',np.sqrt(AtAinv1[0,0]),'.')
+    print('Best-fitting slope is: ',m1[1],' \pm ',np.sqrt(AtAinv1[1,1]),'.',file=textOut_file)
+    print('Best-fitting offset is: ',m1[0],' \pm ',np.sqrt(AtAinv1[0,0]),'.',file=textOut_file)
 else:
     print('Best-fitting slope is: {0:2.2f} \pm {1:2.2f}.'.format(m1[1],np.sqrt(AtAinv1[1,1])))
     print('Best-fitting offset is: {0:2.2f} \pm {1:2.2f}.'.format(m1[0],np.sqrt(AtAinv1[0,0])))
+    print('Best-fitting slope is: {0:2.2f} \pm {1:2.2f}.'.format(m1[1],np.sqrt(AtAinv1[1,1])),file=textOut_file)
+    print('Best-fitting offset is: {0:2.2f} \pm {1:2.2f}.'.format(m1[0],np.sqrt(AtAinv1[0,0])),file=textOut_file)
 
 ## plot it as a red dashed line
 mod_y1 = m1[0] + m1[1] * mod_x
-COBEst_adjusted, = ax.plot(mod_x,mod_y1,linestyle=':',color='red')
+COBEst_adjusted, = ax.plot(mod_x,mod_y1,linestyle=':',color='xkcd:dull green')
 #############################  Part 3  ###################################
 
 ## ok, this next part is a check - it should be the case that if I:
@@ -180,25 +196,32 @@ mse = rss/dof
 adj_rmse = np.sqrt(mse)
 if( title == 'NHI' ):
     print('Adjusted-fit RMSE is: ',adj_rmse,'.')
+    print('Adjusted-fit RMSE is: ',adj_rmse,'.',file=textOut_file)
 else:
     print('Adjusted-fit RMSE is: {0:2.2f}.'.format(adj_rmse))
+    print('Adjusted-fit RMSE is: {0:2.2f}.'.format(adj_rmse),file=textOut_file)
 
-ax.fill_between(mod_x, mod_y1-adj_rmse,mod_y1+adj_rmse, facecolor='red', alpha=0.5,edgecolor='none')
+ax.fill_between(mod_x, mod_y1-adj_rmse,mod_y1+adj_rmse, facecolor='xkcd:dull green', alpha=0.5,edgecolor='none')
 
 ## now tell me what you got.
 print('Extinction-bumped COB estimates (check these against previous estimates). '+title)
+print('Extinction-bumped COB estimates (check these against previous estimates). '+title,file=textOut_file)
 if( title == 'NHI' ):
     print('Best-fitting slope is: ',mp[1],' \pm ',np.sqrt(AtAinvp[1,1]),'.')
     print('Best-fitting offset is: ',mp[0],' \pm ',np.sqrt(AtAinvp[0,0]),'.')
+    print('Best-fitting slope is: ',mp[1],' \pm ',np.sqrt(AtAinvp[1,1]),'.',file=textOut_file)
+    print('Best-fitting offset is: ',mp[0],' \pm ',np.sqrt(AtAinvp[0,0]),'.',file=textOut_file)
 else:
     print('Best-fitting slope is: {0:2.2f} \pm {1:2.2f}.'.format(mp[1],np.sqrt(AtAinvp[1,1])))
     print('Best-fitting offset is: {0:2.2f} \pm {1:2.2f}.'.format(mp[0],np.sqrt(AtAinvp[0,0])))
+    print('Best-fitting slope is: {0:2.2f} \pm {1:2.2f}.'.format(mp[1],np.sqrt(AtAinvp[1,1])),file=textOut_file)
+    print('Best-fitting offset is: {0:2.2f} \pm {1:2.2f}.'.format(mp[0],np.sqrt(AtAinvp[0,0])),file=textOut_file)
 
 ## subtlety!! - I'd like to plot these corrected points against
 ## the model derived in part 2 since they should be (roughly) comparable.
 ## I'm plotting them as open face to highlight that they've been
 ## monkeyed with ie by trying to correct them for the COB extinction     
-ax.errorbar(lil_x,lil_optp,yerr=lil_sigy,xerr=lil_sigx,linestyle='',marker='o',markerfacecolor='white',markeredgecolor='red',ecolor='red')
+ax.errorbar(lil_x,lil_optp,yerr=lil_sigy,xerr=lil_sigx,linestyle='',marker='o',markerfacecolor='white',markeredgecolor='xkcd:dull green',ecolor='xkcd:dull green')
 
 #############################  Postscript  ###################################
     
@@ -212,16 +235,17 @@ else:
     ax.set_xlim([0,3])
 
 if( title == 'NHI' ):
-    ax.set_xlabel(r'Neutral Hydrogen Column Density [cm$^{-2}$]')
+    ax.set_xlabel(r'Neutral Hydrogen Column Density [cm$^{-2}$]          ')
 else:
     ax.set_xlabel(r'$\lambda I_{\lambda}^{\rm 100 \mu m}$ * d(b) [MJy sr$^{-1}$]')
 
 ax.set_ylabel(r'$\lambda I_{\lambda}^{\rm opt}$ [nW m$^{-2}$ sr$^{-1}$]')
 ax.set_title(title)
-ax.legend([COBEst_orig,COBEst_adjusted], ['Original COB Estimate','Extinction-Adjusted COB Estimate'])
+ax.legend([COBEst_orig,COBEst_adjusted], ['Original COB Estimate','Extinction-Adjusted COB Estimate'],loc='upper left')
 
-#plt.tight_layout()
+plt.tight_layout()
 plt.show(block=False)
 pdf = PdfPages('nh_plot_results_2022_'+title.replace('/','')+'.pdf')
-pdf.savefig()
+pdf.savefig(bbox_inches='tight')
 pdf.close()
+plt.close()

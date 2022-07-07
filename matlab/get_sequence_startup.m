@@ -38,7 +38,7 @@ newgoodfields = [5,6,7,8];
 lauergoodfields = [1,2,3,4,5,6,7];
 % lauergoodfields = [];
 lauer_exlude_enable = false; %enables skipping of new sequences
-newestgoodfields = [2,4,6,7]; %[2,4,6,7,12,15,16,17,19,20,23];
+newestgoodfields = [2,4,5,6,7,12,15,16,17,19,20,23]; %[2,4,5,6,7,12,15,16,17,19,20,23];
 % newestgoodfields = [];
 newest_exlude_enable = false; %enables skipping of new sequences
 
@@ -297,19 +297,17 @@ curr_means = old_means; %save rewriting code
 curr_title = 'Old Images'; %save rewriting code
 [curr_seqs, ~, curr_seqsIndx] = unique(curr_means(:,2)); %get number of sequencies
 curr_lines = []; %holder for line handles
-curr_legend = cell(1,length(curr_seqs)); %holder for legend text
 figure; clf
 hold on;
 for i = 1:length(curr_seqs)
     kj = i == curr_seqsIndx; %get current sequence location
-    curr_lines(end+1) = plot(cumsum(curr_means(kj,3)), curr_means(kj,1),'-o'); %plot and get handle
-    curr_legend{1,i} = num2str(curr_seqs(i)); %record legend text
+    curr_lines(end+1) = plot(cumsum(curr_means(kj,3)), curr_means(kj,1),'-o','Color',[0 0.4470 0.7410]); %plot and get handle
+    o = curr_lines(end);
 end
-hLeg = legend(curr_lines,curr_legend); %make a legend
-% set(hLeg,'visible','off'); %turn off legend, just needed it for names
 ylim([0 0.15])
 xlabel('Time Since Sequence Start (s)');
 ylabel('Mean Sky Level [DN/s]');
+legend([o],{'Zemcov Fields'});
 title(curr_title);
 
 %new
@@ -378,6 +376,38 @@ xlabel('Time Since Sequence Start (s)');
 ylabel('Mean Sky Level [DN/s]');
 title(curr_title);
 
+% Combo plot
+figure; clf
+hold on;
+curr_means = newest_means; %save rewriting code
+[curr_seqs, ~, curr_seqsIndx] = unique(curr_means(:,2)); %get number of sequencies
+curr_lines = []; %holder for line handles
+for i = 1:length(curr_seqs)
+    kj = i == curr_seqsIndx; %get current sequence location
+    curr_lines(end+1) = plot(cumsum(curr_means(kj,3)), curr_means(kj,1),'-o','Color',[0.4940 0.1840 0.5560]); %plot and get handle
+    n = curr_lines(end);
+end
+curr_means = new_means; %save rewriting code
+[curr_seqs, ~, curr_seqsIndx] = unique(curr_means(:,2)); %get number of sequencies
+curr_lines = []; %holder for line handles
+for i = 1:length(curr_seqs)
+    kj = i == curr_seqsIndx; %get current sequence location
+    curr_lines(end+1) = plot(cumsum(curr_means(kj,3)), curr_means(kj,1),'-o','Color',[0.8500 0.3250 0.0980]); %plot and get handle
+    t = curr_lines(end);
+end
+curr_means = lauer_means; %save rewriting code
+[curr_seqs, ~, curr_seqsIndx] = unique(curr_means(:,2)); %get number of sequencies
+curr_lines = []; %holder for line handles
+for i = 1:length(curr_seqs)
+    kj = i == curr_seqsIndx; %get current sequence location
+    curr_lines(end+1) = plot(cumsum(curr_means(kj,3)), curr_means(kj,1),'-o','Color',[0.4660 0.6740 0.1880]); %plot and get handle
+    l = curr_lines(end);
+end
+xline(150,'--k')
+ylim([0 0.15])
+xlabel('Time Since Sequence Start (s)');
+ylabel('Mean Sky Level [DN/s]');
+legend([n,t,l],{'Symons Fields','Testing Set','Lauer Fields'})
 
 fprintf('done');
 
