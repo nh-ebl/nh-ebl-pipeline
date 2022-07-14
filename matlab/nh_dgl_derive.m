@@ -8,7 +8,7 @@ function nh_dgl_derive()
   [lorri_lambda,lorri_trans] = textread('lookup/nh_lorri_bandpass.txt','%f %f');
  
   % read in dgl c(lambda) factor from ZDA04 model
-  [dgl_lambda,dgl_conv] = textread('lookup/nh_dgl.txt','%f, %f');
+  [dgl_lambda,dgl_conv] = textread('lookup/nh_dgl.txt','%f, %f'); % Can't figure out how this comes from Zubko plots
   
   dgl_lambda = 1e3 .* dgl_lambda;
   
@@ -19,7 +19,7 @@ function nh_dgl_derive()
 
   % make vectors of measurements from Ienaka 2013
   othermeas = [1.6,2.3,4.0,3.4,2.2,1.4,2.6,2.4,4.3,3.0,...
-	2.1,3.3,4.2,2.7,2.1,4.6,1.2,2.3];
+	2.1,3.3,4.2,2.7,2.1,4.6,1.2,2.3]; %*1e-3 [delta S_nu(lambda)/delta S_nu(100 micron)] -- b(lambda)
   othererrs = 5.81.*[0.1,0.1,0.3,0.2,0.3,1.1,1.6,0.1,0.1,0.1,...
 	0.1,0.4,0.7,0.7,0.1,0.1,0.1,0.1];
   % factor 5.81 is required to make chi^2_min = 1.0
@@ -32,7 +32,7 @@ function nh_dgl_derive()
   %otherlambda = [0.44,0.49,0.55,0.65];
   
   % this scales from b(lambda) to c(lambda)
-  othermeas = othermeas .* 100 ./ otherlambda * 1e-3;
+  othermeas = othermeas .* 100 ./ otherlambda * 1e-3; %b(lambda)*100/lambda
   othererrs = othererrs .* 100 ./ otherlambda * 1e-3;
     
   % show the measurements 

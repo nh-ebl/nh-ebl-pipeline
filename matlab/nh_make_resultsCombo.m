@@ -1,4 +1,6 @@
-function nh_make_resultsCombo()
+% function nh_make_resultsCombo()
+close all
+clear variables
 
 %make sure parpool is the right type
 parpoolobj = gcp('nocreate'); % check for thread pool, which can't use the load call
@@ -1267,7 +1269,7 @@ isgood_b = myb(isgood);
 goodfiles_ditch = false(length(goodfiles),1);
 for i = 1:length(goodfiles)
     k_field = isgood_field == unique_fields(i);
-    if any(k_field)
+    if( sum(k_field) > 1 )
         field_masked = mean(isgood_masked(k_field));
         field_maskmean = mean(isgood_maskmean(k_field));
         field_tri = mean(isgood_tri(k_field));
@@ -1398,6 +1400,7 @@ pltr_my100merr_iris_sfd_goodfiles = zeros(numel(goodfiles),1);
 pltr_mydgl_nh_goodfiles = zeros(numel(goodfiles),1);
 pltr_mydglerr_nh_goodfiles = zeros(numel(goodfiles),1);
 pltr_sem = zeros(numel(goodfiles),1);
+pltr_unc = zeros(numel(goodfiles),1);
 pltr_mydataset = zeros(numel(goodfiles),1);
 pltr_mydatasetTriplets = zeros(numel(goodfiles),3);
 mygalerr_goodfiles = zeros(numel(goodfiles),1);
@@ -1492,20 +1495,21 @@ for ifield=1:numel(goodfiles)
     myunc_iris_sfd(ifield) = std(thissig_iris_sfd);
     mysem_iris_sfd(ifield) = std(thissig_iris_sfd)/sqrt(length(thissig_iris_sfd));
     pltr_sem(ifield) = std(pltr_totsig_goodfiles)/sqrt(length(pltr_totsig_goodfiles));
+    pltr_unc(ifield) = std(pltr_totsig_goodfiles);
     %     myavp(ifield) = sum(myav(whpl & isgood)./thiserr.^2)./sum(1./thiserr.^2);
     %     myohmp(ifield) = sum(myohm(whpl & isgood)./thiserr.^2)./sum(1./thiserr.^2);
     pltr_mydataset(ifield) = median(mydataset(whpl)); %for plotting per dataset color
 %     mytoterr_pos(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
-%         mytrierr_goodfiles(ifield)^2 + myghostdifferrpos_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + mysem(ifield)^2);
+%         mytrierr_goodfiles(ifield)^2 + myghostdifferrpos_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + pltr_sem(ifield)^2);
 %     mytoterr_neg(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
-%         mytrierr_goodfiles(ifield)^2 + myghostdifferrneg_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + mysem(ifield)^2);
+%         mytrierr_goodfiles(ifield)^2 + myghostdifferrneg_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + pltr_sem(ifield)^2);
     
     % Use std (myunc) instead of sem (mysem) for individual statistical
     % errors
     mytoterr_pos(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
-        mytrierr_goodfiles(ifield)^2 + myghostdifferrpos_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + myunc(ifield)^2);
+        mytrierr_goodfiles(ifield)^2 + myghostdifferrpos_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + pltr_unc(ifield)^2);
     mytoterr_neg(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
-        mytrierr_goodfiles(ifield)^2 + myghostdifferrneg_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + myunc(ifield)^2);
+        mytrierr_goodfiles(ifield)^2 + myghostdifferrneg_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + pltr_unc(ifield)^2);
 end
 pltr_mydatasetTriplets(pltr_mydataset == 1,:) = repmat([0, 0.4470, 0.7410],sum(pltr_mydataset == 1),1); %set consistent color triplets
 pltr_mydatasetTriplets(pltr_mydataset == 2,:) = repmat([0.8500, 0.3250, 0.0980],sum(pltr_mydataset == 2),1);
@@ -1547,7 +1551,7 @@ plot(xlim,[0,0],'k--','LineWidth',2)
 ylim([-30,25]);
 xlim([5,50]);
 xlabel('Heliocentric Distance [AU]')
-ylabel('COB [nW m^{-2} sr^{-1}]')
+ylabel('Direct-Subtraction COB [nW m^{-2} sr^{-1}]')
 title('Planck')
 figcnt = figcnt + 1;
 
@@ -1575,8 +1579,9 @@ plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'L
 plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle','-.','LineWidth',1)
 plot(xlim,[0,0],'k--','LineWidth',2)
 ylim([-30,25]);
+xlim([5,50]);
 xlabel('Heliocentric Distance [AU]')
-ylabel('COB [nW m^{-2} sr^{-1}]')
+ylabel('Direct-Subtraction COB [nW m^{-2} sr^{-1}]')
 title('IRIS')
 figcnt = figcnt + 1;
 
@@ -1604,8 +1609,9 @@ plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'L
 plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle','-.','LineWidth',1)
 plot(xlim,[0,0],'k--','LineWidth',2)
 ylim([-30,25]);
+xlim([5,50]);
 xlabel('Heliocentric Distance [AU]')
-ylabel('COB [nW m^{-2} sr^{-1}]')
+ylabel('Direct-Subtraction COB [nW m^{-2} sr^{-1}]')
 title('IRIS/SFD')
 figcnt = figcnt + 1;
 
@@ -1915,10 +1921,10 @@ figcnt = figcnt + 1;
 
 %---stacked bar plot or error constituents---
 figure(figcnt); clf
-h = bar([myunc,myscattering_toterr_goodfiles,mypsfwing_psferr_goodfiles,...
+h = bar([pltr_unc,myscattering_toterr_goodfiles,mypsfwing_psferr_goodfiles,...
     mytrierr_goodfiles,myghostdifferrpos_goodfiles,abs(mygalerr_goodfiles),abs(mymagerr_goodfiles),],'stacked');
 h_barWidth = h.BarWidth;
-h_barHeight = sum([myunc,myscattering_toterr_goodfiles,mypsfwing_psferr_goodfiles,...
+h_barHeight = sum([pltr_unc,myscattering_toterr_goodfiles,mypsfwing_psferr_goodfiles,...
     mytrierr_goodfiles,myghostdifferrpos_goodfiles,abs(mygalerr_goodfiles),abs(mymagerr_goodfiles),],2);
 for i=1:length(unique_fields)
     text(i, h_barHeight(i), num2str(i),'HorizontalAlignment','center','VerticalAlignment','bottom');
@@ -1963,6 +1969,9 @@ fclose(fid);
 % pyrunfile("fit_results.py")
 system(['python ',pwd,'/fit_results.py']);
 disp(' '); %space for readability
+planck_optp = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_optp');
+planck_x = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_x');
+
 
 %=============IRIS=============
 %---make data file---
@@ -1982,6 +1991,8 @@ fclose(fid);
 % pyrunfile("fit_results.py")
 system(['python ',pwd,'/fit_results.py']);
 disp(' '); %space for readability
+iris_optp = h5read([pwd,'/fit_results_data_',strrep('IRIS','/',''),'.h5'],'/lil_optp');
+iris_x = h5read([pwd,'/fit_results_data_',strrep('IRIS','/',''),'.h5'],'/lil_x');
 
 %=============IRIS/SFD=============
 %---make data file---
@@ -2001,6 +2012,8 @@ fclose(fid);
 % pyrunfile("fit_results.py")
 system(['python ',pwd,'/fit_results.py']);
 disp(' '); %space for readability
+iris_sfd_optp = h5read([pwd,'/fit_results_data_',strrep('IRIS/SFD','/',''),'.h5'],'/lil_optp');
+iris_sfd_x = h5read([pwd,'/fit_results_data_',strrep('IRIS/SFD','/',''),'.h5'],'/lil_x');
 
 %=============NHI=============
 hi4pi_err = ((2.3e18)/5)/sqrt((1.13*(16.2)^2)/((17.4^2))); % 5-sig rms sensitivity (2.3e18 cm^-2) converted to 1-sig and from per hi4pi beam to per lorri image
@@ -2022,6 +2035,8 @@ fclose(fid);
 % pyrunfile("fit_results.py")
 system(['python ',pwd,'/fit_results.py']);
 disp(' '); %space for readability
+nhi_optp = h5read([pwd,'/fit_results_data_',strrep('NHI','/',''),'.h5'],'/lil_optp');
+nhi_x = h5read([pwd,'/fit_results_data_',strrep('NHI','/',''),'.h5'],'/lil_x');
 
 %---cleanup---
 delete 'fit_info.txt' 'fit_info_txt.txt'
@@ -2089,8 +2104,8 @@ ipd_negerr = [0.012611579;...
 
 figure(figcnt);
 clf
-errorbar(myipd_goodfiles,mymean,myunc,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
-ylabel('COB [nW m^{-2} sr^{-1}]')
+errorbar(myipd_goodfiles,planck_optp,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+ylabel('Correlative COB [nW m^{-2} sr^{-1}]')
 xlabel('IPD [nW m^{-2} sr^{-1}]')
 figcnt = figcnt + 1;
 
@@ -2113,16 +2128,45 @@ figcnt = figcnt + 1;
 
 % Exclusion time vs COB plot
 all_times = [0;50;100;150;200;250;300];
-cob = [22.39;22.28;21.66;22.02;17.67;19.10;19.98]; % mean of COB from fit
-cob_err = [1.435;1.215;1.255;1.2275;0.525;2.115;2.2375]; % This is mean of sigma COB from fit
+cob = [22.34;22.26;21.64;22.01;19.63;19.09;19.94]; % mean of COB from fit
+cob_err = [1.4325;1.2125;1.25;1.2275;1.965;2.1025;2.23]; % This is mean of sigma COB from fit
 
 figure(figcnt);
 clf
 errorbar(all_times,cob,cob_err,'.','MarkerSize',20,'MarkerEdge',[0.4940 0.1840 0.5560],'LineStyle','none','Color',[0.4940 0.1840 0.5560]); %old error bars were myunc, based on std not sem
 xlim([-5,305]);
-ylabel('COB [nW m^{-2} sr^{-1}]')
+ylabel('Correlative COB [nW m^{-2} sr^{-1}]')
 xlabel('Time Excluded from Sequence Start [s]')
 figcnt = figcnt + 1;
+
+
+figure(figcnt); clf
+me = errorbar(abs(mygal),planck_optp,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+hold on;
+
+z_pts = [15.4,18.1,-6.3,29.2];
+z_err = [14.4,26.2,9.1,20.5];
+z_err_sem = [14.4/sqrt(10),26.2/sqrt(10),9.1/sqrt(3),20.5/sqrt(3)];
+z_b = [85.74,28.41,57.69,62.03];
+
+% zem = errorbar(abs(z_b),z_pts,z_err,'.','MarkerSize',20,'MarkerEdge',[0, 0.4470, 0.7410],'LineStyle','none','Color',[0, 0.4470, 0.7410]); %old error bars were myunc, based on std not sem
+
+% supermean = sum(mymean./myunc.^2)./sum(1./myunc.^2) %old way was myunc instead of mysem
+% superunc = 1./sqrt(sum(1./myunc.^2)) %old way was myunc instead of mysem
+%
+% superav = sum(myavp./myunc.^2)./sum(1./myunc.^2)
+%
+% supersub = sum(mysubmen./myunc.^2)./sum(1./myunc.^2)
+%
+% plot(xlim,[supermean,supermean],'Color',[0, 0.4470, 0.7410])
+% plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
+% plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
+% plot(xlim,[0,0],'k:')
+% legend([me,zem],{'Symons Fields','Zemcov Fields'},'Location','southwest');
+xlabel(['Galactic Latitude [' char(176) ']'])
+ylabel('Correlative COB [nW m^{-2} sr^{-1}]')
+figcnt = figcnt + 1;
+
 
 distance = mydist;
 rawmean = mysubmen;
@@ -2136,7 +2180,7 @@ ohm = myohmp;
 save('../scratch/nh_make_results.mat','distance','rawmean','rawmean',...
     'rawerr','cobmean','coberr','supermean','supererr','ohm')
 
-end
+% end
 
 function parsave_image(fname, image) %this lets parfor save
   save(fname, 'image')

@@ -4,6 +4,7 @@ Plot NH LORRI results.
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import h5py
 
 #############################  Preamble  ##################################
 plt.rcParams.update({'font.size': 15})
@@ -175,6 +176,9 @@ COBEst_adjusted, = ax.plot(mod_x,mod_y1,linestyle=':',color='xkcd:dull green')
 ## make a new estimate for where the data points should be based on
 ## our guess at the COB value from step 1
 lil_optp = lil_opt - m[0] + m[0] / lil_ext
+with h5py.File('fit_results_data_'+title.replace('/','')+'.h5', 'w') as fandle:
+    fandle.create_dataset('lil_optp', lil_optp.shape, data=lil_optp)
+    fandle.create_dataset('lil_x', lil_x.shape, data=lil_x)
 
 ## make new error estimate using a better guess for the slope (details
 ## of which shouldn't really matter here)
@@ -235,13 +239,14 @@ else:
     ax.set_xlim([0,3])
 
 if( title == 'NHI' ):
-    ax.set_xlabel(r'Neutral Hydrogen Column Density [cm$^{-2}$]          ')
+    ax.set_xlabel(r'NHI * d(b) [cm$^{-2}$]')
 else:
     ax.set_xlabel(r'$\lambda I_{\lambda}^{\rm 100 \mu m}$ * d(b) [MJy sr$^{-1}$]')
 
-ax.set_ylabel(r'$\lambda I_{\lambda}^{\rm opt}$ [nW m$^{-2}$ sr$^{-1}$]')
+ax.set_ylabel(r'$\lambda I_{\lambda}^{\rm EBL+DGL}$ [nW m$^{-2}$ sr$^{-1}$]')
 ax.set_title(title)
-ax.legend([COBEst_orig,COBEst_adjusted], ['Original COB Estimate','Extinction-Adjusted COB Estimate'],loc='upper left')
+# ax.legend([COBEst_orig,COBEst_adjusted], ['Original COB Estimate','Extinction-Adjusted COB Estimate'],loc='upper left')
+ax.legend([COBEst_adjusted,COBEst_orig], ['Correlative COB','Offset'],loc='upper left')
 
 plt.tight_layout()
 plt.show(block=False)
