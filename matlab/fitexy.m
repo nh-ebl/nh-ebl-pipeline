@@ -8,6 +8,7 @@ function [a, b, siga, sigb, chi2, q] = fitexy(xx, yy, sx, sy)
     % consistent with a vertical (infinite b) line. If siga and sigb are returned as BIG, then the data
     % are consistent with all values of b.
     %%%
+    % a is intercept, b is slope
     ndata = length(xx); %get size of data
     varx = var(xx); %get variances
     vary = var(yy);

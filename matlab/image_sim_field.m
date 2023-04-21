@@ -3,10 +3,12 @@
 
 clc;
 clear variables;
-close all;
+% close all;
+
+FLG_cumsum = 0; %set to 1 to use cumsum instead of sum for the plot
 
 dataSets = struct;
-dataSets.sets = {'old','new','newest','lauer'};
+dataSets.sets = {'old','new','lauer'};
 % dataSets.sets = {'newest'}; %just new for now
 for i=1:length(dataSets.sets)
     dataSets.(dataSets.sets{i}) = struct; %make sub-structs
@@ -381,7 +383,7 @@ for iset=1:length(dataSets.sets)
                 
                 trimag{jfile} = V(jfile).mlf;
             
-                % step 3: convert from LORRI-band mag to flux
+                % step 3: convert from LORRI-band mag tmaskso flux
                 Fcat = data.cal.vzero .* 10.^(-V(jfile).mlf/2.5);
                 
             elseif strcmp(tri_type,'gaia')
@@ -700,17 +702,22 @@ for iset=1:length(dataSets.sets)
         end
         
         %% Make ISL plots
-        
+
         % Plot integrated surface brightness from various sources
         if FLG_firstRun
-            h = figure(1);
+            h = figure();
             clf;
             hold on
         end
         % legend_handle(end+1) = scatter(inputMapHolder{ifield}.bins_cat(:,1)+0.5,inputMapHolder{ifield}.catsum,70,'filled',...
         %     'MarkerEdgeColor',PLOT_color{colorCntr},'MarkerFaceColor',PLOT_color{colorCntr}); %plot summed flux
-        legend_handle(end+1) = plot(inputMapHolder{ifield}.bins_cat(:,1)+0.5,inputMapHolder{ifield}.catsum,...
-            'color', PLOT_color{colorCntr}, 'LineWidth', 2); %plot summed flux
+        if( FLG_cumsum == 0 )
+            legend_handle(end+1) = plot(inputMapHolder{ifield}.bins_cat(:,1)+0.5,inputMapHolder{ifield}.catsum,...
+                'color', PLOT_color{colorCntr}, 'LineWidth', 2); %plot summed flux
+        else
+            legend_handle(end+1) = plot(inputMapHolder{ifield}.bins_cat(:,1)+0.5,flip(cumsum(flip(inputMapHolder{ifield}.catsum))),...
+                'color', PLOT_color{colorCntr}, 'LineWidth', 2); %plot summed flux
+        end
 %         scatter(inputMapHolder{ifield}.bins_cat(:,1)+0.5,inputMapHolder{ifield}.catnum,70,'filled'); %plot number counts
         binsMax = inputMapHolder{ifield}.bins_tri{1}(:,1); %start off binsMax
         for ilegal = 1:length(trimag) %do all of the trilegal instances
@@ -739,6 +746,11 @@ for iset=1:length(dataSets.sets)
         %     'Color',PLOT_color{colorCntr},'MarkerEdgeColor',PLOT_color{colorCntr},'MarkerFaceColor',PLOT_color{colorCntr}); %min/max of summed flux
         
         binsMax_plot = binsMax; %regular
+        if( FLG_cumsum == 1 )
+            trisum_comb_nanloc = isnan(trisum_comb); %find the nan values to ensure they stay nan
+            trisum_comb = flip(cumsum(flip(trisum_comb,2),2,'omitnan'),2); %ignore nans in cumsum
+            trisum_comb(trisum_comb_nanloc) = nan; %return any nan'd values to nan
+        end
         trisum_comb_mean = nanmean(trisum_comb,1)';
         trisum_comb_max = trisum_comb_mean+nanmax(trisum_comb)';
         trisum_comb_min = trisum_comb_mean-nanmin(trisum_comb)';
@@ -775,7 +787,11 @@ for iset=1:length(dataSets.sets)
             set(gca,'YScale','log'); %use log on y axis
             %     title(sprintf('m = %1.1f',mag));
             xlabel('Mag Bin');
-            ylabel('Surface Brightness in Bin [nW m^-2 sr^-1]');
+            if( FLG_cumsum == 0 )
+                ylabel('Surface Brightness in Bin [nW m^-2 sr^-1]');
+            else
+                ylabel('Cumulative Surface Brightness in Bin [nW m^-2 sr^-1]');
+            end
     %         ylabel('Num. of Stars');
             FLG_firstRun = false; %turn off first run
         end
@@ -803,9 +819,9 @@ legend(legend_handle,legend_text)
 %save plot maybe then
 ext = '.png';
 if use_gaia == 1
-    imagename = [pwd,'/imagesim_field_',join(dataSets.sets,'_'),'_Gaia',ext];
+    imagename = [pwd,'/imagesim_field_',char(join(dataSets.sets,'_')),'_Gaia',ext];
 else
-    imagename = [pwd,'/imagesim_field_',join(dataSets.sets,'_'),'_USNOB1',ext];
+    imagename = [pwd,'/imagesim_field_',char(join(dataSets.sets,'_')),'_USNOB1',ext];
 end
 print(h,imagename, '-dpng');
 display('donezo');

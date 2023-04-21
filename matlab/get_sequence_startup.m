@@ -307,7 +307,7 @@ end
 ylim([0 0.15])
 xlabel('Time Since Sequence Start (s)');
 ylabel('Mean Sky Level [DN/s]');
-legend([o],{'Zemcov Fields'});
+legend([o],{'Fields PC1 - PC4'});
 title(curr_title);
 
 %new
@@ -407,7 +407,7 @@ xline(150,'--k')
 ylim([0 0.15])
 xlabel('Time Since Sequence Start (s)');
 ylabel('Mean Sky Level [DN/s]');
-legend([n,t,l],{'Symons Fields','Testing Set','Lauer Fields'})
+legend([n,t,l],{'Fields KC1 - KC4','Fields PE1 - PE4','Fields AE1 - AE4'})
 
 fprintf('done');
 

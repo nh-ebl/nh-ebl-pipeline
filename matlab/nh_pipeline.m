@@ -39,7 +39,7 @@ end
 flag_method = 'new';
 
 %set portion of pipeline to run
-procstepflag = 1; %1 - masking, 2 - add meta, 3 - jail bars, 4 - calibrate, 5 - diff ghosts & scattering, 6 - isl, 7 - dgl, 8 - extinction
+procstepflag = 7; %1 - masking, 2 - add meta, 3 - jail bars, 4 - calibrate, 5 - diff ghosts & scattering, 6 - isl, 7 - dgl, 8 - extinction
 
 % Set error flags - error on means error of this type is being added in
 errflag_mags = 0; %1 is on, 0 is off - run 1-5
@@ -128,6 +128,8 @@ if strcmp(flag_method,'new') == 1
 elseif (strcmp(flag_method, 'old_corr') == 1 || strcmp(flag_method,'old') == 1)
     max_mag = 17.75; % if old method, this is overwritten in makemask
 end
+% turn on/off clip mask
+flg_clip = 1; % 0 for clip mask off, 1 for clip mask on
 
 %set min mag for trilegal isl (calculate isl for stars fainter than this)
 tri_mag = 20; % Only used when tri_gaia == 1 (Gaia and Trilegal used for ISL)
@@ -206,7 +208,7 @@ for ifile=start:size(datafiles,1) % !!!NEED TO CHANGE BACK!!!
     %             || (strcmp(data.header.timestamp,'2458444.9028369') == 1) || (strcmp(data.header.timestamp,'2458444.9445035') == 1)...
     %             || (strcmp(data.header.timestamp,'2458445.5486702') == 1) || (strcmp(data.header.timestamp,'2458445.5695036') == 1)...
     %             || (strcmp(data.header.timestamp,'2458445.5903369') == 1) % newest files that are bad
-    %ifile == 41  %55
+    %     if ifile == 41  %55
     %     if ifile == 65 | ifile == 139 | ifile == 252 | ifile == 281 | ifile == 341 % new files that are bad
     %         fprintf('ahhhh')
     %         data.header.bad = 1;
@@ -220,174 +222,175 @@ for ifile=start:size(datafiles,1) % !!!NEED TO CHANGE BACK!!!
     %     end
 
     % Analyze just one specific file
-    %     if strcmp(data.header.timestamp,'2458551.8661483') == 1 %old: '2457486.2917262'
-%     if ifile == 169 %188 - bad lauer, 169 - bad newest
-%         fprintf('ahhh')
-        % Restrict newest data to only good fields
+    %     if strcmp(data.header.timestamp,'2458551.8661483') == 1 %old:
+    %     '2457486.2917262'
+    %     if ifile == 169 %188 - bad lauer, 169 - bad newest
+    %         fprintf('ahhh')
+    % Restrict newest data to only good fields
 %         if (strcmp(paths.datadir,'/data/symons/nh_data_new/mat/') == 1) && any(data.header.fieldnum == [2,4,6,7])
 
-            % If running err_gals MC, do more than one iteration
-            for mc = 1:mc_it
-                fprintf('Current MC num: %i of %i | On file %d of %d\n',mc,mc_it,ifile,size(datafiles,1));
-                if procstepflag == 1
-                    fprintf('Masking and ghost analysis\n');
-                    %% Masking and optical ghosts
+    % If running err_gals MC, do more than one iteration
+    for mc = 1:mc_it
+        fprintf('Current MC num: %i of %i | On file %d of %d\n',mc,mc_it,ifile,size(datafiles,1));
+        if procstepflag == 1
+            fprintf('Masking and ghost analysis\n');
+            %% Masking and optical ghosts
 
-                    %remove recursive err_str
-                    if errflag_mags == 1
-                        if( isfield(data.(params.err_str),params.err_str) == 1 )
-                            data.(params.err_str) = rmfield(data.(params.err_str),params.err_str); %remove recursion
-                        end
-                    end
-
-                    if strcmp(flag_method,'new') == 1 %!!!NEED TO TURN BACK ON!!!
-                        %save ra, dec, pix, and mag of stars in image that could be causing ghosts
-                        [data, ghostcount, realghostcount] = nh_findghoststar(data,paths,params,use_gaia,errflag_mags,mc);
-                        %                 totalghosts = totalghosts + ghostcount;
-                        %                 totalrealghosts = totalrealghosts + realghostcount;
-                    end
-
-                    %
-                    %manually mask portions of image - not needed for old ghost files
-                    %         data = nh_make_manmask(data,paths);
-
-                    %mask out stars and ghosts in image (also stat and clip mask)
-                    %may need to redo catalog depending on gals
-                    %         catalog_data_gaia(gals,paths)
-                    %         catalog_data_gaia_wide(gals,paths)
-                    data = nh_makemask(data,paths,params,3,use_gaia,new_star_mask, max_mag, save_file, flag_method, errflag_mags, mc);
-
-                    %         maskim = data.data.*~data.mask.onemask;
-                    %         maskim(maskim==0) = NaN;
-                    %         checkmax(ifile) = nanmax(nanmax(maskim));
-                    %         checkmin(ifile) = nanmin(nanmin(maskim));
-
-                    %print total masked surface brightness (sum of all masked pixels)
-                    %         data.cal.sbconv .* sum(sum(data.data(data.mask.onemask)./ data.astrom.exptime))
-
-                    %print mask fraction
-                    %         data.mask.maskfrac
-
-                    %overwrite data file with changes
-                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
-
+            %remove recursive err_str
+            if errflag_mags == 1
+                if( isfield(data.(params.err_str),params.err_str) == 1 )
+                    data.(params.err_str) = rmfield(data.(params.err_str),params.err_str); %remove recursion
                 end
+            end
 
-                if procstepflag == 2
-                    fprintf('Meta data\n');
-                    %% Meta data
-                    %write header values, constants, coordinates, and dark reference pixel data to data file
-                    %(uses mask, may need to redo mask first)
-                    %changes values used in calibration
-                    data = nh_add_meta(data,flag_method); %!!!NEED TO TURN THIS BACK ON !!!
+            if strcmp(flag_method,'new') == 1 %!!!NEED TO TURN BACK ON!!!
+                %save ra, dec, pix, and mag of stars in image that could be causing ghosts
+                [data, ghostcount, realghostcount] = nh_findghoststar(data,paths,params,use_gaia,errflag_mags,mc);
+                %                 totalghosts = totalghosts + ghostcount;
+                %                 totalrealghosts = totalrealghosts + realghostcount;
+            end
 
-                    %overwrite data file with changes
-                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+            %
+            %manually mask portions of image - not needed for old ghost files
+            %         data = nh_make_manmask(data,paths);
 
+            %mask out stars and ghosts in image (also stat and clip mask)
+            %may need to redo catalog depending on gals
+            %         catalog_data_gaia(gals,paths)
+            %         catalog_data_gaia_wide(gals,paths)
+            data = nh_makemask(data,paths,params,3,use_gaia,new_star_mask, max_mag, save_file, flag_method, errflag_mags, mc, flg_clip);
+
+            %         maskim = data.data.*~data.mask.onemask;
+            %         maskim(maskim==0) = NaN;
+            %         checkmax(ifile) = nanmax(nanmax(maskim));
+            %         checkmin(ifile) = nanmin(nanmin(maskim));
+
+            %print total masked surface brightness (sum of all masked pixels)
+            %         data.cal.sbconv .* sum(sum(data.data(data.mask.onemask)./ data.astrom.exptime))
+
+            %print mask fraction
+            %         data.mask.maskfrac
+
+            %overwrite data file with changes
+            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+
+        end
+
+        if procstepflag == 2
+            fprintf('Meta data\n');
+            %% Meta data
+            %write header values, constants, coordinates, and dark reference pixel data to data file
+            %(uses mask, may need to redo mask first)
+            %changes values used in calibration
+            data = nh_add_meta(data,flag_method); %!!!NEED TO TURN THIS BACK ON !!!
+
+            %overwrite data file with changes
+            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+
+        end
+
+        if procstepflag == 3
+            fprintf('Jail bars\n');
+            %% Jail bar correction
+            %perform jail bar correction on data.data and data.ref - need mask first, but can redo from original data
+            [data, evenMinusOdd(ifile), evenMinusOddFixed(ifile), oddMinusEvenref(ifile), oddMinusEvenrefFixed(ifile)] = nh_jail_bars(data,paths,params,flag_method);
+
+            %overwrite data file with changes
+            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+
+        end
+
+        if procstepflag == 4
+            fprintf('Calibration\n');
+            %% Calibration
+
+            %save calibrated image in surface brightness units (nh_calcref saves refcorr which is used here)
+            %nh_calcref must be run first *FOR OLD METHOD ONLY*
+            data = nh_calibrate(data,paths,params,flag_method,mc);
+
+            if ifile == 1
+                % Save conversion factor to text file to be read in by python
+                fileID = fopen('conv.txt','w');
+                fprintf(fileID,'%.16f',data.cal.sbconv);
+                fclose(fileID);
+            end
+
+            %overwrite data file with changes
+            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+
+        end
+
+        if procstepflag == 5
+            fprintf('Diff ghosts and scattering\n');
+            %% Diffuse ghosts and scattering
+
+            if strcmp(flag_method,'new') == 1
+                %Calculate diffuse contribution from all stars in range to cause a
+                %ghost. List of stars from nh_findghoststar. Later subtracted from
+                %image mean.
+                data = nh_diffghost(data,paths,params); %!!!NEED TO TURN THIS BACK ON !!!
+                %Calculate extended diffuse scattering from all-sky ISL
+                %Depends on calibration, redo if calibration changes
+                if errflag_mags ~= 1
+                    data = nh_scattering(data, paths, errflag_mags, params);
                 end
+            end
 
-                if procstepflag == 3
-                    fprintf('Jail bars\n');
-                    %% Jail bar correction
-                    %perform jail bar correction on data.data and data.ref - need mask first, but can redo from original data
-                    [data, evenMinusOdd(ifile), evenMinusOddFixed(ifile), oddMinusEvenref(ifile), oddMinusEvenrefFixed(ifile)] = nh_jail_bars(data,paths,params,flag_method);
+            %overwrite data file with changes
+            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
 
-                    %overwrite data file with changes
-                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+        end
 
-                end
+        if procstepflag == 6
+            fprintf('ISL calculation\n');
+            %% ISL calculation
 
-                if procstepflag == 4
-                    fprintf('Calibration\n');
-                    %% Calibration
+            %calculate ISL from USNOB1 and Trilegal - depends on mask, need to redo if new mask
+            %may need to redo catalog depending on gals
+            %         catalog_data_gaia(gals,paths)
+            % Need to run nh_stack_psf() first to save psf to data
+            data = nh_calcisl(data, paths, params, use_gaia, tri_gaia, tri_mag, wing_mag, max_mag, save_file, flag_method, errflag_psf, tri_type);
 
-                    %save calibrated image in surface brightness units (nh_calcref saves refcorr which is used here)
-                    %nh_calcref must be run first *FOR OLD METHOD ONLY*
-                    data = nh_calibrate(data,paths,params,flag_method,mc);
+            %         wing = data.isl.usnowing
+            %         triisl = data.isl.trimeanmasksize
+            %         gaiaisl = data.isl.gaiamean
 
-                    if ifile == 1
-                        % Save conversion factor to text file to be read in by python
-                        fileID = fopen('conv.txt','w');
-                        fprintf(fileID,'%.16f',data.cal.sbconv);
-                        fclose(fileID);
-                    end
+            %overwrite data file with changes
+            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
 
-                    %overwrite data file with changes
-                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+        end
 
-                end
+        if procstepflag == 7
+            fprintf('DGL calculation\n');
+            %% DGL calculation
+            %         if data.header.fieldnum == 8
+            %             fprintf('its here');
+            %         end
 
-                if procstepflag == 5
-                    fprintf('Diff ghosts and scattering\n');
-                    %% Diffuse ghosts and scattering
+            %calculate DGL using Planck (or IRIS) data
+            data = nh_calcdgl(data, paths, flag_method);
 
-                    if strcmp(flag_method,'new') == 1
-                        %Calculate diffuse contribution from all stars in range to cause a
-                        %ghost. List of stars from nh_findghoststar. Later subtracted from
-                        %image mean.
-                        data = nh_diffghost(data,paths,params); %!!!NEED TO TURN THIS BACK ON !!!
-                        %Calculate extended diffuse scattering from all-sky ISL
-                        %Depends on calibration, redo if calibration changes
-                        if errflag_mags ~= 1
-                            data = nh_scattering(data, paths, errflag_mags, params);
-                        end
-                    end
+            %overwrite data file with changes
+            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
 
-                    %overwrite data file with changes
-                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+        end
 
-                end
+        if procstepflag == 8
+            fprintf('Extinction calculation\n');
+            %% Extinction calculation
 
-                if procstepflag == 6
-                    fprintf('ISL calculation\n');
-                    %% ISL calculation
+            %calculate extinction using SFD data
+            data = nh_extinction(data, paths);
 
-                    %calculate ISL from USNOB1 and Trilegal - depends on mask, need to redo if new mask
-                    %may need to redo catalog depending on gals
-                    %         catalog_data_gaia(gals,paths)
-                    % Need to run nh_stack_psf() first to save psf to data
-                    data = nh_calcisl(data, paths, params, use_gaia, tri_gaia, tri_mag, wing_mag, max_mag, save_file, flag_method, errflag_psf, tri_type);
+            %overwrite data file with changes
+            save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
 
-                    %         wing = data.isl.usnowing
-                    %         triisl = data.isl.trimeanmasksize
-                    %         gaiaisl = data.isl.gaiamean
+        end
 
-                    %overwrite data file with changes
-                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
+    end % END FOR MC it
 
-                end
-
-                if procstepflag == 7
-                    fprintf('DGL calculation\n');
-                    %% DGL calculation
-                    %         if data.header.fieldnum == 8
-                    %             fprintf('its here');
-                    %         end
-
-                    %calculate DGL using Planck (or IRIS) data
-                    data = nh_calcdgl(data, paths, flag_method);
-
-                    %overwrite data file with changes
-                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
-
-                end
-
-                if procstepflag == 8
-                    fprintf('Extinction calculation\n');
-                    %% Extinction calculation
-
-                    %calculate extinction using SFD data
-                    data = nh_extinction(data, paths);
-
-                    %overwrite data file with changes
-                    save(sprintf('%s%s',datadir,datafiles(ifile).name),'data');
-
-                end
-
-            end % END FOR MC it
-
-%         end % END IF running one file
-%     end % END IF excluding bad newest fields
+    %     end % END IF running one file
+%         end % END IF excluding bad newest fields
 
     %     mydate(ifile) = data.header.date_jd;
     %     mytemp(ifile) = data.header.ccdtemp;

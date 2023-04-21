@@ -1269,13 +1269,26 @@ g4= scatter(starxo4(starxo4~=0),ghostxo4(ghostxo4~=0),'b','filled');
 hold on;
 xlabel('Star X Pixel');
 ylabel('Ghost X Pixel');
-fitxo=polyfit(starxcent(starxcent~=0),ghostxcent(ghostxcent~=0),1);
-starxo= linspace(min(starxcent(starxcent~=0)),max(starxcent(starxcent~=0)));
-xoeq=fitxo(1)*starxcent+fitxo(2);
-plot(starxcent,xoeq);
+% fitxo=polyfit(starxcent(starxcent~=0),ghostxcent(ghostxcent~=0),1);
+[fitxo,gof,output] = fit(starxcent(starxcent~=0),ghostxcent(ghostxcent~=0),'poly1');
+% starxo= linspace(min(starxcent(starxcent~=0)),max(starxcent(starxcent~=0)));
+xoeq=(fitxo.p1*starxcent(starxcent~=0) + fitxo.p2);
+% xoeq=fitxo(1)*starxcent+fitxo(2);
+plot(starxcent(starxcent~=0),xoeq,'k');
 % text(50,-5,'y=0.1200x +8.0592'); %old fit from USNOB1
-title(sprintf('y = %.2fx + %.2f',fitxo(1),fitxo(2))); % new line of best fit (GAIA data)
-legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+[sorted_x, sorted_indxr] = sort(starxcent(starxcent~=0));
+y_lo = xoeq-gof.rmse;
+y_hi = xoeq+gof.rmse;
+% fill([starxcent(starxcent~=0); flip(starxcent(starxcent~=0))], ...
+%             [xoeq-gof.rmse; flip(xoeq+gof.rmse)],...
+%             'green', ...
+%             'FaceColor', 'green', 'FaceAlpha', 0.22, 'EdgeColor', 'none');
+fill([sorted_x; flip(sorted_x)], ...
+            [y_lo(sorted_indxr); flip(y_hi(sorted_indxr))],...
+            'black', ...
+            'FaceColor', 'black', 'FaceAlpha', 0.22, 'EdgeColor', 'none');
+title(sprintf('y = %.2fx + %.2f',fitxo.p1,fitxo.p2)); % new line of best fit (GAIA data)
+legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',},'Location','NorthWest');
 %
 % %stary vs ghosty
 figure(13);
@@ -1290,13 +1303,19 @@ g4= scatter(staryo4(staryo4~=0),ghostyo4(ghostyo4~=0),'b','filled');
 hold on;
 xlabel('Star Y Pixel');
 ylabel('Ghost Y Pixel');
-fityo=polyfit(starycent(starycent~=0),ghostycent(ghostycent~=0),1);
-staryo=linspace(min(starycent(starycent~=0)),max(starycent(starycent~=0)));
-yoeq= fityo(1)*starycent+fityo(2);
-plot(starycent, yoeq);
-% text(100,-5,'y=0.1240x +1.9207'); %old fit from USNOB1
-title(sprintf('y = %.2fx + %.2f',fityo(1),fityo(2))); % new line of best fit (GAIA data)
-legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',});
+[fityo,gof,output] = fit(starycent(starycent~=0),ghostycent(ghostycent~=0),'poly1');
+yoeq=(fityo.p1*starycent(starycent~=0) + fityo.p2);
+plot(starycent(starycent~=0),yoeq,'k');
+% text(50,-5,'y=0.1200x +8.0592'); %old fit from USNOB1
+[sorted_y, sorted_indxr] = sort(starycent(starycent~=0));
+y_lo = yoeq-gof.rmse;
+y_hi = yoeq+gof.rmse;
+fill([sorted_y; flip(sorted_y)], ...
+            [y_lo(sorted_indxr); flip(y_hi(sorted_indxr))],...
+            'black', ...
+            'FaceColor', 'black', 'FaceAlpha', 0.22, 'EdgeColor', 'none');
+title(sprintf('y = %.2fx + %.2f',fityo.p1,fityo.p2)); % new line of best fit (GAIA data)
+legend([g1,g2,g3,g4],{'Star 1','Star 2','Star 3','Star 4',},'Location','NorthWest');
 
 % %ghost location x test
 % figure(14);

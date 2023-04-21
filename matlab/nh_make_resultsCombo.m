@@ -2,18 +2,28 @@
 close all
 clear variables
 
-%make sure parpool is the right type
+% make sure parpool is the right type
 parpoolobj = gcp('nocreate'); % check for thread pool, which can't use the load call
 if isa(parpoolobj,'parallel.ThreadPool')
     delete(parpoolobj); %threads can't use load and will error out
 end
 
+% Set all field colors
+PLOT_color = {'#1F77B4','#FF7F0E','#7256C1','#2CA02C','#D81B60','#656565',...
+              '#0099A9','#3E0402','#480094','#FF4545','#004D40','#9A1A00',...
+              '#224EB3','#249A7D','#FF45CA','#38FF32','#AF5D03','#00004E','#5F0038'};
+
+% Load DGL params 
 dglparams = nh_get_dgl_params();
 
+% Set user flags
 want_errmags = 0;
 want_errpsf = 0;
+sub_tri = 1; % 1 = subtract trilegal/psf wings, 0 = no trilegal/psf wings sub
+FLG_saveGoodDataFiles = 1; %saves all used data files ("good" ones) in a separate directory
+FLG_saveGoodDataFiles_dir = '/data/symons/nh_pds_data'; %directory to save "good" files to
 
-%Import paths for data location
+% Import paths for data location
 paths = get_paths_old();
 npaths = get_paths_new();
 lpaths = get_paths_lauer();
@@ -39,15 +49,19 @@ isgoodnewest = zeros(numel(wlightfiles),1);
 
 %These field numbers were previously determined by going through all the
 %files
-oldgoodfields = [3,5,6,7];
+oldgoodfields = [5,3,6,7];
+% oldgoodfields = [3,6,7];
 % oldgoodfields = []; % Set good fields to none to skip data set
-newgoodfields = [5,6,7,8];
+newgoodfields = [8,5,6,7];
+% newgoodfields = [8,5,6,7];
 newgood_exlude_enable = true; %enables skipping of sequences
 % newgoodfields = [];
 lauergoodfields = [1,2,3,4,5,6,7];
+% lauergoodfields = [2];
 lauer_exlude_enable = true; %enables skipping of new sequences
 % lauergoodfields = [];
-newestgoodfields = flip([2,4,6,7]); %[2,4,6,7]; %[2,4,5,6,7,12,15,16,17,19,20,23]; - old set before exclusion
+newestgoodfields = flip([2,4,6,7]); %[2,4,6,7]; %[2,4,5,6,7,12,15,16,17,19,20,23]; - old set before exclusion, use for cam cut test
+% newestgoodfields = [6,2];
 % newestgoodfields = flip([2,4,5,6,7,12,15,16,17,19,20,23]);
 newest_exlude_enable = true; %enables skipping of new sequences
 % newestgoodfields = [];
@@ -316,7 +330,7 @@ mygalerr = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewest
 mygal_mean = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 mymagerr = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 mypsferr = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
-
+maskfrac = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
 
 %For old data files
 fprintf('Loading old data \n');
@@ -332,6 +346,14 @@ parfor jfile=1+jfile_offset:numel(lightfiles)+jfile_offset
         dataz = load(sprintf('%s%s',paths.datadir,lightfiles(ifile).name));
         disp(sprintf('On file %d of %d.',ifile,size(lightfiles,1)));
         data = dataz.data; %get the data out, makes parfor work
+        
+        if( FLG_saveGoodDataFiles == 1 )
+            [copy_status, copy_msg] = copyfile(sprintf('%s%s',paths.datadir,lightfiles(ifile).name), [FLG_saveGoodDataFiles_dir,'/',lightfiles(ifile).name]);
+            if( copy_status == 0 )
+                disp(['WARNING: file ',sprintf('%s%s',paths.datadir,lightfiles(ifile).name),' failed to be copied to ',[FLG_saveGoodDataFiles_dir,'/',lightfiles(ifile).name],' failure message follows:'])
+                disp(copy_msg)
+            end
+        end
 
         %Read in data
         mydate(jfile) = data.header.date_jd-data.header.launch_jd;
@@ -381,6 +403,8 @@ parfor jfile=1+jfile_offset:numel(lightfiles)+jfile_offset
 
         mymaskmean(jfile) = data.stats.maskmean;
 
+        maskfrac(jfile) = data.mask.maskfrac;
+
         % Bias level from header
         %     biaslevl(ifile) = data.astrom.biaslevl;
         % Bias method from header (mean = 1, median = 2) and difference to
@@ -421,8 +445,12 @@ parfor jfile=1+jfile_offset:numel(lightfiles)+jfile_offset
             mypsfwing(jfile) = data.isl.usnowing;
         end
         mypsfwing_psferr(jfile) = data.err_psf.isl.usnowing;
-
-        myisl(jfile) = data.isl.trimean  + mypsfwing(jfile);
+        
+        if sub_tri == 1
+            myisl(jfile) = data.isl.trimean  + mypsfwing(jfile);
+        elseif sub_tri == 0
+            myisl(jfile) = 0;
+        end
 
         pltr_mydgl_planck(jfile) = data.dgl.dglmean_planck;
         pltr_mydglerr_planck(jfile) = data.dgl.dglerr_planck;
@@ -441,7 +469,7 @@ parfor jfile=1+jfile_offset:numel(lightfiles)+jfile_offset
         pltr_my100merr_combo_planck(jfile) = sqrt(data.dgl.sem_planck_mc_temp^2 + data.dgl.sem_planck_mc_beta^2);
         %     pltr_myohmim_planck(jfile) = data.dgl.ohmim_planck;
         pltr_my100m_iris(jfile) = data.dgl.onehundomean_iris;
-        pltr_my100merr_iris(jfile) = data.dgl.ohmstd_iris;
+        pltr_my100merr_iris(jfile) = std(std(data.dgl.ohmim_iris-0.48));
         %     pltr_myohmim_iris(jfile) = data.dgl.ohmim_iris;
         pltr_my100m_iris_sfd(jfile) = data.dgl.onehundomean_iris_sfd;
         pltr_my100merr_iris_sfd(jfile) = data.dgl.ohmstd_iris_sfd;
@@ -485,7 +513,7 @@ parfor jfile=1+jfile_offset:numel(lightfiles)+jfile_offset
                 myscattering_masana_psferrpos(jfile) = data.scattered.masanasum_psferrmax - data.scattered.masanasum;
                 myscattering_masana_fluxerrpos(jfile) = data.scattered.masanasum_fluxerrmax - data.scattered.masanasum;
                 myscattering_masanaerr(jfile) = sqrt(myscattering_masana_psferrpos(jfile)^2 + myscattering_masana_fluxerrpos(jfile)^2);
-                myscattering_toterr(jfile) = sqrt(myscattering_gaiaerr(jfile)^2 + myscattering_masanaerr(jfile)^2);
+                myscattering_toterr(jfile) = myscattering_gaiaerr(jfile) + myscattering_masanaerr(jfile);
             end
         end
 
@@ -513,6 +541,10 @@ parfor jfile=1+jfile_offset:numel(lightfiles)+jfile_offset
                 nanimage(data.mask.onemask) = NaN;
                 % save(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),'nanimage');
                 parsave_nanimage(sprintf('../scratch/field%d_masked%d.mat',myfieldnum(jfile),jfile),nanimage);
+            else
+                if( FLG_saveGoodDataFiles == 1 )
+                    delete([FLG_saveGoodDataFiles_dir,'/',lightfiles(ifile).name]) % Remove because it actually was a bad file all along
+                end
             end
             % If struct field does not exist, files have not been marked good
             % or bad - assume all good
@@ -557,6 +589,14 @@ parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
         dataz = load(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name));
         disp(sprintf('On file %d of %d.',ifile,size(nlightfiles,1)));
         data = dataz.data; %get the data out, makes parfor work
+        
+        if( FLG_saveGoodDataFiles == 1 )
+            [copy_status, copy_msg] = copyfile(sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name), [FLG_saveGoodDataFiles_dir,'/',nlightfiles(ifile).name]);
+            if( copy_status == 0 )
+                disp(['WARNING: file ',sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name),' failed to be copied to ',[FLG_saveGoodDataFiles_dir,'/',nlightfiles(ifile).name],' failure message follows:'])
+                disp(copy_msg)
+            end
+        end
 
         %Read in data
         mydate(jfile) = data.header.date_jd-data.header.launch_jd;
@@ -589,6 +629,8 @@ parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
         myref(jfile) = data.ref.mean;
 
         myeng(jfile) = data.ref.engmean;
+
+        maskfrac(jfile) = data.mask.maskfrac;
 
         %         myohm(jfile) = data.dgl.ohmmean;
 
@@ -647,7 +689,11 @@ parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
         end
         mypsfwing_psferr(jfile) = data.err_psf.isl.usnowing;
 
-        myisl(jfile) = data.isl.trimean  + mypsfwing(jfile);
+        if sub_tri == 1
+            myisl(jfile) = data.isl.trimean  + mypsfwing(jfile);
+        elseif sub_tri == 0
+            myisl(jfile) = 0;
+        end
 
         pltr_mydgl_planck(jfile) = data.dgl.dglmean_planck;
         pltr_mydglerr_planck(jfile) = data.dgl.dglerr_planck;
@@ -666,7 +712,7 @@ parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
         pltr_my100merr_combo_planck(jfile) = sqrt(data.dgl.sem_planck_mc_temp^2 + data.dgl.sem_planck_mc_beta^2);
         %     pltr_myohmim_planck(jfile) = data.dgl.ohmim_planck;
         pltr_my100m_iris(jfile) = data.dgl.onehundomean_iris;
-        pltr_my100merr_iris(jfile) = data.dgl.ohmstd_iris;
+        pltr_my100merr_iris(jfile) = std(std(data.dgl.ohmim_iris-0.48));
         %     pltr_myohmim_iris(jfile) = data.dgl.ohmim_iris;
         pltr_my100m_iris_sfd(jfile) = data.dgl.onehundomean_iris_sfd;
         pltr_my100merr_iris_sfd(jfile) = data.dgl.ohmstd_iris_sfd;
@@ -710,7 +756,7 @@ parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
                 myscattering_masana_psferrpos(jfile) = data.scattered.masanasum_psferrmax - data.scattered.masanasum;
                 myscattering_masana_fluxerrpos(jfile) = data.scattered.masanasum_fluxerrmax - data.scattered.masanasum;
                 myscattering_masanaerr(jfile) = sqrt(myscattering_masana_psferrpos(jfile)^2 + myscattering_masana_fluxerrpos(jfile)^2);
-                myscattering_toterr(jfile) = sqrt(myscattering_gaiaerr(jfile)^2 + myscattering_masanaerr(jfile)^2);
+                myscattering_toterr(jfile) = myscattering_gaiaerr(jfile) + myscattering_masanaerr(jfile);
             end
         end
 
@@ -741,6 +787,9 @@ parfor jfile=1+jfile_offset:numel(nlightfiles)+jfile_offset
             else
                 disp(['header.bad WAS BAD on file (',num2str(ifile),'/',num2str(size(nlightfiles,1)),') ',sprintf('%s%s',npaths.datadir,nlightfiles(ifile).name)])
                 badcntr = badcntr + 1;
+                if( FLG_saveGoodDataFiles == 1 )
+                    delete([FLG_saveGoodDataFiles_dir,'/',nlightfiles(ifile).name]) % Remove because it actually was a bad file all along
+                end
             end
             % If struct field does not exist, files have not been marked good
             % or bad - assume all good
@@ -788,6 +837,14 @@ parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
         disp(sprintf('On file %d of %d.',ifile,size(wlightfiles,1)));
         data = dataz.data; %get the data out, makes parfor work
 
+        if( FLG_saveGoodDataFiles == 1 )
+            [copy_status, copy_msg] = copyfile(sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name), [FLG_saveGoodDataFiles_dir,'/',wlightfiles(ifile).name]);
+            if( copy_status == 0 )
+                disp(['WARNING: file ',sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name),' failed to be copied to ',[FLG_saveGoodDataFiles_dir,'/',wlightfiles(ifile).name],' failure message follows:'])
+                disp(copy_msg)
+            end
+        end
+
         %Read in data
         mydate(jfile) = data.header.date_jd-data.header.launch_jd;
 
@@ -817,6 +874,9 @@ parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
         myexp(jfile) = round(data.header.exptime);
 
         myref(jfile) = data.ref.mean;
+
+        maskfrac(jfile) = data.mask.maskfrac;
+
 
         myeng(jfile) = data.ref.engmean;
 
@@ -877,7 +937,11 @@ parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
         end
         mypsfwing_psferr(jfile) = data.err_psf.isl.usnowing;
 
-        myisl(jfile) = data.isl.trimean  + mypsfwing(jfile);
+        if sub_tri == 1
+            myisl(jfile) = data.isl.trimean  + mypsfwing(jfile);
+        elseif sub_tri == 0
+            myisl(jfile) = 0;
+        end
 
         pltr_mydgl_planck(jfile) = data.dgl.dglmean_planck;
         pltr_mydglerr_planck(jfile) = data.dgl.dglerr_planck;
@@ -896,7 +960,7 @@ parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
         pltr_my100merr_combo_planck(jfile) = sqrt(data.dgl.sem_planck_mc_temp^2 + data.dgl.sem_planck_mc_beta^2);
         %     pltr_myohmim_planck(jfile) = data.dgl.ohmim_planck;
         pltr_my100m_iris(jfile) = data.dgl.onehundomean_iris;
-        pltr_my100merr_iris(jfile) = data.dgl.ohmstd_iris;
+        pltr_my100merr_iris(jfile) = std(std(data.dgl.ohmim_iris-0.48));
         %     pltr_myohmim_iris(jfile) = data.dgl.ohmim_iris;
         pltr_my100m_iris_sfd(jfile) = data.dgl.onehundomean_iris_sfd;
         pltr_my100merr_iris_sfd(jfile) = data.dgl.ohmstd_iris_sfd;
@@ -940,7 +1004,7 @@ parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
                 myscattering_masana_psferrpos(jfile) = data.scattered.masanasum_psferrmax - data.scattered.masanasum;
                 myscattering_masana_fluxerrpos(jfile) = data.scattered.masanasum_fluxerrmax - data.scattered.masanasum;
                 myscattering_masanaerr(jfile) = sqrt(myscattering_masana_psferrpos(jfile)^2 + myscattering_masana_fluxerrpos(jfile)^2);
-                myscattering_toterr(jfile) = sqrt(myscattering_gaiaerr(jfile)^2 + myscattering_masanaerr(jfile)^2);
+                myscattering_toterr(jfile) = myscattering_gaiaerr(jfile) + myscattering_masanaerr(jfile);
             end
         end
 
@@ -972,6 +1036,9 @@ parfor jfile=1+jfile_offset:numel(wlightfiles)+jfile_offset
                 disp(['header.bad WAS BAD on file (',num2str(ifile),'/',num2str(size(wlightfiles,1)),') ',sprintf('%s%s',wpaths.datadir,wlightfiles(ifile).name)])
                 badcntr = badcntr + 1;
                 newest_goodfilesNum = newest_goodfilesNum - 1; %reduce by 1 if there was a bad file
+                if( FLG_saveGoodDataFiles == 1 )
+                    delete([FLG_saveGoodDataFiles_dir,'/',wlightfiles(ifile).name]) % Remove because it actually was a bad file all along
+                end
             end
             % If struct field does not exist, files have not been marked good
             % or bad - assume all good
@@ -1019,6 +1086,14 @@ parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
         disp(sprintf('On file %d of %d.',ifile,size(llightfiles,1)));
         data = dataz.data; %get the data out, makes parfor work
 
+        if( FLG_saveGoodDataFiles == 1 )
+            [copy_status, copy_msg] = copyfile(sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name), [FLG_saveGoodDataFiles_dir,'/',llightfiles(ifile).name]);
+            if( copy_status == 0 )
+                disp(['WARNING: file ',sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name),' failed to be copied to ',[FLG_saveGoodDataFiles_dir,'/',llightfiles(ifile).name],' failure message follows:'])
+                disp(copy_msg)
+            end
+        end
+
         %Read in data
         mydate(jfile) = data.header.date_jd-data.header.launch_jd;
 
@@ -1067,6 +1142,8 @@ parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
 
         mymaskmean(jfile) = data.stats.maskmean;
 
+        maskfrac(jfile) = data.mask.maskfrac;
+
         % Bias level from header
         %     biaslevl(ifile) = data.astrom.biaslevl;
         % Bias method from header (mean = 1, median = 2) and difference to
@@ -1108,7 +1185,11 @@ parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
         end
         mypsfwing_psferr(jfile) = data.err_psf.isl.usnowing;
 
-        myisl(jfile) = data.isl.trimean  + mypsfwing(jfile);
+        if sub_tri == 1
+            myisl(jfile) = data.isl.trimean  + mypsfwing(jfile);
+        elseif sub_tri == 0
+            myisl(jfile) = 0;
+        end
 
         pltr_mydgl_planck(jfile) = data.dgl.dglmean_planck;
         pltr_mydglerr_planck(jfile) = data.dgl.dglerr_planck;
@@ -1127,7 +1208,7 @@ parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
         pltr_my100merr_combo_planck(jfile) = sqrt(data.dgl.sem_planck_mc_temp^2 + data.dgl.sem_planck_mc_beta^2);
         %     pltr_myohmim_planck(jfile) = data.dgl.ohmim_planck;
         pltr_my100m_iris(jfile) = data.dgl.onehundomean_iris;
-        pltr_my100merr_iris(jfile) = data.dgl.ohmstd_iris;
+        pltr_my100merr_iris(jfile) = std(std(data.dgl.ohmim_iris-0.48));
         %     pltr_myohmim_iris(jfile) = data.dgl.ohmim_iris;
         pltr_my100m_iris_sfd(jfile) = data.dgl.onehundomean_iris_sfd;
         pltr_my100merr_iris_sfd(jfile) = data.dgl.ohmstd_iris_sfd;
@@ -1171,7 +1252,7 @@ parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
                 myscattering_masana_psferrpos(jfile) = data.scattered.masanasum_psferrmax - data.scattered.masanasum;
                 myscattering_masana_fluxerrpos(jfile) = data.scattered.masanasum_fluxerrmax - data.scattered.masanasum;
                 myscattering_masanaerr(jfile) = sqrt(myscattering_masana_psferrpos(jfile)^2 + myscattering_masana_fluxerrpos(jfile)^2);
-                myscattering_toterr(jfile) = sqrt(myscattering_gaiaerr(jfile)^2 + myscattering_masanaerr(jfile)^2);
+                myscattering_toterr(jfile) = myscattering_gaiaerr(jfile) + myscattering_masanaerr(jfile);
             end
         end
 
@@ -1202,6 +1283,9 @@ parfor jfile=1+jfile_offset:numel(llightfiles)+jfile_offset
             else
                 disp(['header.bad WAS BAD on file (',num2str(ifile),'/',num2str(size(llightfiles,1)),') ',sprintf('%s%s',lpaths.datadir,llightfiles(ifile).name)])
                 badcntr = badcntr + 1;
+                if( FLG_saveGoodDataFiles == 1 )
+                    delete([FLG_saveGoodDataFiles_dir,'/',llightfiles(ifile).name]) % Remove because it actually was a bad file all along
+                end
             end
             % If struct field does not exist, files have not been marked good
             % or bad - assume all good
@@ -1337,8 +1421,19 @@ ylabel('EBL')
 figcnt = figcnt + 1;
 
 if strcmp(flag_method,'new') == 1
+    mysun_isgood = mysun(isgood);
+    myghostdiff_isgood = myghostdiff(isgood);
+    
     figure(figcnt); clf
-    plot(mysun(isgood),myghostdiff(isgood),'o')
+    hold on;
+    pHolder = gobjects(length(unique_fields),1);
+    pNamer = cell(length(unique_fields),1);
+    for jk = 1:length(unique_fields)
+        field_curr = find(isgood_field == unique_fields(jk));
+        pHolder(jk) = plot(mysun_isgood(field_curr),myghostdiff_isgood(field_curr),'o','MarkerFaceColor',PLOT_color{jk},'color',PLOT_color{jk});
+        pNamer{jk} = ['Field ',num2str(jk)];
+    end
+    legend(pHolder,pNamer,'NumColumns',2) %'Location','northwest'
 %     hold on;
 %     errorbar(mysun(isgood),myghostdiff(isgood), myghostdifferrneg(isgood), myghostdifferrpos(isgood), 'LineStyle','none','Color','k');
     xlabel('Solar Distance')
@@ -1367,6 +1462,7 @@ myohmp = zeros(numel(goodfiles),1);
 myb_goodfiles = zeros(numel(goodfiles),1);
 mysig_goodfiles = zeros(numel(goodfiles),1);
 mysig_magerr_goodfiles = zeros(numel(goodfiles),1);
+mymaskmean_goodfiles = zeros(numel(goodfiles),1);
 mymasked_goodfiles = zeros(numel(goodfiles),1);
 mymasked_magerr_goodfiles = zeros(numel(goodfiles),1);
 mytri_goodfiles = zeros(numel(goodfiles),1);
@@ -1417,6 +1513,9 @@ mytoterr_pos = zeros(numel(goodfiles),1);
 mytoterr_neg = zeros(numel(goodfiles),1);
 myfieldnum_goodfiles = zeros(numel(goodfiles),1);
 myfieldexp_goodfiles = zeros(numel(goodfiles),1);
+maskfrac_goodfiles = zeros(numel(goodfiles),1);
+solelon_goodfiles = zeros(numel(goodfiles),1);
+mysun_goodfiles = zeros(numel(goodfiles),1);
 
 % Calculate per-field values
 for ifield=1:numel(goodfiles)
@@ -1437,6 +1536,7 @@ for ifield=1:numel(goodfiles)
     end
     mysig_goodfiles(ifield) = mean(mysig(whpl & isgood));
     mysig_magerr_goodfiles(ifield) = mean(mysig_magerr(whpl & isgood));
+    mymaskmean_goodfiles(ifield) = mean(mymaskmean(whpl & isgood));
     mymasked_goodfiles(ifield) = mean(mymasked(whpl & isgood));
     mymasked_magerr_goodfiles(ifield) = mean(mymasked_magerr(whpl & isgood));
     mytri_goodfiles(ifield) = mean(mytri(whpl & isgood));
@@ -1448,6 +1548,9 @@ for ifield=1:numel(goodfiles)
     myscattering_masana_goodfiles(ifield) = mean(myscattering_masana(whpl & isgood));
     myscattering_gaia_goodfiles(ifield) = mean(myscattering_gaia(whpl & isgood));
     mygal_mean_goodfiles(ifield) = mean(mygal_mean(whpl & isgood));
+    maskfrac_goodfiles(ifield) = mean(maskfrac(whpl & isgood));
+    solelon_goodfiles(ifield) = mean(myelong(whpl & isgood));
+    mysun_goodfiles(ifield) = mean(mysun(whpl & isgood));
 
     pltr_mydgl_planck_goodfiles(ifield) = mean(pltr_mydgl_planck(whpl & isgood));
     pltr_mydglerr_planck_goodfiles(ifield) = mean(pltr_mydglerr_planck(whpl & isgood));
@@ -1506,8 +1609,13 @@ for ifield=1:numel(goodfiles)
     
     % Use std (myunc) instead of sem (mysem) for individual statistical
     % errors
-    mytoterr_pos(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
+    if sub_tri == 1
+        mytoterr_pos(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
         mytrierr_goodfiles(ifield)^2 + myghostdifferrpos_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + pltr_unc(ifield)^2);
+    elseif sub_tri == 0
+        mytoterr_pos(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + ...
+        myghostdifferrpos_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + pltr_unc(ifield)^2);
+    end
     mytoterr_neg(ifield) = sqrt(mygalerr_goodfiles(ifield)^2 + mymagerr_goodfiles(ifield)^2 + mypsferr_goodfiles(ifield)^2 + ...
         mytrierr_goodfiles(ifield)^2 + myghostdifferrneg_goodfiles(ifield)^2 + myscattering_toterr_goodfiles(ifield)^2 + pltr_unc(ifield)^2);
 end
@@ -1615,6 +1723,67 @@ ylabel('Direct-Subtraction COB [nW m^{-2} sr^{-1}]')
 title('IRIS/SFD')
 figcnt = figcnt + 1;
 
+%=========================combo of Planck, IRIS, IRIS/SFD=========================
+figure(figcnt); clf
+hold on;
+FLG_perDatasetColoring = false; %false plots default (same color), true plots colors per dataset (old/new/lar)
+
+pHolder = gobjects(3,1);
+pNamer = {'Planck','IRIS','IRIS/SFD'};
+pOffset = [0,2,4];
+xlim_r = [5,50];
+
+if ~FLG_perDatasetColoring
+    %Planck
+    pHolder(1) = errorbar(mydist+pOffset(1),mymean_planck,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+    %IRIS
+    pHolder(2) = errorbar(mydist+pOffset(2),mymean_iris,myunc_iris,'.','MarkerSize',20,'MarkerEdge',[0.4940, 0.1840, 0.5560],'LineStyle','none','Color',[0.4940, 0.1840, 0.5560]); %old error bars were myunc, based on std not sem
+    %IRIS/SFD
+    pHolder(3) = errorbar(mydist+pOffset(3),mymean_iris_sfd,myunc_iris_sfd,'.','MarkerSize',20,'MarkerEdge',[0.4660, 0.6740, 0.1880],'LineStyle','none','Color',[0.4660, 0.6740, 0.1880]); %old error bars were myunc, based on std not sem
+else
+    %Planck
+    for j = 1:length(mydist)
+        pHolder(1) = errorbar(mydist(j)+pOffset(1),mymean_planck(j),myunc_planck(j),'.','MarkerSize',20,'MarkerEdge',pltr_mydatasetTriplets(j,:),'LineStyle','none','Color',pltr_mydatasetTriplets(j,:)); %old error bars were myunc, based on std not sem
+    end
+    %IRIS
+    for j = 1:length(mydist)
+        pHolder(2) = errorbar(mydist(j)+pOffset(2),mymean_iris(j),myunc_iris(j),'.','MarkerSize',20,'MarkerEdge',pltr_mydatasetTriplets(j,:),'LineStyle','none','Color',pltr_mydatasetTriplets(j,:)); %old error bars were myunc, based on std not sem
+    end
+    %IRIS/SFD
+    for j = 1:length(mydist)
+        pHolder(3) = errorbar(mydist(j)+pOffset(3),mymean_iris_sfd(j),myunc_iris_sfd(j),'.','MarkerSize',20,'MarkerEdge',pltr_mydatasetTriplets(j,:),'LineStyle','none','Color',pltr_mydatasetTriplets(j,:)); %old error bars were myunc, based on std not sem
+    end
+end
+
+%print some stuff?
+disp('Planck')
+supermean = sum(mymean_planck./myunc_planck.^2)./sum(1./myunc_planck.^2) %old way was myunc instead of mysem
+superunc = 1./sqrt(sum(1./myunc_planck.^2)) %old way was myunc instead of mysem
+supersub = sum(mysubmen./myunc_planck.^2)./sum(1./myunc_planck.^2)
+fill([xlim_r,flip(xlim_r)],[supermean+superunc,supermean+superunc,supermean-superunc,supermean-superunc],[0.8500, 0.3250, 0.0980],'LineStyle','none');
+alpha(.5);
+disp('IRIS')
+supermean = sum(mymean_iris./myunc_iris.^2)./sum(1./myunc_iris.^2) %old way was myunc instead of mysem
+superunc = 1./sqrt(sum(1./myunc_iris.^2)) %old way was myunc instead of mysem
+supersub = sum(mysubmen./myunc_iris.^2)./sum(1./myunc_iris.^2)
+fill([xlim_r,flip(xlim_r)],[supermean+superunc,supermean+superunc,supermean-superunc,supermean-superunc],[0.4940, 0.1840, 0.5560],'LineStyle','none');
+alpha(.5);
+disp('IRIS/SFD')
+supermean = sum(mymean_iris_sfd./myunc_iris_sfd.^2)./sum(1./myunc_iris_sfd.^2) %old way was myunc instead of mysem
+superunc = 1./sqrt(sum(1./myunc_iris_sfd.^2)) %old way was myunc instead of mysem
+supersub = sum(mysubmen./myunc_iris_sfd.^2)./sum(1./myunc_iris_sfd.^2)
+fill([xlim_r,flip(xlim_r)],[supermean+superunc,supermean+superunc,supermean-superunc,supermean-superunc],[0.4660, 0.6740, 0.1880],'LineStyle','none');
+alpha(.5);
+
+plot(xlim,[0,0],'k--','LineWidth',2)
+ylim([-30,25]);
+xlim(xlim_r);
+xlabel('Heliocentric Distance [AU]')
+ylabel('Direct-Subtraction COB [nW m^{-2} sr^{-1}]')
+legend(pHolder,pNamer);
+figcnt = figcnt + 1;
+
+
 figure(figcnt); clf
 me = errorbar(abs(mygal),mymean_planck,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
 hold on;
@@ -1672,10 +1841,11 @@ FLG_perDatasetColoring = true; %false plots colors per Planck/Iris/Iris+SDF, tru
 % IRIS error
 iris_err = (0.06)/sqrt((1.13*(4.3)^2)/((17.4^2))); % rms noise (0.06 MJy/sr) converted from per iris beam to per lorri image
 iris_err_fields = ones(length(goodfiles),1)*iris_err;
-% Scaling factor for 100 micron emission with galactic latitude (free parameter A not included b/c part of b(lambda)
-dl = (1 - 1.1 .* (dglparams.g(1)).*sqrt(sin(abs(myb_goodfiles).*pi./180)));
+% Scaling factor for 100 micron emission with galactic latitude (free
+% parameter A not included b/c part of b(lambda) - OR IS IT??)
+dl = dglparams.A.*(1 - 1.1 .* (dglparams.g(1)).*sqrt(sin(abs(myb_goodfiles).*pi./180)));
 % Calculate propagated error on d(b) due to error on g
-dberr = (dglparams.g(2).^2 .* (1.1 .*sqrt(sin(abs(myb_goodfiles).*pi./180))).^2);
+dberr = (dglparams.g(2).^2 .* (dglparams.A.*1.1 .*sqrt(sin(abs(myb_goodfiles).*pi./180))).^2); %Have added A into this
 % Calculate propagated error on 100m*d(b) due to error on 100m and error on d(b)
 planck_prop_err = sqrt(((pltr_my100merr_combo_planck_goodfiles.*dl).^2) + (dberr.*(pltr_my100m_planck_goodfiles.^2)));
 iris_prop_err = sqrt(((iris_err_fields.*dl).^2) + (dberr.*(pltr_my100m_iris_goodfiles.^2)));
@@ -1874,7 +2044,7 @@ figcnt = figcnt + 1;
 % %     gca.Colorbar.Label.FontWeight = fontweight;
 % end
 % figcnt = figcnt + 1;
-
+% 
 % figure(figcnt); clf
 % tl = tiledlayout(5,4,'TileSpacing','tight','padding','tight');
 % set(gcf,'Color',[1 1 1]) %make background pure white (good for editing)
@@ -1929,7 +2099,7 @@ h_barHeight = sum([pltr_unc,myscattering_toterr_goodfiles,mypsfwing_psferr_goodf
 for i=1:length(unique_fields)
     text(i, h_barHeight(i), num2str(i),'HorizontalAlignment','center','VerticalAlignment','bottom');
 end 
-ylabel('Cumulative Error [nW m{^-2} sr^{-1}]')
+ylabel('Cumulative Error [nW m^{-2} sr^{-1}]')
 xlabel('Field Number')
 legend('Statistical','Scattering','PSF Wing','TRILEGAL','Diffuse Ghosts','Masking Galaxies','Masking Stars',...
     'Location','bestoutside','Orientation','horizontal')
@@ -1958,7 +2128,7 @@ lil_100m = pltr_my100m_planck_goodfiles.*dl;
 sig_x = pltr_my100merr_combo_planck_goodfiles.*dl;
 for i=1:length(lil_100m)
     %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
-   fprintf(fid,'%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i));
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i),1);
 end
 fclose(fid);
 %---make text title file---
@@ -1970,8 +2140,12 @@ fclose(fid);
 system(['python ',pwd,'/fit_results.py']);
 disp(' '); %space for readability
 planck_optp = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_optp');
+planck_residual = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_residual');
+planck_opt = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_opt');
+planck_residual_prext = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_residual_prext');
 planck_x = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_x');
-
+planck_sigx = sig_x;
+planck_sigy = mytoterr_pos;
 
 %=============IRIS=============
 %---make data file---
@@ -1980,7 +2154,7 @@ lil_100m = pltr_my100m_iris_goodfiles.*dl;
 sig_x = iris_err_fields.*dl;
 for i=1:length(lil_100m)
     %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
-   fprintf(fid,'%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i));
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i),1);
 end
 fclose(fid);
 %---make text title file---
@@ -1992,6 +2166,7 @@ fclose(fid);
 system(['python ',pwd,'/fit_results.py']);
 disp(' '); %space for readability
 iris_optp = h5read([pwd,'/fit_results_data_',strrep('IRIS','/',''),'.h5'],'/lil_optp');
+iris_residual = h5read([pwd,'/fit_results_data_',strrep('IRIS','/',''),'.h5'],'/lil_residual');
 iris_x = h5read([pwd,'/fit_results_data_',strrep('IRIS','/',''),'.h5'],'/lil_x');
 
 %=============IRIS/SFD=============
@@ -2001,7 +2176,7 @@ lil_100m = pltr_my100m_iris_sfd_goodfiles.*dl;
 sig_x = iris_err_fields.*dl;
 for i=1:length(lil_100m)
     %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
-   fprintf(fid,'%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i));
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i),1);
 end
 fclose(fid);
 %---make text title file---
@@ -2013,6 +2188,7 @@ fclose(fid);
 system(['python ',pwd,'/fit_results.py']);
 disp(' '); %space for readability
 iris_sfd_optp = h5read([pwd,'/fit_results_data_',strrep('IRIS/SFD','/',''),'.h5'],'/lil_optp');
+iris_sfd_residual = h5read([pwd,'/fit_results_data_',strrep('IRIS/SFD','/',''),'.h5'],'/lil_residual');
 iris_sfd_x = h5read([pwd,'/fit_results_data_',strrep('IRIS/SFD','/',''),'.h5'],'/lil_x');
 
 %=============NHI=============
@@ -2021,10 +2197,10 @@ hi4pi_err_fields = ones(length(goodfiles),1)*hi4pi_err;
 %---make data file---
 fid = fopen('fit_info.txt','w');
 lil_100m = pltr_mydgl_nh_goodfiles.*dl;
-sig_x = hi4pi_err_fields;
+sig_x = hi4pi_err_fields.*dl;
 for i=1:length(lil_100m)
     %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
-   fprintf(fid,'%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i));
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i),1);
 end
 fclose(fid);
 %---make text title file---
@@ -2036,7 +2212,99 @@ fclose(fid);
 system(['python ',pwd,'/fit_results.py']);
 disp(' '); %space for readability
 nhi_optp = h5read([pwd,'/fit_results_data_',strrep('NHI','/',''),'.h5'],'/lil_optp');
+nhi_residual = h5read([pwd,'/fit_results_data_',strrep('NHI','/',''),'.h5'],'/lil_residual');
 nhi_x = h5read([pwd,'/fit_results_data_',strrep('NHI','/',''),'.h5'],'/lil_x');
+
+%---cleanup---
+% delete 'fit_info.txt' 'fit_info_txt.txt'
+
+%%%%% Redo fit without d(b) dependence to get blam %%%%%
+
+%=============Planck=============
+%---make data file---
+fid = fopen('fit_info.txt','w');
+lil_100m = pltr_my100m_planck_goodfiles;
+sig_x = pltr_my100merr_combo_planck_goodfiles;
+for i=1:length(lil_100m)
+    %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i),2);
+end
+fclose(fid);
+%---make text title file---
+fid = fopen('fit_info_txt.txt','w');
+fprintf(fid,'Planck');
+fclose(fid);
+%---run pthon---
+% pyrunfile("fit_results.py")
+system(['python ',pwd,'/fit_results.py']);
+disp(' '); %space for readability
+planck_optp_nodb = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_optp');
+planck_residual_nodb = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_residual');
+planck_opt_nodb = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_opt');
+planck_residual_prext_nodb = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_residual_prext');
+planck_x_nodb = h5read([pwd,'/fit_results_data_',strrep('Planck','/',''),'.h5'],'/lil_x');
+planck_sigx_nodb = sig_x;
+planck_sigy_nodb = mytoterr_pos;
+
+
+%=============IRIS=============
+%---make data file---
+fid = fopen('fit_info.txt','w');
+lil_100m = pltr_my100m_iris_goodfiles;
+sig_x = iris_err_fields;
+for i=1:length(lil_100m)
+    %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i),2);
+end
+fclose(fid);
+%---make text title file---
+fid = fopen('fit_info_txt.txt','w');
+fprintf(fid,'IRIS');
+fclose(fid);
+%---run pthon---
+% pyrunfile("fit_results.py")
+system(['python ',pwd,'/fit_results.py']);
+disp(' '); %space for readability
+
+%=============IRIS/SFD=============
+%---make data file---
+fid = fopen('fit_info.txt','w');
+lil_100m = pltr_my100m_iris_sfd_goodfiles;
+sig_x = iris_err_fields;
+for i=1:length(lil_100m)
+    %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i),2);
+end
+fclose(fid);
+%---make text title file---
+fid = fopen('fit_info_txt.txt','w');
+fprintf(fid,'IRIS/SFD');
+fclose(fid);
+%---run pthon---
+% pyrunfile("fit_results.py")
+system(['python ',pwd,'/fit_results.py']);
+disp(' '); %space for readability
+
+%=============NHI=============
+hi4pi_err = ((2.3e18)/5)/sqrt((1.13*(16.2)^2)/((17.4^2))); % 5-sig rms sensitivity (2.3e18 cm^-2) converted to 1-sig and from per hi4pi beam to per lorri image
+hi4pi_err_fields = ones(length(goodfiles),1)*hi4pi_err;
+%---make data file---
+fid = fopen('fit_info.txt','w');
+lil_100m = pltr_mydgl_nh_goodfiles;
+sig_x = hi4pi_err_fields;
+for i=1:length(lil_100m)
+    %Order is lil_opt, lil_100m, sig_y, sig_x, ext [5 total]
+   fprintf(fid,'%f\t%f\t%f\t%f\t%f\t%f\n',pltr_thissig_goodfiles(i),lil_100m(i),mytoterr_pos(i),sig_x(i),myext_goodfiles(i),2);
+end
+fclose(fid);
+%---make text title file---
+fid = fopen('fit_info_txt.txt','w');
+fprintf(fid,'NHI');
+fclose(fid);
+%---run pthon---
+% pyrunfile("fit_results.py")
+system(['python ',pwd,'/fit_results.py']);
+disp(' '); %space for readability
 
 %---cleanup---
 delete 'fit_info.txt' 'fit_info_txt.txt'
@@ -2111,6 +2379,18 @@ figcnt = figcnt + 1;
 
 figure(figcnt);
 clf
+errorbar(myipd_goodfiles,planck_residual,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+ylabel('COB Residual [nW m^{-2} sr^{-1}]')
+xlabel('IPD [nW m^{-2} sr^{-1}]')
+figcnt = figcnt + 1;
+
+fitter = linear_fit(myipd_goodfiles,planck_residual,myunc_planck);
+fitter.m % Get slope
+sqrt(fitter.variancem) % Get slope err
+corrcoef(myipd_goodfiles,planck_residual) % Get corr coef
+
+figure(figcnt);
+clf
 errorbar(mydist,myipd_goodfiles,ipd_negerr,ipd_poserr,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
 % [dist_sorted, dist_sortedIndexes] = sort(mydist);
 % plot(dist_sorted,myipd_goodfiles(dist_sortedIndexes),'Color',[0.8500, 0.3250, 0.0980]);
@@ -2126,47 +2406,255 @@ xlabel('Solar Distance [AU]')
 set(gca,'YScale','log')
 figcnt = figcnt + 1;
 
+% COB vs. distance from Sun
+figure(figcnt);
+clf
+errorbar(mysun_goodfiles,planck_optp,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+ylabel('Correlative COB [nW m^{-2} sr^{-1}]')
+xlabel('Solar Distance')
+figcnt = figcnt + 1;
+
 % Exclusion time vs COB plot
-all_times = [0;50;100;150;200;250;300];
-cob = [22.34;22.26;21.64;22.01;19.63;19.09;19.94]; % mean of COB from fit
-cob_err = [1.4325;1.2125;1.25;1.2275;1.965;2.1025;2.23]; % This is mean of sigma COB from fit
+all_times = [0;25;50;75;100;125;150;175;200;225;250;275;300;325;350;375;400];
+cob = [22.34;21.88;22.26;21.66;21.64;21.63;21.98;21.29;19.63;19.86;19.09;18.89;19.94;19.86;20.34;20.72;19.1425]; % mean of COB from fit
+cob_err = [1.435;1.435;1.215;1.255;1.255;1.2525;1.23;1.305;1.97;1.955;2.105;2.0025;2.2325;2.2425;2.1875;2.1325;2.3025]; % This is mean of sigma COB from fit
+all_fields = [26;25;23;21;20;19;19;18;13;12;10;10;8;8;8;8;6];
 
 figure(figcnt);
 clf
-errorbar(all_times,cob,cob_err,'.','MarkerSize',20,'MarkerEdge',[0.4940 0.1840 0.5560],'LineStyle','none','Color',[0.4940 0.1840 0.5560]); %old error bars were myunc, based on std not sem
-xlim([-5,305]);
+errorbar(all_times,cob,cob_err,'.','MarkerSize',30,'MarkerEdge',[0.4940 0.1840 0.5560],'LineStyle','none','LineWidth',2,'Color',[0.4940 0.1840 0.5560]); %old error bars were myunc, based on std not sem
+xlim([-5,405]);
 ylabel('Correlative COB [nW m^{-2} sr^{-1}]')
+yyaxis right
+plot(all_times,all_fields,'color','#696969','LineWidth',2);
+ax = gca;
+ax.YAxis(2).Color = 'k';
+ylabel('Number of Fields')
 xlabel('Time Excluded from Sequence Start [s]')
 figcnt = figcnt + 1;
 
-
+%----- Settings for COB residual vs gal lat plots -----
+FLG_override_residual = true; %overrides residual with calculated one
+FLG_define_slope = true; %true uses user-defined slope value, false uses calc'd one
+planck_slope_desired = 5.25; %blam 5.5 makes slope 0
+planck_slope_desired_prext = 5.25; %blam 5.5 makes slope 0 (for pre-extinction), 5.25 for no d(b) - round to 5 since 5 better than 5.5
+FLG_guaranteeFlat = false; %[too shoddy to use atm]only wroks if FLG_define_slope is false, uses a loop to guarantee calc'd slope/intercept makes the data flat
+% COB residual vs gal lat
 figure(figcnt); clf
-me = errorbar(abs(mygal),planck_optp,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
-hold on;
-
-z_pts = [15.4,18.1,-6.3,29.2];
-z_err = [14.4,26.2,9.1,20.5];
-z_err_sem = [14.4/sqrt(10),26.2/sqrt(10),9.1/sqrt(3),20.5/sqrt(3)];
-z_b = [85.74,28.41,57.69,62.03];
-
-% zem = errorbar(abs(z_b),z_pts,z_err,'.','MarkerSize',20,'MarkerEdge',[0, 0.4470, 0.7410],'LineStyle','none','Color',[0, 0.4470, 0.7410]); %old error bars were myunc, based on std not sem
-
-% supermean = sum(mymean./myunc.^2)./sum(1./myunc.^2) %old way was myunc instead of mysem
-% superunc = 1./sqrt(sum(1./myunc.^2)) %old way was myunc instead of mysem
-%
-% superav = sum(myavp./myunc.^2)./sum(1./myunc.^2)
-%
-% supersub = sum(mysubmen./myunc.^2)./sum(1./myunc.^2)
-%
-% plot(xlim,[supermean,supermean],'Color',[0, 0.4470, 0.7410])
-% plot(xlim,[supermean+superunc,supermean+superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
-% plot(xlim,[supermean-superunc,supermean-superunc],'Color',[0, 0.4470, 0.7410],'LineStyle',':')
-% plot(xlim,[0,0],'k:')
-% legend([me,zem],{'Symons Fields','Zemcov Fields'},'Location','southwest');
+if( FLG_override_residual )
+    if( FLG_define_slope )
+        %dictate a slope
+        planck_residual_new = planck_optp - ( planck_slope_desired*planck_x + 23.31 );
+        %remove mean
+        planck_residual_new_mean = mean(planck_residual_new); %get mean as var to see
+        planck_residual_new_intercept = 23.31 + planck_residual_new_mean;
+        planck_residual_new = planck_residual_new - planck_residual_new_mean; %equivalent to 23.31-planck_residual_mean
+    else
+        %estimate ideal slope and intercept
+        planck_optp_slope = polyfit(planck_x, planck_optp, 1);
+%         [intercept, slope, ~, ~, ~, ~] = fitexy(planck_x, planck_optp, planck_sigx, planck_sigy );
+        planck_residual_new = planck_optp - ( planck_optp_slope(1)*planck_x + planck_optp_slope(2) );
+        planck_residual_new_intercept = planck_optp_slope(2);
+        if( FLG_guaranteeFlat )
+            dir = -1;
+            fitter = linear_fit(abs(mygal),planck_residual_new,myunc_planck);
+            fitter_prev = abs(fitter.m);
+            while( fitter_prev > 1E-6)
+                planck_residual_new = planck_optp - ( planck_optp_slope(1)*planck_x + planck_optp_slope(2) );
+                fitter = linear_fit(abs(mygal),planck_residual_new,myunc_planck);
+                if( fitter.m > fitter_prev )
+                    dir = -dir; %switch direction
+                end
+                planck_optp_slope(1) = planck_optp_slope(1) + 1E-6*dir; %instead of static 1E-6 using fitter.m as a scaling factor
+                fitter_prev = abs(fitter.m); %new prev for next loop
+            end
+            planck_residual_new_mean = mean(planck_residual_new); %get mean as var to see
+            planck_residual_new_intercept = planck_residual_new_intercept + planck_residual_new_mean;
+        end
+        planck_slope_desired = planck_optp_slope(1);
+    end
+    %plot
+    disp(['Ideal slope: ',num2str(planck_slope_desired),' | Ideal intercept: ',num2str(planck_residual_new_intercept)])
+    me = errorbar(abs(mygal),planck_residual_new,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+    fitter = linear_fit(abs(mygal),planck_residual_new,myunc_planck);
+    fitter.m % Get slope
+    corrcoef(abs(mygal),planck_residual_new) % Get corr coef
+else
+    me = errorbar(abs(mygal),planck_residual,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+    fitter = linear_fit(abs(mygal),planck_residual,myunc_planck);
+    fitter.m % Get slope
+    corrcoef(abs(mygal),planck_residual) % Get corr coef
+end
 xlabel(['Galactic Latitude [' char(176) ']'])
-ylabel('Correlative COB [nW m^{-2} sr^{-1}]')
+ylabel('COB Residual [nW m^{-2} sr^{-1}]')
 figcnt = figcnt + 1;
 
+
+% No db COB residual vs gal lat
+figure(figcnt); clf %blam 6 makes slope 0
+if( FLG_override_residual )
+    if( FLG_define_slope )
+        %dictate a slope
+        planck_slope_desired_nodb = planck_slope_desired;
+        planck_residual_new_nodb = planck_optp_nodb - ( planck_slope_desired_nodb*planck_x_nodb + 22.57 );
+        %remove mean
+        planck_residual_new_mean_nodb = mean(planck_residual_new_nodb); %get mean as var to see
+        planck_residual_new_intercept_nodb = 22.57 + planck_residual_new_mean_nodb;
+        planck_residual_new_nodb = planck_residual_new_nodb - planck_residual_new_mean_nodb; %equivalent to 22.57-planck_residual_mean
+    else
+        %estimate ideal slope and intercept
+        planck_optp_slope_nodb = polyfit(planck_x_nodb, planck_optp_nodb, 1);
+%         [intercept, slope, ~, ~, ~, ~] = fitexy(planck_x_nodb, planck_optp_nodb, planck_sigx_nodb, planck_sigy_nodb );
+        planck_residual_new_nodb = planck_optp_nodb - ( planck_optp_slope_nodb(1)*planck_x_nodb + planck_optp_slope_nodb(2) );
+        planck_residual_new_intercept_nodb = planck_optp_slope_nodb(2);
+        if( FLG_guaranteeFlat )
+            dir = -1;
+            fitter = linear_fit(abs(mygal),planck_residual_new_nodb,myunc_planck);
+            fitter_prev = fitter.m;
+            while(fitter_prev > 1E-6)
+                planck_residual_new_nodb = planck_optp_nodb - ( planck_optp_slope_nodb(1)*planck_x_nodb + planck_optp_slope_nodb(2) );
+                fitter = linear_fit(abs(mygal),planck_residual_new_nodb,myunc_planck);
+                if( fitter.m > fitter_prev )
+                    dir = -dir; %switch direction
+                end
+                planck_optp_slope_nodb(1) = planck_optp_slope_nodb(1) + abs(fitter.m)*dir; %instead of static 1E-6 using fitter.m as a scaling factor
+                fitter_prev = fitter.m; %new prev for next loop
+            end
+            planck_residual_new_mean_nodb = mean(planck_residual_new_nodb); %get mean as var to see
+            planck_residual_new_intercept_nodb = planck_residual_new_intercept_nodb(2) + planck_residual_new_mean_nodb;
+        end
+        planck_slope_desired_nodb = planck_optp_slope_nodb(1);
+    end
+    %plot
+    disp(['[nodb] Ideal slope: ',num2str(planck_slope_desired_nodb),' | Ideal intercept: ',num2str(planck_residual_new_intercept_nodb)])
+    me = errorbar(abs(mygal),planck_residual_new_nodb,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+    fitter = linear_fit(abs(mygal),planck_residual_new_nodb,myunc_planck);
+    fitter.m % Get slope
+else
+    me = errorbar(abs(mygal),planck_residual_nodb,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+    fitter = linear_fit(abs(mygal),planck_residual_nodb,myunc_planck);
+    fitter.m % Get slope
+end
+xlabel(['Galactic Latitude [' char(176) ']'])
+ylabel('COB Residual no d(b) [nW m^{-2} sr^{-1}]')
+figcnt = figcnt + 1;
+
+% COB residual PRE-EXTINCTION vs gal lat
+figure(figcnt); clf
+if( FLG_override_residual )
+    if( FLG_define_slope )
+        %dictate a slope
+        planck_residual_prext_new = planck_opt - ( planck_slope_desired_prext*planck_x + 22.67 );
+        %remove mean
+        planck_residual_prext_new_mean = mean(planck_residual_prext_new); %get mean as var to see
+        planck_residual_prext_new_intercept = 22.67 + planck_residual_prext_new_mean;
+        planck_residual_prext_new = planck_residual_prext_new - planck_residual_prext_new_mean; %equivalent to 22.67-planck_residual_mean
+    else
+        %estimate ideal slope and intercept
+        planck_opt_slope = polyfit(planck_x, planck_opt, 1);
+        planck_residual_prext_new = planck_opt - ( planck_opt_slope(1)*planck_x + planck_opt_slope(2) );
+        planck_residual_prext_new_intercept = planck_opt_slope(2);
+        if( FLG_guaranteeFlat )
+            dir = -1;
+            fitter = linear_fit(abs(mygal),planck_residual_prext_new,myunc_planck);
+            fitter_prev = fitter.m;
+            while(fitter_prev > 1E-6)
+                planck_residual_prext_new = planck_opt - ( planck_opt_slope(1)*planck_x + planck_opt_slope(2) );
+                fitter = linear_fit(abs(mygal),planck_residual_prext_new,myunc_planck);
+                if( fitter.m > fitter_prev )
+                    dir = -dir; %switch direction
+                end
+                planck_opt_slope(1) = planck_opt_slope(1) + abs(fitter.m)*dir; %instead of static 1E-6 using fitter.m as a scaling factor
+                fitter_prev = fitter.m; %new prev for next loop
+            end
+            planck_residual_prext_new_mean = mean(planck_residual_prext_new); %get mean as var to see
+            planck_residual_prext_new_intercept = planck_residual_prext_new_intercept(2) + planck_residual_prext_new_mean;
+        end
+        planck_slope_desired_prext = planck_opt_slope(1);
+    end
+    %plot
+    disp(['[Pre-ext] Ideal slope: ',num2str(planck_slope_desired_prext),' | Ideal intercept: ',num2str(planck_residual_prext_new_intercept)])
+    me = errorbar(abs(mygal),planck_residual_prext_new,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.4500, 0.3250, 0.2980],'LineStyle','none','Color',[0.4500, 0.3250, 0.2980]); %old error bars were myunc, based on std not sem
+    fitter = linear_fit(abs(mygal),planck_residual_prext_new,myunc_planck);
+    fitter.m % Get slope
+    corrcoef(abs(mygal),planck_residual_prext_new) % Get corr coef    
+else
+    me = errorbar(abs(mygal),planck_residual_prext,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.4500, 0.3250, 0.2980],'LineStyle','none','Color',[0.4500, 0.3250, 0.2980]); %old error bars were myunc, based on std not sem
+    fitter = linear_fit(abs(mygal),planck_residual_prext,myunc_planck);
+    fitter.m % Get slope
+    corrcoef(abs(mygal),planck_residual_prext) % Get corr coef
+end
+xlabel(['Galactic Latitude [' char(176) ']'])
+ylabel('COB Residual Pre-Extinction [nW m^{-2} sr^{-1}]')
+figcnt = figcnt + 1;
+
+% No db COB residual PRE-EXTINCTION vs gal lat
+figure(figcnt); clf %blam 6 makes slope 0
+% planck_residual_prext_nodb = planck_opt_nodb - ( planck_prext_slope_desired*planck_x_nodb + 22.15 );
+if( FLG_override_residual )
+    if( FLG_define_slope )
+        %dictate a slope
+        planck_slope_desired_prext_nodb = planck_slope_desired_prext;
+        planck_residual_prext_new_nodb = planck_opt_nodb - ( planck_slope_desired_prext_nodb*planck_x_nodb + 22.15 );
+        %remove mean
+        planck_residual_prext_new_mean_nodb = mean(planck_residual_prext_new_nodb); %get mean as var to see
+        planck_residual_prext_new_intercept_nodb = 22.15 + planck_residual_prext_new_mean_nodb;
+        planck_residual_prext_new_nodb = planck_residual_prext_new_nodb - planck_residual_prext_new_mean_nodb; %equivalent to 22.15-planck_residual_mean
+    else
+        %estimate ideal slope and intercept
+        planck_opt_slope_nodb = polyfit(planck_x_nodb, planck_opt_nodb, 1);
+%         planck_opt_slope_nodb
+%         [intercept, slope, ~, ~, ~, ~] = fitexy(planck_x_nodb, planck_opt_nodb, planck_sigx_nodb, planck_sigy_nodb );
+%         [slope , intercept]
+        planck_residual_prext_new_nodb = planck_opt_nodb - ( planck_opt_slope_nodb(1)*planck_x_nodb + planck_opt_slope_nodb(2) );
+        planck_residual_prext_new_intercept_nodb = planck_opt_slope_nodb(2);
+        if( FLG_guaranteeFlat )
+            dir = -1;
+            fitter = linear_fit(abs(mygal),planck_residual_prext_new_nodb,myunc_planck);
+            fitter_prev = fitter.m;
+            while(fitter_prev > 1E-6)
+                planck_residual_prext_new_nodb = planck_opt_nodb - ( planck_opt_slope_nodb(1)*planck_x_nodb + planck_opt_slope_nodb(2) );
+                fitter = linear_fit(abs(mygal),planck_residual_prext_new_nodb,myunc_planck);
+                if( fitter.m > fitter_prev )
+                    dir = -dir; %switch direction
+                end
+                planck_opt_slope_nodb(1) = planck_opt_slope_nodb(1) + abs(fitter.m)*dir; %instead of static 1E-6 using fitter.m as a scaling factor
+                fitter_prev = fitter.m; %new prev for next loop
+            end
+            planck_residual_prext_new_mean_nodb = mean(planck_residual_prext_new_nodb); %get mean as var to see
+            planck_residual_prext_new_intercept_nodb = planck_residual_prext_new_intercept_nodb(2) + planck_residual_prext_new_mean_nodb;
+        end
+        planck_slope_desired_prext_nodb = planck_opt_slope_nodb(1);
+    end
+    %plot
+    disp(['[nodb pre-ext] Ideal slope: ',num2str(planck_slope_desired_prext_nodb),' | Ideal intercept: ',num2str(planck_residual_prext_new_intercept_nodb)])
+    me = errorbar(abs(mygal),planck_residual_prext_new_nodb,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.4500, 0.3250, 0.2980],'LineStyle','none','Color',[0.4500, 0.3250, 0.2980]); %old error bars were myunc, based on std not sem
+    fitter = linear_fit(abs(mygal),planck_residual_prext_new_nodb,myunc_planck);
+    fitter.m % Get slope
+else
+    me = errorbar(abs(mygal),planck_residual_prext_nodb,myunc_planck,'.','MarkerSize',20,'MarkerEdge',[0.4500, 0.3250, 0.2980],'LineStyle','none','Color',[0.4500, 0.3250, 0.2980]); %old error bars were myunc, based on std not sem
+    fitter = linear_fit(abs(mygal),planck_residual_prext_nodb,myunc_planck);
+    fitter.m % Get slope
+end
+xlabel(['Galactic Latitude [' char(176) ']'])
+ylabel('COB Residual Pre-Extinction no d(b) [nW m^{-2} sr^{-1}]')
+figcnt = figcnt + 1;
+
+
+
+% Planck 100m vs gal lat
+figure(figcnt); clf 
+me = errorbar(abs(mygal),pltr_my100m_planck_goodfiles,pltr_my100merr_combo_planck_goodfiles,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+xlabel(['Galactic Latitude [' char(176) ']'])
+ylabel('Planck 100m Intensity [MJy sr^{-1}]')
+figcnt = figcnt + 1;
+
+% Planck 100m * db vs gal lat
+figure(figcnt); clf 
+me = errorbar(abs(mygal),pltr_my100m_planck_goodfiles.*dl,pltr_my100merr_combo_planck_goodfiles.*dl,'.','MarkerSize',20,'MarkerEdge',[0.8500, 0.3250, 0.0980],'LineStyle','none','Color',[0.8500, 0.3250, 0.0980]); %old error bars were myunc, based on std not sem
+xlabel(['Galactic Latitude [' char(176) ']'])
+ylabel('Planck 100m Intensity [MJy sr^{-1}]')
+figcnt = figcnt + 1;
 
 distance = mydist;
 rawmean = mysubmen;

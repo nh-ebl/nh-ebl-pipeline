@@ -2,9 +2,9 @@ function data = nh_calcdgl(data, paths, flag_method)
 
 dglparams = nh_get_dgl_params();
 
-want = 'planck';
+% want = 'planck';
 % want = 'planck_mc';
-% want = 'iris';
+want = 'iris';
 % want = 'iris_sfd';
 % want = 'nh';
 
@@ -339,7 +339,7 @@ if (strcmp(type,'iris') || strcmp(type,'iris_sfd') || strcmp(type,'nh') || strcm
         if strcmp(type,'iris') == 1
             %nu I_nu is (iris map - 0.8 MJy/sr) * 1e-20 * 3e8/100e-6 * 1e9
 %             nuinu = (irisim.*~manmask-dglparams.cib(1)) .* dglparams.norm;
-            onehundo = mean(mean((irisim.*~manmask-0.48))); % mean 100 micron emission including CIB subtraction
+            onehundo = mean(mean((irisim.*~manmask-0.48))); % mean 100 micron emission including CIB subtraction (real value 0.48, testing 0.24)
             nuinu = (irisim.*~manmask-0.48) .* dglparams.norm; % Old value was 0.8 MJy/sr, now using 0.48 MJy/sr from 14.4 +/- 6.3 nW in https://articles.adsabs.harvard.edu/pdf/2011ASPC..446..309B
         elseif strcmp(type,'iris_sfd') == 1
             %nu I_nu is (iris map - 0.8 MJy/sr) * 1e-20 * 3e8/100e-6 * 1e9

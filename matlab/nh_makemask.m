@@ -7,7 +7,7 @@
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [data,mu] = nh_makemask(data,paths,params,nsig,use_gaia,new_star_mask,max_mag,save_file,flag_method,errflag_mags,mc)
+function [data,mu] = nh_makemask(data,paths,params,nsig,use_gaia,new_star_mask,max_mag,save_file,flag_method,errflag_mags,mc,flg_clip)
 
 % load('run_params.mat','params')
 if params.err_mags == 1 || params.err_gals == 1
@@ -31,12 +31,12 @@ if params.err_gals == 0
     % load up the corresponding catalog file
     if use_gaia == 1
         load(sprintf('%smat_files/field_%d_data.mat',paths.gaiadir,data.header.fieldnum));
-        
+
         % figure out the length of the catalog
         [ncat,~] = size(RA);
     elseif use_gaia == 0
         load(sprintf('%sfield_%d_data.mat',paths.catdir,data.header.fieldnum));
-        
+
         % figure out the length of the catalog
         [~,ncat] = size(RA);
     end
@@ -44,7 +44,7 @@ elseif params.err_gals == 1
     % load up the corresponding catalog file
     if use_gaia == 1
         load(sprintf('%smat_files/field_%d_mc/%i', paths.gaiadir,data.header.fieldnum,mc));
-        
+
         % figure out the length of the catalog
         [ncat,~] = size(RA);
     end
@@ -131,7 +131,7 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
     % Create star mask - takes very long and can skip if already saved
     % loop over each catalog entry
     for row = 1:ncat
-        
+
         %if using USNOB1 catalog
         if use_gaia == 0
             % first, we have this mish-mash set of magnitudes.  They seem to allow
@@ -141,10 +141,10 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
             % a reasonable limit (1 and 21 mags, the quoted V-band depth of the
             % survey) and then to take the median
             % magnitude between whichever members of the four colors are sane.
-            
+
             mags = [B1mag(row),B2mag(row),R1mag(row),R2mag(row),I2mag(row)];
             sg = [B1sg(row),B2sg(row),R1sg(row),R2sg(row),I2sg(row)];
-            
+
             lambda_mag = [425,462.5,645,650,810];
             whpl = (mags < 20) & (mags > 1);
             if sum(whpl) > 1
@@ -161,18 +161,18 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                 nansgcnt = nansgcnt + 1;
                 thissg = 1;
             end
-            
+
             %find x/y coordinate of the object
             % [ypix(row), xpix(row)] = radec2pix(RA(row),DEC(row), datastruct.astrom); %done previously for speed (datastruct usage should prob be data instead)
-            
+
             % check if the object is in the image
             if xpix(row) >= 1-20 && xpix(row) <= xdim+20 && ypix(row) >= 1-20 && ypix(row) <= ydim+20
                 numinimg = numinimg + 1;
-                
+
                 % require that the magnitude is within sensible bounds
                 if thismag < max_mag & ~isnan(thismag) & thissg > 0
                     numinbnds = numinbnds + 1;
-                    
+
                     % this is responding to the observation that bright sources leave
                     % charge transfer tracks in these images.  These must be masked.  For
                     % sources brighter than V=7, we mask the row the star falls into.
@@ -184,13 +184,13 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                     if thismag < 10 & xpix(row) >= 1 && xpix(row) <= xdim && ypix(row) >= 1 && ypix(row) <= ydim
                         linemask(round(ypix(row)),:) = 1; % this does row
                     end
-                    
+
                     % another little piece of housekeeping; just making sure that we're
                     % keeping track of the magnitudes of stars that have made it this far.
                     mymag(row) = thismag;
                     myxpix(row) = xpix(row);
                     myypix(row) = ypix(row);
-                    
+
                     %determine radius of object
                     %             radius = round(-alpha.*(thismag - max_mag) + min_r) + -beta.*(thismag-bright_mag));
                     %             radius = 6000.*exp(-thismag)+2.5;
@@ -200,13 +200,13 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                         dbstop
                     end
                     %ints = mag_to_int(curr_mag, band); %calcuate the intesity at pix
-                    
+
                     %create submask of object (create array of 0's and 1's,
                     %where the 1's represnt to location of the objects in the
                     %submask). Basically a sqaure of 0's with a circle of 1's
                     [rr, cc] = meshgrid(1:2*radius+1);
                     Circle = sqrt((rr-radius-1).^2+(cc-radius-1).^2)<=radius;
-                    
+
                     %combined the submask (C) and mask (Z) where xpix, ypix is
                     %the center of the object
                     for i = 1:(2*radius+1)
@@ -234,10 +234,10 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                     numsgover = numsgover + 1;
                 end
             end
-            
+
             %if using gaia catalog
         elseif use_gaia == 1
-            
+
             %mags don't seem to have any wild values, so we'll use all of
             %them without restriction
             if errflag_mags == 1
@@ -245,22 +245,22 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
             elseif errflag_mags == 0
                 thismag = Gmag(row); %+ randn(1) .* 0.25; %need to know what is possible gaia mag error to change this value
             end
-                
+
             allmags(row) = thismag;
-            
+
             %find x/y coordinate of the object
             % [ypix(row), xpix(row)] = radec2pix(RA(row),DEC(row), data.astrom); %done previously for speed
-            
+
             % prepare to sum flux of object being masked
             fluxsum = 0;
             % check if the object is in the image
             if xpix(row) >= 1-20 && xpix(row) <= xdim+20 && ypix(row) >= 1-20 && ypix(row) <= ydim+20
                 numinimg = numinimg + 1;
-                
+
                 % require that the magnitude is within sensible bounds
                 if thismag < max_mag && ~isnan(thismag)
                     numinbnds = numinbnds + 1;
-                    
+
                     % this is responding to the observation that bright sources leave
                     % charge transfer tracks in these images.  These must be masked.  For
                     % sources brighter than V=7, we mask the row the star falls into.
@@ -268,18 +268,18 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                         linemask(:,round(xpix(row))) = 1; % this is set to mask column, not row
                         % so far, this isn't used in testing set or for lauer
                     end
-                        
+
                     % 13 mag seems to catch all stars that have artifacts
                     if thismag < 13 && xpix(row) >= 1 && xpix(row) <= xdim && ypix(row) >= 1 && ypix(row) <= ydim
                         linemask(round(ypix(row)),round(xpix(row)):end) = 1; % this does row from only middle of star to right side
                     end
-                    
+
                     % another little piece of housekeeping; just making sure that we're
                     % keeping track of the magnitudes of stars that have made it this far.
                     %                     mymag(row) = thismag;
                     %                     myxpix(row) = xpix(row);
                     %                     myypix(row) = ypix(row);
-                    
+
                     %determine radius of object
                     %             radius = round(-alpha.*(thismag - max_mag) + min_r) + -beta.*(thismag-bright_mag));
                     %             radius = 6000.*exp(-thismag)+2.5;
@@ -289,13 +289,13 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                         dbstop
                     end
                     %ints = mag_to_int(curr_mag, band); %calcuate the intesity at pix
-                    
+
                     %create submask of object (create array of 0's and 1's,
                     %where the 1's represnt to location of the objects in the
                     %submask). Basically a sqaure of 0's with a circle of 1's
                     [rr, cc] = meshgrid(1:2*radius+1);
                     Circle = sqrt((rr-radius-1).^2+(cc-radius-1).^2)<=radius;
-                    
+
                     %combined the submask (C) and mask (Z) where xpix, ypix is
                     %the center of the object
                     for i = 1:(2*radius+1)
@@ -314,14 +314,14 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
                             end
                         end
                     end
-                    
+
                     if fluxsum ~= 0
                         mymag(row) = thismag;
                         myxpix(row) = xpix(row);
                         myypix(row) = ypix(row);
                         myflux(row) = fluxsum;
                     end
-                    
+
                     %checks for why things are being excluded and how many
                 elseif thismag > max_mag
                     checkmag(row) = thismag;
@@ -332,11 +332,11 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
             end
         end
     end
-    
+
     %     min(mymag)
     myxpix = myxpix(myxpix~=0);
     myypix = myypix(myypix~=0);
-    
+
     if save_file == 1
         %keeping running lists of source mags, coordinates, and fluxes
         mymag = mymag(mymag~=0);
@@ -345,19 +345,19 @@ if new_star_mask == 1 || ~isfield(datastruct,'mask')
         %save list of stars to file
         %     star_list = horzcat(myxpix,myypix,mymag);
         star_list = horzcat(mymag,mycalflux);
-        
+
         filename = strcat(num2str(max_mag),'_mask.mat');
         save(filename,'star_list');
         %     filename = strcat(paths.starlistdir,datastruct.header.timestamp,'star_list.mat');
         %     save(filename,'star_list');
     end
-    
+
 elseif new_star_mask == 0
-    
+
     % If not repeating star mask creation, read in from data file
     starmask = datastruct.mask.starmask;
     linemask = datastruct.mask.linemask;
-    
+
 end
 %%%%%%%%%%%%%%%%%%
 %% thus ends the star catalog masking
@@ -416,100 +416,101 @@ end
 %% here begins the clip masking
 %% first, compute the mean and std of the unmasked pixels
 
-if strcmp(flag_method,'new') == 1
-    % 3-round clip mask
-    for iter=1:3
-        if iter == 1
-            clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-            clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-            % now find all unmasked pixels > 3 sigma away from the mean
-            % This method does +/- 3sig from mean, which could overclip on the negative side since the tail tends to be positive
-%             whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
-%                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
-            % This method does + 3sig from mean on abs(data) so neg side not clipped as hard as pos
-            whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
-                ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
-            clipmask(whpl) = 1;
-        elseif iter == 2
-            clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
-            clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
-            % now find all unmasked pixels > 3 sigma away from the mean
-            whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
-                ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
-            clipmask(whpl) = 1;
-        elseif iter == 3
-            clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
-            clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
-            % now find all unmasked pixels > 2 sigma away from the mean
-            whpl = (abs(datastruct.data) > clipmean + (nsig-1).*clipstd) &...
-                ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
-            clipmask(whpl) = 1;
+if flg_clip == 1
+    if strcmp(flag_method,'new') == 1
+        % 3-round clip mask
+        for iter=1:3
+            if iter == 1
+                clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+                clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+                % now find all unmasked pixels > 3 sigma away from the mean
+                % This method does +/- 3sig from mean, which could overclip on the negative side since the tail tends to be positive
+                %             whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
+                %                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+                % This method does + 3sig from mean on abs(data) so neg side not clipped as hard as pos
+                whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
+                    ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+                clipmask(whpl) = 1;
+            elseif iter == 2
+                clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+                clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+                % now find all unmasked pixels > 3 sigma away from the mean
+                whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
+                    ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
+                clipmask(whpl) = 1;
+            elseif iter == 3
+                clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+                clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+                % now find all unmasked pixels > 2 sigma away from the mean
+                whpl = (abs(datastruct.data) > clipmean + (nsig-1).*clipstd) &...
+                    ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
+                clipmask(whpl) = 1;
+            end
         end
+        % 2-round clip mask
+        %     for iter=1:2
+        %         if iter == 1
+        %             clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+        %             clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+        %             % now find all unmasked pixels > 3 sigma away from the mean
+        %             % This method does +/- 3sig from mean, which could overclip on the negative side since the tail tends to be positive
+        % %             whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
+        % %                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+        %             % This method does + 3sig from mean on abs(data) so neg side not clipped as hard as pos
+        %             whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
+        %                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+        %             clipmask(whpl) = 1;
+        %         elseif iter > 1
+        %             clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+        %             clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
+        %             % now find all unmasked pixels > 3 sigma away from the mean
+        %             whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
+        %                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
+        %             clipmask(whpl) = 1;
+        %         end
+        %     end
+
+    elseif strcmp(flag_method,'old') == 1
+        clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+        clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+
+        % old way - seems wrong - instead of masking data >/< mean +/- nsig*std it
+        % masks abs(data) > mean + nsig*std, this assumes mean is ~0 and
+        % gaussian is symmetric around 0, but mean is positive so mean - nsig*std not
+        % the same as mean + nsig*std
+        whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) & ...
+            ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+
+        % and set the mask bit
+        clipmask(whpl) = 1;
+
+    elseif strcmp(flag_method,'old_corr') == 1
+
+        clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+        clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
+
+        % now find all unmasked pixels > 3 sigma away from the mean
+        whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
+            ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+
+
+        %     % Median Option see https://stackoverflow.com/questions/11686720/is-there-a-numpy-builtin-to-reject-outliers-from-a-list
+        %     clipmedian = median(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask)); %  Get the median of the data
+        %     clipmediandist = abs(clipmedian - datastruct.data); % Get the absolute distance between the data and the median of the data
+        %     clipmediandistcompare = clipmediandist/clipmedian; % Scale the dist from the median by the median of the dist from the median
+        %     whpl = (clipmediandistcompare > 3.5) &... % Get where the scaled dist is greater than the comparator value
+        %         ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+
+        % whpl = (abs(datastruct.data) > 10) & ...
+        %     ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
+
+        % and set the mask bit
+        clipmask(whpl) = 1;
     end
-    % 2-round clip mask
-%     for iter=1:2
-%         if iter == 1
-%             clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-%             clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-%             % now find all unmasked pixels > 3 sigma away from the mean
-%             % This method does +/- 3sig from mean, which could overclip on the negative side since the tail tends to be positive
-% %             whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
-% %                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
-%             % This method does + 3sig from mean on abs(data) so neg side not clipped as hard as pos
-%             whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
-%                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
-%             clipmask(whpl) = 1;
-%         elseif iter > 1
-%             clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
-%             clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask));
-%             % now find all unmasked pixels > 3 sigma away from the mean
-%             whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) &...
-%                 ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask & ~clipmask;
-%             clipmask(whpl) = 1;
-%         end
-%     end
-    
-elseif strcmp(flag_method,'old') == 1
-    clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-    clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-    
-    % old way - seems wrong - instead of masking data >/< mean +/- nsig*std it
-    % masks abs(data) > mean + nsig*std, this assumes mean is ~0 and
-    % gaussian is symmetric around 0, but mean is positive so mean - nsig*std not
-    % the same as mean + nsig*std
-    whpl = (abs(datastruct.data) > clipmean + nsig.*clipstd) & ...
-        ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
-    
-    % and set the mask bit
-    clipmask(whpl) = 1;
-    
-elseif strcmp(flag_method,'old_corr') == 1
-    
-    clipmean = mean(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-    clipstd = std(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask));
-    
-    % now find all unmasked pixels > 3 sigma away from the mean
-    whpl = ((datastruct.data > clipmean + nsig.*clipstd) | (datastruct.data < clipmean - nsig.*clipstd)) &...
-        ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
-    
-    
-    %     % Median Option see https://stackoverflow.com/questions/11686720/is-there-a-numpy-builtin-to-reject-outliers-from-a-list
-    %     clipmedian = median(datastruct.data(~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask)); %  Get the median of the data
-    %     clipmediandist = abs(clipmedian - datastruct.data); % Get the absolute distance between the data and the median of the data
-    %     clipmediandistcompare = clipmediandist/clipmedian; % Scale the dist from the median by the median of the dist from the median
-    %     whpl = (clipmediandistcompare > 3.5) &... % Get where the scaled dist is greater than the comparator value
-    %         ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
-    
-    % whpl = (abs(datastruct.data) > 10) & ...
-    %     ~starmask & ~linemask & ~statmask & ~manmask & ~ghostmask;
-    
-    % and set the mask bit
-    clipmask(whpl) = 1;
+elseif flg_clip == 0
+    % Turn off clip mask
+    clipmask = zeros(size(datastruct.data));
 end
-
-% Turn off clip mask
-%     clipmask = zeros(size(datastruct.data));
-
 %%%%%%%%%%%%%%%%%
 %%  now create the union of all of the masks as a bitwise mask
 whpl = starmask == 1;
@@ -537,7 +538,7 @@ datstd = std(datastruct.data(~fullmask)./ data.astrom.exptime);
 % create a mask which is just 1 everywhere there is a bad pixel, no matter
 % the reason
 onemask = fullmask > 0;
-oneghostlessmask = ghostlessmask > 0; % mask without ghostmask, used in ghost_analysis for diff ghost fit 
+oneghostlessmask = ghostlessmask > 0; % mask without ghostmask, used in ghost_analysis for diff ghost fit
 
 % % Calculate peak hist of masked image
 % %Preallocate for edge values of peak histogram value
@@ -621,7 +622,7 @@ datastruct.stats.maskerr = datstd ./ sqrt(256.^2 - sum(onemask(:)));
 % set(gca,'Color',[0 0.4470 0.7410]) %make nans matlab-blue
 % set(h,'Color',[1 1 1]) %make background pure white (good for editing)
 % colormap(gca,'gray')
-% 
+%
 % % set (gcf, 'WindowButtonMotionFcn', @mouseMove);
 % a = colorbar;
 % a.Label.String = 'Intensity [DN]';

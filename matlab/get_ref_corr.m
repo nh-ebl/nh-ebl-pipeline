@@ -17,6 +17,8 @@ npaths = get_paths_new();
 lpaths = get_paths_lauer();
 wpaths = get_paths_newest();
 
+%dark data sourced from new data directory
+ndarkfiles = dir(sprintf('%s*.mat',npaths.darkdir));
 %old light data
 lightfiles = dir(sprintf('%s*.mat',paths.datadir));
 %new light data
@@ -170,6 +172,40 @@ lightbad = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewest
 lightref_mean = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1); 
 lightbias = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1); 
 lightexptime = zeros((numoldlightfiles+numnewlightfiles+numlauerlightfiles+numnewestlightfiles),1);
+
+%Preallocate space for variables dark
+darkdate = zeros(size(ndarkfiles,1),1);
+darksig = zeros(size(ndarkfiles,1),1);
+darksig_dns = zeros(size(ndarkfiles,1),1);
+darkref = zeros(size(ndarkfiles,1),1);
+darkref_dns = zeros(size(ndarkfiles,1),1);
+darkref_mean = zeros(size(ndarkfiles,1),1);
+darkexptime = zeros(size(ndarkfiles,1),1);
+darkbias = zeros(size(ndarkfiles,1),1);
+darktemp = zeros(size(ndarkfiles,1),1);
+
+%For dark data files
+fprintf('Loading dark data \n');
+for ifile=1:size(ndarkfiles)
+    %Load data and save values
+    dataz = load(sprintf('%s%s',npaths.darkdir,ndarkfiles(ifile).name));
+    data = dataz.data; %lets par work
+    %Retrieve raw data 
+    darkstring = sprintf('%s%s',npaths.engdirold,data.ref.file); %Build path to raw data file
+    ref_i = fitsread(sprintf('%s',darkstring));
+    temp_ref = ref_i(:,1:256); %Just raw data, not ref col
+    data.ref.engmean = mean(temp_ref(:)); %No mask available
+    %Save mean of raw data and reference data
+    darktemp(ifile,1) = data.header.ccdtemp;
+    darkdate(ifile,1) = data.header.date_jd - data.header.launch_jd;
+    darksig(ifile,1) = data.ref.engmean;
+    darksig_dns(ifile,1) = data.ref.engmean/data.header.exptime;
+    darkref(ifile,1) = nh_sigclip(data.ref.line);
+    darkref_dns(ifile,1) = nh_sigclip(data.ref.line)/data.header.exptime;
+    darkref_mean(ifile,1) = mean(data.ref.line);
+    darkbias(ifile,1) = median(data.ref.line);
+    darkexptime(ifile,1) = data.header.exptime;  
+end
 
 %For old data files
 fprintf('Loading old data \n');
@@ -415,6 +451,81 @@ end
 %     sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
 %     ,'Location','northeast');
 
+%Plot relationship with 538 DN subtracted and normalized for integration
+%time - dark only
+figure(); clf
+hold on;
+% Axis labels
+xlabel('(Mean of Unmasked Raw Image Pixels)/Exp. Time [DN/s]')
+ylabel('(Sigma-Clipped Mean of Reference Pixels)/Exp. Time [DN/s]')
+% ylabel('Mean of Reference Pixels - 538 [DN]')
+% ylabel('Median/Robust Mean of Reference Pixels - 538 [DN]')
+% X data
+lightsigsub = darksig; % Mean of Unmasked Raw Image Pixels
+% lightsigsub(1:26,1) = lightsigsub(1:26,1)/9.967;
+% lightsigsub(27:329,1) = lightsigsub(27:329,1)/9.967;
+% lightsigsub(330:649,1) = lightsigsub(330:649,1)/29.9676;
+lightsigsub = lightsigsub./darkexptime; %divide by exposure time automagically
+goodlightsig = lightsigsub;
+% Y data
+lightrefsub = darkref; % Sigma-clipped mean of ref pix
+% lightrefsub(1:26,1) = lightrefsub(1:26,1)/9.967;
+% lightrefsub(27:329,1) = lightrefsub(27:329,1)/9.967;
+% lightrefsub(330:649,1) = lightrefsub(330:649,1)/29.9676;
+lightrefsub = lightrefsub./darkexptime; %divide by exposure time automagically
+goodlightref = lightrefsub;
+% goodlightref = lightref_mean(lightbad<1,1)-538; % Actual mean
+% goodlightref = lightbias(lightbad<1,1)-538; % Recorded bias (median or robust mean)
+% Color data
+% goodlightfield = lightfield(lightbad<1,1);
+goodlightdate = darkdate;
+% goodlightfpubtemp = lightfpubtemp(lightbad<1,1);
+% Scatter plot
+r = scatter(goodlightsig,goodlightref,20,'MarkerEdgeColor','#77AC30','MarkerFaceColor','#77AC30'); % All points red
+% r = scatter(goodlightsig,goodlightref,[],goodlightfield); % Points color-coded by field number
+% r = scatter(goodlightsig,goodlightref,[],goodlightdate); % Points color-coded by date
+% r = scatter(goodlightsig,goodlightref,[],goodlightfpubtemp); % Points color-coded by fpub temp
+% g = colorbar; % If needed
+% Plot x = y
+% x = [535:550]-538;
+% y = [535:550]-538;
+x = [0:0.1:0.8];
+y = [0:0.1:0.8];
+xy = plot(x,y,'Color','#7E2F8E');
+% xlim([0,0.6])
+% ylim([-2,12]);
+% Basic linear fit
+[fitobject,gof,output] = fit(goodlightsig,goodlightref,'poly1');
+xfit=linspace(0,0.8);
+yfit=(fitobject.p1*xfit + fitobject.p2);
+% fitwut = plot(xfit,yfit,'b');
+% Fit with slope = 1
+mdl = fitlm(goodlightsig,goodlightref-1*goodlightsig,'constant');
+yfit=(1*xfit + mean(mdl.Fitted));
+% fitwut_constslope = plot(xfit,yfit,'m');
+% Calculate rejected points
+k = goodlightsig >= goodlightref; %get where goodlightref (y on plot) are under y=x line, (1*goodlightsig-0) is the full math for future ref
+goodlightsig_rejection = goodlightsig(k);
+goodlightref_rejection = goodlightref(k);
+% Fit with slope = 1 and points above x=y rejected
+mdl_rejection = fitlm(goodlightsig_rejection,goodlightref_rejection-1*goodlightsig_rejection,'constant');
+yfit=(1*xfit + mean(mdl_rejection.Fitted));
+fitwut_constslope_rejection = plot(xfit,yfit,'Color','k');
+% Robust fit w/ default weighting - this is the good one being used for ref corr
+mdl_robust = fitlm(goodlightsig,goodlightref,'RobustOpts','on');
+yfit=(mdl_robust.Coefficients{2,1}*xfit + mdl_robust.Coefficients{1,1});
+fitwut_robust = plot(xfit,yfit,'Color','#4DBEEE');
+% Huber weighting
+mdl_robust_huber = fitlm(goodlightsig,goodlightref,'RobustOpts','huber');
+yfit=(mdl_robust_huber.Coefficients{2,1}*xfit + mdl_robust_huber.Coefficients{1,1});
+fitwut_robust_huber = plot(xfit,yfit,'Color','#D95319');
+% Legend
+legend([xy  fitwut_constslope_rejection fitwut_robust fitwut_robust_huber], ...
+    {'X = Y', ...
+    sprintf('Linear Fit (above X=Y rejected): y = 1x + %.3f',mean(mdl_rejection.Fitted)),...
+    sprintf('Robust Bisquare Fit: y = %.3fx + %.3f',mdl_robust.Coefficients{2,1},mdl_robust.Coefficients{1,1}),...
+    sprintf('Robust Huber Fit: y = %.3fx + %.3f',mdl_robust_huber.Coefficients{2,1},mdl_robust_huber.Coefficients{1,1})}...
+    ,'Location','northwest');
 
 %Plot relationship with 538 DN subtracted and normalized for integration
 %time - this is the one that gives the ref corr

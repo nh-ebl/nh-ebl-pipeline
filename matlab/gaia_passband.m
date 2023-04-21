@@ -7,12 +7,16 @@ close all
 % read in the Gaia file
 [gaia_lambda,gaia_trans,null,null,null,null,null] = textread('lookup/GaiaDR2_Passbands.dat','%f %f %f %f %f %f %f');
 
+% read in the CCD file
+[ccd_lambda,ccd_trans] = textread('lookup/CCD47-20_midband.txt','%f, %f');
+
 % Plot original
 
 figure(1)
 plot(filt_lambda,filt_trans)
 hold on
 plot(gaia_lambda(gaia_trans~=99.99),gaia_trans(gaia_trans~=99.99))
+plot(ccd_lambda,ccd_trans)
 xlabel('Wavelength [nm]')
 ylabel('Transmissivity')
 
@@ -23,22 +27,43 @@ figure(2)
 plot(filt_lambda,filt_trans./max(filt_trans))
 hold on
 plot(gaia_lambda(gaia_trans~=99.99),gaia_trans(gaia_trans~=99.99))
+plot(ccd_lambda,ccd_trans)
 xlabel('Wavelength [nm]')
 ylabel('Transmissivity')
 
 lorri_pivot_trans = interp1(filt_lambda,filt_trans./max(filt_trans),607.62); % Get lorri_pivot_trans value at pivot lambda
 
-gaia_pivot_trans = interp1(gaia_lambda,gaia_trans,607.62); % Get gaia_pivot_trans value at pivot lambda
+gaia_pivot_trans = interp1(gaia_lambda,gaia_trans./max(gaia_trans),607.62); % Get gaia_pivot_trans value at pivot lambda
 
-gaia_trans_scaled = gaia_trans./gaia_pivot_trans.*lorri_pivot_trans; % Scale gaia_trans to lorri_pivot_trans value at pivot lambda
+gaia_trans_scaled = (gaia_trans./max(gaia_trans))./gaia_pivot_trans.*lorri_pivot_trans; % Scale gaia_trans to lorri_pivot_trans value at pivot lambda
+
+ccd_pivot_trans = interp1(ccd_lambda,ccd_trans./max(ccd_trans),607.62); % Get ccd_pivot_trans value at pivot lambda
+
+ccd_trans_scaled = (ccd_trans./max(ccd_trans))./ccd_pivot_trans.*lorri_pivot_trans; % Scale ccd_trans to lorri_pivot_trans value at pivot lambda
 
 % Plot filt and gaia scaled
 figure(3)
 plot(filt_lambda,filt_trans./max(filt_trans))
 hold on
-plot(gaia_lambda(gaia_trans~=99.99),gaia_trans_scaled(gaia_trans~=99.99))
+plot(gaia_lambda(gaia_trans~=99.99),gaia_trans_scaled(gaia_trans~=99.99)./max(gaia_trans_scaled(gaia_trans~=99.99)))
+plot(ccd_lambda,ccd_trans_scaled./max(ccd_trans_scaled))
+ylim([0 1.1])
+xlim([300 1100])
 xlabel('Wavelength [nm]')
-ylabel('Transmissivity')
+ylabel('Relative Transmissivity')
+legend('LORRI','Gaia','CCD')
+
+% Plot filt and gaia scaled
+figure(4)
+plot(filt_lambda,filt_trans./max(filt_trans))
+hold on
+plot(gaia_lambda(gaia_trans~=99.99),gaia_trans(gaia_trans~=99.99)./max(gaia_trans(gaia_trans~=99.99)))
+plot(ccd_lambda,ccd_trans./max(ccd_trans))
+ylim([0 1.1])
+xlim([300 1100])
+xlabel('Wavelength [nm]')
+ylabel('Relative Transmissivity')
+legend('LORRI','Gaia','CCD')
 
 filt_integral = trapz(filt_lambda,filt_trans./max(filt_trans)); % Integrate under the pivot-wavelength-scaled curve
 gaia_integral = trapz(gaia_lambda(gaia_trans~=99.99),gaia_trans_scaled(gaia_trans~=99.99)); % Integrate under the pivot-wavelength-scaled curve
